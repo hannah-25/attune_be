@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: attune
+
+  # ?? ??? ?? (local ??)
+  profiles:
+    default: dev
+
+  # application-secret.yml import (???? ???)
+  config:
+    import:
+      - optional:classpath:application-secret.yml
+
+  jpa:
+    # ?? JPA ??
+    open-in-view: false
+
+
+# Springdoc OpenAPI (Swagger) ??
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    doc-expansion: none
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+
+
+# Spring Boot Actuator ??
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+  health:
+    db:
+      enabled: false
+    diskspace:
+      enabled: false
+
+
+
+# ?? ?? ??
+logging:
+  pattern:
+    console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
