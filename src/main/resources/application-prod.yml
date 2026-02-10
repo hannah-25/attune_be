@@ -1,0 +1,58 @@
+# Prod 환경 설정 (MySQL 8.4.x 사용)
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000  # 30초 타임아웃
+      idle-timeout: 600000       # 10분 미사용 연결 제거
+      max-lifetime: 1800000      # 30분 최대 수명
+      leak-detection-threshold: 60000  # 1분 후 커넥션 릭 감지
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # 운영환경에서는 validate만 사용
+    show-sql: false
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: false
+
+# 운영환경 로깅 설정
+logging:
+  level:
+    root: WARN  # 모든 로그: WARNING 이상만
+    attune: INFO # 내 코드: INFO 이상만
+  file:
+    name: /var/log/attune-me/app.log # 로그 파일 경로
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30  # 30일 보관
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+
+# 운영환경 보안 설정
+server:
+  error:
+    include:
+      message: never
+      binding-errors: never
+      stacktrace: never
+
+
+# 운영환경에서 Swagger 비활성화 (보안)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+
+# AWS 운영 CORS (엄격) - 운영에서는 정확한 도메인만 허용
+cors:
+  allowed-origin-patterns:
+    - "https://attune-me.com"            # 메인 도메인
+    - "https://www.attune-me.com"        # www 도메인
+    - "https://api.attune-me.com"        # API 도메인

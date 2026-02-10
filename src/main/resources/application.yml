@@ -2,21 +2,19 @@ spring:
   application:
     name: attune
 
-  # ?? ??? ?? (local ??)
   profiles:
     default: dev
 
-  # application-secret.yml import (???? ???)
+  # application-secret.yml import
   config:
     import:
       - optional:classpath:application-secret.yml
 
   jpa:
-    # ?? JPA ??
-    open-in-view: false
+    open-in-view: false # OSIV 비활성화 (성능/안정성 향상)
 
 
-# Springdoc OpenAPI (Swagger) ??
+# Springdoc OpenAPI (Swagger)
 springdoc:
   api-docs:
     enabled: true
@@ -38,8 +36,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, info, metrics
       base-path: /actuator
+  metrics:
+    export:
+      simple:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
   endpoint:
     health:
       show-details: never
@@ -52,7 +56,7 @@ management:
 
 
 
-# ?? ?? ??
+# Logging 설정
 logging:
   pattern:
     console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
