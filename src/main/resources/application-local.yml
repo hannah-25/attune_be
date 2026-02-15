@@ -1,0 +1,40 @@
+# Local 환경 설정 (로컬 개발 PC용, MySQL 8.4.x)
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false # 로그로 SQL 보려면 false 유지
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true # SQL 예쁘게 보기
+        highlight_sql: true # SQL 하이라이트
+
+
+# 로컬 로깅 설정
+logging:
+  level:
+    attune: DEBUG # 내 코드: 모든 디버그 로그
+    org.springframework.web: DEBUG  # 스프링 웹 계층: 모든 로그
+    org.hibernate.SQL: DEBUG        # SQL문 보기
+    org.hibernate.type: TRACE       # 파라미터 값 보기
+    org.hibernate.orm.jdbc.bind: TRACE  # 바인딩 값 상세히
+    org.springframework.security: INFO   # 필요할 때만 DEBUG로
+
+
+# 로컬 CORS
+cors:
+  allowed-origin-patterns:
+    - "http://localhost:*"
+    - "http://127.0.0.1:*"
+    - "http://[::1]:*"

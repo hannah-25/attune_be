@@ -50,9 +50,8 @@ springdoc:
     enabled: false
 
 
-# AWS 운영 CORS (엄격) - 운영에서는 정확한 도메인만 허용
+# 운영 CORS (엄격) - 프론트엔드 도메인만 허용
 cors:
   allowed-origin-patterns:
-    - "https://attune-me.com"            # 메인 도메인
-    - "https://www.attune-me.com"        # www 도메인
-    - "https://api.attune-me.com"        # API 도메인
+    - "https://attune-me.com"
+    - "https://www.attune-me.com"

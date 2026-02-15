@@ -3,7 +3,7 @@ spring:
     name: attune
 
   profiles:
-    default: dev
+    default: local
 
   # application-secret.yml import
   config:
