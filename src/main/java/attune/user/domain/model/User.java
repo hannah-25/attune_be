@@ -1,11 +1,21 @@
 package attune.user.domain.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 
 import java.util.UUID;
 
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @Entity
 public class User {
 
@@ -18,8 +28,11 @@ public class User {
 
     private String nickname;
 
-    private Enum<UserType> userType;
-    private Enum<UserStatus> userStatus;
+    @Enumerated(EnumType.STRING)
+    private UserType userType;
+
+    @Enumerated(EnumType.STRING)
+    private UserStatus userStatus;
 
     private String provider;
     private String providerId;
@@ -28,7 +41,6 @@ public class User {
 
     private Boolean alarmPush;
     private Boolean isOnboarded;
-
 
 
 }
