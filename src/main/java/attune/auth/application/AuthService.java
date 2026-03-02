@@ -1,6 +1,7 @@
 package attune.auth.application;
 
 import attune.auth.application.dto.request.LoginRequest;
+import attune.auth.application.dto.response.AuthResult;
 import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.domain.model.RefreshToken;
 import attune.auth.domain.repository.RefreshTokenRepository;
@@ -34,9 +35,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public LoginResponse login(LoginRequest request) {
-        // AuthenticationManager가 CustomUserDetailsService를 통해 인증 수행
-        // 비밀번호 불일치, 계정 비활성 등은 여기서 예외 발생
+    public AuthResult login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
@@ -45,23 +44,21 @@ public class AuthService {
         User user = userRepository.findById(userDetails.getId())
                 .orElseThrow(UserNotFoundException::new);
 
-        // Access Token 생성
         String accessToken = jwtTokenGenerator.generateAccessToken(user);
-
-        // Refresh Token 생성 및 DB 저장
         String refreshToken = jwtTokenGenerator.generateRefreshToken(user);
         saveRefreshToken(user.getId(), refreshToken);
 
-        return new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration());
+        return new AuthResult(
+                new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration()),
+                refreshToken
+        );
     }
 
-    public LoginResponse reissue(String refreshToken) {
-        // 토큰 유효성 검증
+    public AuthResult reissue(String refreshToken) {
         if (!jwtTokenValidator.validateToken(refreshToken) || jwtTokenValidator.isTokenExpired(refreshToken)) {
             throw new TokenException("리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.");
         }
 
-        // DB에 저장된 RT와 일치하는지 확인
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> new TokenException("유효하지 않은 리프레시 토큰입니다."));
 
@@ -74,32 +71,14 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
-        // 새 토큰 발급
         String newAccessToken = jwtTokenGenerator.generateAccessToken(user);
         String newRefreshToken = jwtTokenGenerator.generateRefreshToken(user);
-
-        // DB의 RT 갱신
         storedToken.updateToken(newRefreshToken, calculateRefreshTokenExpiry());
 
-        return new LoginResponse(newAccessToken, jwtConfig.getAccessTokenExpiration());
-    }
-
-    public String getNewRefreshToken(String oldRefreshToken) {
-        // reissue 시 새로 생성된 RT를 Controller에서 Cookie로 설정하기 위해 조회
-        UUID userId = jwtTokenValidator.getUserIdFromToken(oldRefreshToken);
-        RefreshToken storedToken = refreshTokenRepository.findByUserId(userId)
-                .orElseThrow(() -> new TokenException("리프레시 토큰을 찾을 수 없습니다."));
-        return storedToken.getToken();
-    }
-
-    public UUID getUserIdFromAccessToken(String accessToken) {
-        return jwtTokenValidator.getUserIdFromToken(accessToken);
-    }
-
-    public String getRefreshTokenByUserId(UUID userId) {
-        RefreshToken storedToken = refreshTokenRepository.findByUserId(userId)
-                .orElseThrow(() -> new TokenException("리프레시 토큰을 찾을 수 없습니다."));
-        return storedToken.getToken();
+        return new AuthResult(
+                new LoginResponse(newAccessToken, jwtConfig.getAccessTokenExpiration()),
+                newRefreshToken
+        );
     }
 
     public void logout(UUID userId) {

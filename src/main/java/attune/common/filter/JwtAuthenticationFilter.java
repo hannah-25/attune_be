@@ -1,6 +1,9 @@
 package attune.common.filter;
 
+import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtTokenValidator;
+import attune.user.domain.model.UserStatus;
+import attune.user.domain.model.UserType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,14 +11,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -57,13 +58,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 인증 객체 생성
         try{
             UUID userId = jwtTokenValidator.getUserIdFromToken(token);
-            String userType = jwtTokenValidator.getUserTypeFromToken(token);
+            UserType userType = UserType.valueOf(jwtTokenValidator.getUserTypeFromToken(token));
+            UserStatus userStatus = UserStatus.valueOf(jwtTokenValidator.getUserStatusFromToken(token));
 
-            List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + userType));
+            CustomUserDetails userDetails = CustomUserDetails.fromJwt(userId, userType, userStatus);
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-            // 인증 처리
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
 

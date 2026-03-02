@@ -1,0 +1,17 @@
+# Local 환경 설정 (MySQL)
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+
+# 로컬 로깅 설정
+logging:
+  level:
+    attune: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

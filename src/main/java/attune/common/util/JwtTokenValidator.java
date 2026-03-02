@@ -76,11 +76,20 @@ public class JwtTokenValidator {
 
     public String getUserTypeFromToken(String accessToken){
         Claims claims = parseToken(accessToken);
-        String userType = claims.get("userType", String.class);
+        String userType = claims.get("role", String.class);
         if(userType == null){
-            throw new JwtException("Required 'userType' claim is missing from the token");
+            throw new JwtException("Required 'role' claim is missing from the token");
         }
         return userType;
+    }
+
+    public String getUserStatusFromToken(String accessToken){
+        Claims claims = parseToken(accessToken);
+        String status = claims.get("status", String.class);
+        if(status == null){
+            throw new JwtException("Required 'status' claim is missing from the token");
+        }
+        return status;
     }
 
 

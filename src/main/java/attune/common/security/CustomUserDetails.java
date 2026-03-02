@@ -31,6 +31,14 @@ public class CustomUserDetails implements UserDetails {
         );
     }
 
+    public static CustomUserDetails fromJwt(UUID id, UserType userType, UserStatus userStatus) {
+        return new CustomUserDetails(
+                id, null, null, userType,
+                List.of(new SimpleGrantedAuthority("ROLE_" + userType.name())),
+                userStatus
+        );
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
