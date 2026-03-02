@@ -1,6 +1,8 @@
 package attune.user.adapter.web;
 
+import attune.common.security.CustomUserDetails;
 import attune.user.application.UserAccountService;
+import attune.user.application.dto.request.ChangePasswordRequest;
 import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,10 +12,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
 
 @Tag(name = "UserAccount", description = "유저 계정 API")
 @RestController
@@ -33,5 +34,19 @@ public class UserAccountController {
             @Valid @RequestBody CreateUserRequest request
     ) {
         return ResponseEntity.ok(userAccountService.signup(request));
+    }
+
+    @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "변경 성공"),
+            @ApiResponse(responseCode = "400", description = "현재 비밀번호 불일치")
+    })
+    @PatchMapping("/password")
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        userAccountService.changePassword(userDetails.getId(), request);
+        return ResponseEntity.noContent().build();
     }
 }

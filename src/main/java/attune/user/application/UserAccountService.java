@@ -1,6 +1,9 @@
 package attune.user.application;
 
 import attune.common.error.DuplicateEmailException;
+import attune.common.error.InvalidPasswordException;
+import attune.common.error.notfound.UserNotFoundException;
+import attune.user.application.dto.request.ChangePasswordRequest;
 import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import attune.user.domain.model.User;
@@ -45,5 +48,16 @@ public class UserAccountService {
         userSettingRepository.save(UserSetting.createDefault(savedUser));
 
         return new CreateUserResponse(user.getEmail());
+    }
+
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new InvalidPasswordException();
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
     }
 }
