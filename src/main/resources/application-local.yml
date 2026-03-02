@@ -13,24 +13,22 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false # 로그로 SQL 보려면 false 유지
+    show-sql: true
     database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
-        format_sql: true # SQL 예쁘게 보기
-        highlight_sql: true # SQL 하이라이트
-
+        format_sql: true
+        highlight_sql: true
 
 # 로컬 로깅 설정
 logging:
   level:
-    attune: DEBUG # 내 코드: 모든 디버그 로그
-    org.springframework.web: DEBUG  # 스프링 웹 계층: 모든 로그
-    org.hibernate.SQL: DEBUG        # SQL문 보기
-    org.hibernate.type: TRACE       # 파라미터 값 보기
-    org.hibernate.orm.jdbc.bind: TRACE  # 바인딩 값 상세히
-    org.springframework.security: INFO   # 필요할 때만 DEBUG로
-
+    attune: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type: TRACE
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.security: INFO
 
 # 로컬 CORS
 cors:

@@ -37,7 +37,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // 스프링 시큐리티의 인증 매니저 빈
+    // 스프링 시큐리티의 인증 매니저 빈 -> 내부적으로 UserDetailsService 사용함!
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
@@ -67,17 +67,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // ✅ 헬스/인포는 무조건 허용
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/health/**").permitAll()
+
                         // 인증 관련 엔드포인트
-                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/api/users/account/signup", "/api/auth/login","/api/auth/reissue"
-                        ).permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/api/users/account/signup", "/api/auth/login","/api/auth/reissue").permitAll()
 
                         // 개발/문서화 도구
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
 
                         //Health Check
-                        .requestMatchers("/api/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
@@ -114,7 +113,6 @@ public class SecurityConfig {
         //Authorization, Content-Type, X-Custom-Header 등
         //Preflight 검사 영향: Access-Control-Request-Headers
         configuration.addAllowedHeader("*");
-
 
 
         // 브라우저 보안 정책: CORS 요청시 안전한 헤더만 자동으로 노출
