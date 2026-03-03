@@ -71,7 +71,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/health/**").permitAll()
 
                         // 인증 관련 엔드포인트
-                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/api/users/account/signup", "/api/auth/login","/api/auth/reissue").permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/api/account/signup", "/api/auth/login", "/api/auth/reissue").permitAll()
+
+                        // 비밀번호 재설정 (비로그인 허용)
+                        .requestMatchers("/api/account/password/reset/**").permitAll()
 
                         // 개발/문서화 도구
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()

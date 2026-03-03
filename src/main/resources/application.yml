@@ -13,6 +13,17 @@ spring:
   jpa:
     open-in-view: false # OSIV 비활성화 (성능/안정성 향상)
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
 
 # Springdoc OpenAPI (Swagger)
 springdoc:
@@ -55,6 +66,10 @@ management:
       enabled: false
 
 
+
+# 앱 공통 설정
+app:
+  frontend-url: http://localhost:3000
 
 # Logging 설정
 logging:
