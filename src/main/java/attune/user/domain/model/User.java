@@ -42,5 +42,7 @@ public class User {
     private Boolean alarmPush;
     private Boolean isOnboarded;
 
-
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }

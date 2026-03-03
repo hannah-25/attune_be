@@ -1,9 +1,12 @@
 package attune.common.filter;
 
 import attune.common.security.CustomUserDetails;
-import attune.common.util.JwtTokenValidator;
+import attune.common.util.JwtProvider;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,7 +27,7 @@ import java.util.UUID;
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenValidator jwtTokenValidator;
+    private final JwtProvider jwtProvider;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -41,25 +44,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 토큰 유효성 및 만료 검증
-        if(!jwtTokenValidator.validateToken(token) || jwtTokenValidator.isTokenExpired(token) ){
-
-        // 만료된 토큰의 경우 401 응답
-            if(jwtTokenValidator.isTokenExpired(token)){
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("{\"error\":\"Access token expired\"}");
-                return;
-            }
+        // 토큰 파싱 (1회) - 유효성 검증 + 만료 확인 + claims 추출
+        Claims claims;
+        try {
+            claims = jwtProvider.parseToken(token);
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\":\"Access token expired\"}");
+            return;
+        } catch (JwtException | IllegalArgumentException e) {
             filterChain.doFilter(request, response);
             return;
         }
 
-
         // 인증 객체 생성
-        try{
-            UUID userId = jwtTokenValidator.getUserIdFromToken(token);
-            UserType userType = UserType.valueOf(jwtTokenValidator.getUserTypeFromToken(token));
-            UserStatus userStatus = UserStatus.valueOf(jwtTokenValidator.getUserStatusFromToken(token));
+        try {
+            UUID userId = UUID.fromString(claims.getSubject());
+            UserType userType = UserType.valueOf(claims.get("role", String.class));
+            UserStatus userStatus = UserStatus.valueOf(claims.get("status", String.class));
 
             CustomUserDetails userDetails = CustomUserDetails.fromJwt(userId, userType, userStatus);
             UsernamePasswordAuthenticationToken authentication =
@@ -67,8 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-
-        } catch (Exception e){
+        } catch (Exception e) {
             // 에러 로그 남기고 SecurityContext 초기화
             log.error("JWT 토큰 처리 중 오류 발생 : {}", e.getMessage());
             SecurityContextHolder.clearContext();
