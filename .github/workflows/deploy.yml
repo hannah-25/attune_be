@@ -61,6 +61,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
             # 환경변수 파일 생성 (권한 제한)
             cat > /home/${{ secrets.EC2_USERNAME }}/.attune.env << 'EOF'
             SPRING_PROFILES_ACTIVE=prod
@@ -75,6 +76,9 @@ jobs:
             APP_FRONTEND_URL=${{ secrets.APP_FRONTEND_URL }}
             EOF
             chmod 600 /home/${{ secrets.EC2_USERNAME }}/.attune.env
+
+            # Docker Hub 로그인
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
             # 최신 이미지 Pull
             docker pull ${{ secrets.DOCKER_USERNAME }}/attune:latest
