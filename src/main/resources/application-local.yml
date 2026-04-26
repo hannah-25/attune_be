@@ -33,6 +33,8 @@ logging:
 # 로컬 CORS
 cors:
   allowed-origin-patterns:
+    - "https://attune-me.com:*"
+    - "https://attune-me.com.s3-website.ap-northeast-2.amazonaws.com:*"
     - "http://localhost:*"
     - "http://127.0.0.1:*"
     - "http://[::1]:*"

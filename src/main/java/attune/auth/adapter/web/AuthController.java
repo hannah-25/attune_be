@@ -22,11 +22,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+
 @Tag(name = "Auth", description = "인증 API")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
+// 인증 : 로그인, 로그아웃, 토큰 관리
 
     private final AuthService authService;
     private final CookieUtil cookieUtil;
