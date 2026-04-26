@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/account")
 @RequiredArgsConstructor
 public class AccountController {
+// 계정 정보 : 회원가입, 비밀번호 변경, 탈퇴 관리
 
     private final AccountService accountService;
 
@@ -37,6 +38,8 @@ public class AccountController {
     ) {
         return ResponseEntity.ok(accountService.signup(request));
     }
+
+
 
     @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다.")
     @ApiResponses({
