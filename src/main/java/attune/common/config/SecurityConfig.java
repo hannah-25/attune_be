@@ -52,7 +52,6 @@ public class SecurityConfig {
                 // CORS 필터 활성화
                 .cors(cors -> {})
 
-
                 // 클릭재킹 방지
                 .headers(headers -> headers
                         .addHeaderWriter(new XFrameOptionsHeaderWriter(
@@ -81,8 +80,8 @@ public class SecurityConfig {
 
                         //Health Check
                         .anyRequest().authenticated()
-                )
 
+                )
                 // JWT 인증 필터를 UsernamePassword 필터 앞에 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -98,7 +97,8 @@ public class SecurityConfig {
         // 개발/배포 환경에서 사용할 수 있는 기본 도메인 패턴들
         java.util.List<String> defaultPatterns = java.util.List.of(
                 "http://localhost:*",
-                "http://127.0.0.1:*"
+                "http://127.0.0.1:*",
+                "https://attune-me.com"
         );
 
         // application-{profile}.yml의 cors.allowed-origin-patterns 값 사용
