@@ -47,6 +47,7 @@ public class AccountService {
         }
 
         User user = createAndSaveUser(request);
+        mailService.sendWelcomeEmail(user.getEmail(), user.getNickname());
         return new CreateUserResponse(user.getEmail() + " 계정의 회원가입이 완료되었습니다");
     }
 

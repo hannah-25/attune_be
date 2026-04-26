@@ -17,18 +17,94 @@ public class MailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    public void sendPasswordResetEmail(String to, String nickname, String resetLink) {
+    private void sendEmail(String to, String subject, String html) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
             helper.setFrom(fromEmail);
             helper.setTo(to);
-            helper.setSubject("[Attune] 비밀번호 재설정 안내");
-            helper.setText(buildPasswordResetHtml(nickname, resetLink), true);
+            helper.setSubject(subject);
+            helper.setText(html, true);
             mailSender.send(mimeMessage);
         } catch (MessagingException e) {
             throw new RuntimeException("메일 발송에 실패했습니다.", e);
         }
+    }
+
+
+
+    //sendEmail 메서드들
+    public void sendWelcomeEmail(String to, String nickname) {
+        sendEmail(to, "[Attune] 회원가입을 축하합니다!", buildWelcomeHtml(nickname));
+    }
+
+    public void sendPasswordResetEmail(String to, String nickname, String resetLink) {
+        sendEmail(to, "[Attune] 비밀번호 재설정 안내", buildPasswordResetHtml(nickname, resetLink));
+    }
+
+
+
+    // html 생성 메서드들
+    private String buildWelcomeHtml(String nickname) {
+        return """
+                <!DOCTYPE html>
+                <html lang="ko">
+                <head><meta charset="UTF-8"></head>
+                <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Apple SD Gothic Neo',Arial,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding:40px 0;">
+                        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+
+                          <!-- 헤더 -->
+                          <tr>
+                            <td style="background:#1a1a2e;padding:28px 40px;">
+                              <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Attune</span>
+                            </td>
+                          </tr>
+
+                          <!-- 본문 -->
+                          <tr>
+                            <td style="padding:44px 40px 32px;">
+                              <p style="margin:0 0 24px;font-size:16px;color:#222;line-height:1.6;">
+                                <strong>%s 님, 환영합니다!</strong>
+                              </p>
+                              <p style="margin:0 0 32px;font-size:15px;color:#444;line-height:1.8;">
+                                Attune 회원이 되신 것을 진심으로 환영합니다.<br>
+                                지금 바로 서비스를 시작해보세요.
+                              </p>
+
+                              <p style="margin:28px 0 0;font-size:13px;color:#888;line-height:1.8;">
+                                · 가입하신 서비스 이용 중 궁금한 점이 있으시면 고객센터로 문의해주세요.<br>
+                                · 본인이 가입하지 않으셨다면 Attune 고객센터로 문의해주세요.
+                              </p>
+                            </td>
+                          </tr>
+
+                          <!-- 구분선 -->
+                          <tr>
+                            <td style="padding:0 40px;">
+                              <hr style="border:none;border-top:1px solid #eeeeee;margin:0;">
+                            </td>
+                          </tr>
+
+                          <!-- 푸터 -->
+                          <tr>
+                            <td style="padding:24px 40px;background:#fafafa;">
+                              <p style="margin:0;font-size:11px;color:#aaa;line-height:1.8;">
+                                이 메일은 Attune 서비스 가입을 위해 발송된 메일로, 수신 동의 여부와 무관하게 발송되었습니다.<br>
+                                이 메일은 발신 전용으로 회신하실 수 없습니다.
+                              </p>
+                            </td>
+                          </tr>
+
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(nickname);
     }
 
     private String buildPasswordResetHtml(String nickname, String resetLink) {
@@ -113,4 +189,6 @@ public class MailService {
                 </html>
                 """.formatted(nickname, resetLink, resetLink, resetLink);
     }
+
+
 }
