@@ -50,7 +50,7 @@ public class AccountService {
         return new CreateUserResponse(user.getEmail() + " 계정의 회원가입이 완료되었습니다");
     }
 
-    public User createAndSaveUser(CreateUserRequest request) {
+    private User createAndSaveUser(CreateUserRequest request) {
         User user = User.builder()
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
