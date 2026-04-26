@@ -1,5 +1,5 @@
 package attune.user.application.dto.response;
 
 
-public record CreateUserResponse(String email) {
+public record CreateUserResponse(String message) {
 }

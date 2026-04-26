@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class AccountService {
 
@@ -40,13 +39,19 @@ public class AccountService {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Transactional
     public CreateUserResponse signup(CreateUserRequest request) {
+
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new DuplicateEmailException();
         }
 
+        User user = createAndSaveUser(request);
+        return new CreateUserResponse(user.getEmail() + " 계정의 회원가입이 완료되었습니다");
+    }
+
+    public User createAndSaveUser(CreateUserRequest request) {
         User user = User.builder()
-                .id(UUID.randomUUID())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
@@ -56,11 +61,13 @@ public class AccountService {
                 .isOnboarded(false)
                 .build();
 
-        User savedUser = userRepository.save(user);
-        userSettingRepository.save(UserSetting.createDefault(savedUser));
+        userRepository.save(user);
+        userSettingRepository.save(UserSetting.createDefault(user));
 
-        return new CreateUserResponse(user.getEmail());
+        return user;
     }
+
+
 
     public void changePassword(UUID userId, ChangePasswordRequest request) {
         User user = userRepository.findById(userId)
@@ -85,7 +92,7 @@ public class AccountService {
                     .build());
 
             String resetLink = frontendUrl + "/password/reset?token=" + token;
-            mailService.sendPasswordResetEmail(email, resetLink);
+            mailService.sendPasswordResetEmail(email, user.getNickname(), resetLink);
         });
     }
 
