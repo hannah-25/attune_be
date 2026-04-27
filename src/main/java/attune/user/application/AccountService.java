@@ -89,6 +89,7 @@ public class AccountService {
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
         if (verificationToken.isExpired()) {
+            emailVerificationTokenRepository.delete(verificationToken);
             throw new TokenException("만료된 링크입니다.");
         }
 
