@@ -1,5 +1,7 @@
 package attune.common.filter;
 
+import attune.auth.domain.model.UserAuthCache;
+import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.UserStatus;
@@ -20,6 +22,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -28,28 +31,27 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final UserAuthCacheRepository userAuthCacheRepository;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
-
-    // 모든 HTTP 요청이 이 메서드를 거쳐감
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        // JWT 토큰 추출
         String token = resolveToken(request);
 
-        if(!StringUtils.hasText(token)){
+        if (!StringUtils.hasText(token)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 토큰 파싱 (1회) - 유효성 검증 + 만료 확인 + claims 추출
+        // 1차 검증: 서명 유효성 + 만료 확인
         Claims claims;
         try {
             claims = jwtProvider.parseToken(token);
         } catch (ExpiredJwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"error\":\"Access token expired\"}");
             return;
         } catch (JwtException | IllegalArgumentException e) {
@@ -57,37 +59,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 인증 객체 생성
         try {
             UUID userId = UUID.fromString(claims.getSubject());
             UserType userType = UserType.valueOf(claims.get("role", String.class));
-            UserStatus userStatus = UserStatus.valueOf(claims.get("status", String.class));
+
+            // 2차 검증: Redis에서 세션 확인 + 실시간 status 반영
+            Optional<UserAuthCache> cache = userAuthCacheRepository.find(userId);
+            if (cache.isEmpty()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"로그인 세션이 만료되었습니다. 다시 로그인해주세요.\"}");
+                return;
+            }
+
+            UserStatus userStatus = UserStatus.valueOf(cache.get().status());
+            if (userStatus == UserStatus.SUSPENDED || userStatus == UserStatus.WITHDRAWAL) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"접근이 제한된 계정입니다.\"}");
+                return;
+            }
 
             CustomUserDetails userDetails = CustomUserDetails.fromJwt(userId, userType, userStatus);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
-            // 에러 로그 남기고 SecurityContext 초기화
             log.error("JWT 토큰 처리 중 오류 발생 : {}", e.getMessage());
             SecurityContextHolder.clearContext();
         }
 
-        // 다음 필터로 전달
         filterChain.doFilter(request, response);
     }
 
-    // HttpServletRequest 에서 JWT 토큰 추출
-    private String resolveToken(HttpServletRequest request){
+    private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
-        if(StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)){
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
             return bearerToken.substring(BEARER_PREFIX.length());
         }
         return null;
-
     }
-
-
 }

@@ -3,8 +3,8 @@ package attune.auth.application;
 import attune.auth.application.dto.request.LoginRequest;
 import attune.auth.application.dto.response.AuthResult;
 import attune.auth.application.dto.response.LoginResponse;
-import attune.auth.domain.model.RefreshToken;
-import attune.auth.domain.repository.RefreshTokenRepository;
+import attune.auth.domain.model.UserAuthCache;
+import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
 import attune.common.error.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
@@ -22,7 +22,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -34,7 +33,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final JwtConfig jwtConfig;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserAuthCacheRepository userAuthCacheRepository;
 
     public AuthResult login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -47,7 +46,7 @@ public class AuthService {
 
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
-        saveRefreshToken(user.getId(), refreshToken);
+        userAuthCacheRepository.save(user.getId(), refreshToken, user.getUserStatus(), calculateRefreshTokenTtlSeconds());
 
         return new AuthResult(
                 new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration()),
@@ -65,21 +64,21 @@ public class AuthService {
             throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
         }
 
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new TokenException("유효하지 않은 리프레시 토큰입니다."));
+        UUID userId = UUID.fromString(claims.getSubject());
 
-        if (storedToken.isExpired()) {
-            refreshTokenRepository.delete(storedToken);
-            throw new TokenException("리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.");
+        UserAuthCache cache = userAuthCacheRepository.find(userId)
+                .orElseThrow(() -> new TokenException("로그인 세션이 만료되었습니다. 다시 로그인해주세요."));
+
+        if (!cache.refreshToken().equals(refreshToken)) {
+            throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
         }
 
-        UUID userId = UUID.fromString(claims.getSubject());
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
 
         String newAccessToken = jwtProvider.generateAccessToken(user);
         String newRefreshToken = jwtProvider.generateRefreshToken(user);
-        storedToken.updateToken(newRefreshToken, calculateRefreshTokenExpiry());
+        userAuthCacheRepository.save(userId, newRefreshToken, user.getUserStatus(), calculateRefreshTokenTtlSeconds());
 
         return new AuthResult(
                 new LoginResponse(newAccessToken, jwtConfig.getAccessTokenExpiration()),
@@ -88,26 +87,10 @@ public class AuthService {
     }
 
     public void logout(UUID userId) {
-        refreshTokenRepository.deleteByUserId(userId);
+        userAuthCacheRepository.delete(userId);
     }
 
-    private void saveRefreshToken(UUID userId, String token) {
-        RefreshToken refreshToken = refreshTokenRepository.findByUserId(userId)
-                .orElse(null);
-
-        if (refreshToken != null) {
-            refreshToken.updateToken(token, calculateRefreshTokenExpiry());
-        } else {
-            refreshToken = RefreshToken.builder()
-                    .userId(userId)
-                    .token(token)
-                    .expiresAt(calculateRefreshTokenExpiry())
-                    .build();
-            refreshTokenRepository.save(refreshToken);
-        }
-    }
-
-    private LocalDateTime calculateRefreshTokenExpiry() {
-        return LocalDateTime.now().plusSeconds(jwtConfig.getRefreshTokenExpiration() / 1000);
+    private long calculateRefreshTokenTtlSeconds() {
+        return jwtConfig.getRefreshTokenExpiration() / 1000L;
     }
 }
