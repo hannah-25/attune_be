@@ -38,10 +38,14 @@ public class User {
 
     private String profileImageUrl;
 
-    private Boolean alarmPush;
+
     private Boolean isOnboarded;
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void activate() {
+        this.userStatus = UserStatus.ACTIVE;
     }
 }

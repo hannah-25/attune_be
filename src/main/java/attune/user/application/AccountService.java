@@ -5,15 +5,20 @@ import attune.common.error.InvalidPasswordException;
 import attune.common.error.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.mail.MailService;
+import attune.common.mail.event.WelcomeEmailEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import attune.user.application.dto.request.ChangePasswordRequest;
 import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
 import attune.user.application.dto.response.CreateUserResponse;
+import attune.term.application.TermService;
+import attune.user.domain.model.EmailVerificationToken;
 import attune.user.domain.model.PasswordResetToken;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
+import attune.user.domain.repository.EmailVerificationTokenRepository;
 import attune.user.domain.repository.PasswordResetTokenRepository;
 import attune.user.domain.repository.UserRepository;
 import attune.user.domain.repository.UserSettingRepository;
@@ -34,7 +39,10 @@ public class AccountService {
     private final UserSettingRepository userSettingRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final MailService mailService;
+    private final TermService termService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -47,7 +55,19 @@ public class AccountService {
         }
 
         User user = createAndSaveUser(request);
-        return new CreateUserResponse(user.getEmail() + " 계정의 회원가입이 완료되었습니다");
+        termService.saveAgreement(user, request.termId(), request.termsOfService(), request.privacyPolicy(), request.marketingConsent());
+
+        String token = UUID.randomUUID().toString();
+        emailVerificationTokenRepository.save(EmailVerificationToken.builder()
+                .userId(user.getId())
+                .token(token)
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        String verificationLink = frontendUrl + "/verify-email?token=" + token;
+        mailService.sendVerificationEmail(user.getEmail(), user.getNickname(), verificationLink);
+
+        return new CreateUserResponse(user.getEmail() + " 계정으로 인증 메일을 발송했습니다. 이메일을 확인하여 인증을 완료해주세요.");
     }
 
     private User createAndSaveUser(CreateUserRequest request) {
@@ -56,8 +76,7 @@ public class AccountService {
                 .password(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
                 .userType(UserType.USER)
-                .userStatus(UserStatus.ACTIVE)
-                .alarmPush(false)
+                .userStatus(UserStatus.PENDING)
                 .isOnboarded(false)
                 .build();
 
@@ -67,6 +86,23 @@ public class AccountService {
         return user;
     }
 
+    @Transactional
+    public void verifyEmail(String token) {
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
+
+        if (verificationToken.isExpired()) {
+            emailVerificationTokenRepository.delete(verificationToken);
+            throw new TokenException("만료된 링크입니다.");
+        }
+
+        User user = userRepository.findById(verificationToken.getUserId())
+                .orElseThrow(UserNotFoundException::new);
+
+        user.activate();
+        emailVerificationTokenRepository.delete(verificationToken);
+        eventPublisher.publishEvent(new WelcomeEmailEvent(user.getEmail(), user.getNickname()));
+    }
 
 
     public void changePassword(UUID userId, ChangePasswordRequest request) {
