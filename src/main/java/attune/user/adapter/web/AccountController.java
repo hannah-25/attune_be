@@ -41,6 +41,19 @@ public class AccountController {
 
 
 
+    @Operation(summary = "이메일 인증", description = "이메일로 받은 인증 링크의 토큰을 검증하고 계정을 활성화합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "인증 성공"),
+            @ApiResponse(responseCode = "400", description = "만료되거나 유효하지 않은 토큰")
+    })
+    @GetMapping("/verify-email")
+    public ResponseEntity<Void> verifyEmail(@RequestParam String token) {
+        accountService.verifyEmail(token);
+        return ResponseEntity.ok().build();
+    }
+
+
+
     @Operation(summary = "비밀번호 변경", description = "현재 비밀번호를 확인 후 새 비밀번호로 변경합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "변경 성공"),
