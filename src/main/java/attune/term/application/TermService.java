@@ -1,5 +1,6 @@
 package attune.term.application;
 
+import attune.common.error.InvalidTermException;
 import attune.common.error.notfound.TermNotFoundException;
 import attune.term.application.dto.response.TermResponse;
 import attune.term.domain.model.Term;
@@ -29,12 +30,16 @@ public class TermService {
 
     @Transactional
     public void saveAgreement(User user, Long termId, boolean termsOfService, boolean privacyPolicy, boolean marketingConsent) {
-        Term term = termRepository.findById(termId)
+        Term latestTerm = termRepository.findTopByOrderByVersionDesc()
                 .orElseThrow(TermNotFoundException::new);
 
+        if (!latestTerm.getId().equals(termId)) {
+            throw new InvalidTermException();
+        }
+
         userTermAgreementRepository.save(UserTermAgreement.builder()
+                .term(latestTerm)
                 .user(user)
-                .term(term)
                 .termsOfService(termsOfService)
                 .privacyPolicy(privacyPolicy)
                 .marketingConsent(marketingConsent)
