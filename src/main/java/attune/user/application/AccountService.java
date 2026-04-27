@@ -9,6 +9,7 @@ import attune.user.application.dto.request.ChangePasswordRequest;
 import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
 import attune.user.application.dto.response.CreateUserResponse;
+import attune.term.application.TermService;
 import attune.user.domain.model.PasswordResetToken;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserSetting;
@@ -35,6 +36,7 @@ public class AccountService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final MailService mailService;
+    private final TermService termService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -47,7 +49,9 @@ public class AccountService {
         }
 
         User user = createAndSaveUser(request);
+        termService.saveAgreement(user, request.termId(), request.termsOfService(), request.privacyPolicy(), request.marketingConsent());
         mailService.sendWelcomeEmail(user.getEmail(), user.getNickname());
+
         return new CreateUserResponse(user.getEmail() + " 계정의 회원가입이 완료되었습니다");
     }
 
@@ -58,7 +62,6 @@ public class AccountService {
                 .nickname(request.nickname())
                 .userType(UserType.USER)
                 .userStatus(UserStatus.ACTIVE)
-                .alarmPush(false)
                 .isOnboarded(false)
                 .build();
 
