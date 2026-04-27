@@ -37,13 +37,16 @@ public class TermService {
             throw new InvalidTermException();
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
         userTermAgreementRepository.save(UserTermAgreement.builder()
                 .term(latestTerm)
                 .user(user)
                 .termsOfService(termsOfService)
                 .privacyPolicy(privacyPolicy)
                 .marketingConsent(marketingConsent)
-                .agreedAt(LocalDateTime.now())
+                .notifiedAt(now)
+                .agreedAt(now)
                 .build());
     }
 }
