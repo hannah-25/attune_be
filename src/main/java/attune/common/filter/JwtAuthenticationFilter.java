@@ -58,8 +58,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserType userType = UserType.valueOf(claims.get("role", String.class));
             UserStatus userStatus = UserStatus.valueOf(claims.get("status", String.class));
 
-            if (userStatus == UserStatus.SUSPENDED || userStatus == UserStatus.WITHDRAWAL) {
-                writeErrorResponse(response, "접근이 제한된 계정입니다.");
+            if (userStatus != UserStatus.ACTIVE) {
+                String message = switch (userStatus) {
+                    case PENDING -> "이메일 인증이 완료되지 않은 계정입니다.";
+                    case SUSPENDED -> "활동이 정지된 계정입니다.";
+                    case WITHDRAWAL -> "탈퇴 처리 중인 계정입니다.";
+                    default -> "접근이 제한된 계정입니다.";
+                };
+                writeErrorResponse(response, message);
                 return;
             }
 

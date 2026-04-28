@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
+
 @Component
 @RequiredArgsConstructor
 public class JwtProvider {
@@ -39,16 +40,8 @@ public class JwtProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(UUID userId) {
-        Date now = new Date();
-        Date expiration = new Date(now.getTime() + jwtConfig.getRefreshTokenExpiration() * 1000L);
-
-        return Jwts.builder()
-                .subject(userId.toString())
-                .issuedAt(now)
-                .expiration(expiration)
-                .signWith(getSigningKey())
-                .compact();
+    public String generateRefreshToken() {
+        return UUID.randomUUID().toString();
     }
 
     public Claims parseToken(String token) {

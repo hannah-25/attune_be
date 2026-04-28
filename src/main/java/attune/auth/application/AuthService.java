@@ -17,7 +17,6 @@ import attune.user.domain.repository.UserRepository;
 
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -50,7 +49,7 @@ public class AuthService {
                 .orElseThrow(UserNotFoundException::new);
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), user.getUserStatus());
-        String refreshToken = jwtProvider.generateRefreshToken(user.getId());
+        String refreshToken = jwtProvider.generateRefreshToken();
         userAuthCacheRepository.save(user.getId(), refreshToken, user.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
@@ -60,16 +59,19 @@ public class AuthService {
     }
 
     public AuthResult reissue(String refreshToken, String accessToken) {
-        Claims refreshClaims;
-        try {
-            refreshClaims = jwtProvider.parseToken(refreshToken);
-        } catch (ExpiredJwtException e) {
-            throw new TokenException("리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.");
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
+        if (accessToken == null) {
+            throw new TokenException("액세스 토큰이 필요합니다.");
         }
 
-        UUID userId = UUID.fromString(refreshClaims.getSubject());
+        Claims accessClaims;
+        try {
+            accessClaims = jwtProvider.parseExpiredToken(accessToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new TokenException("유효하지 않은 액세스 토큰입니다.");
+        }
+
+        UUID userId = UUID.fromString(accessClaims.getSubject());
+        UserType userType = UserType.valueOf(accessClaims.get("role", String.class));
 
         UserAuthCache cache = userAuthCacheRepository.find(userId)
                 .orElseThrow(() -> new TokenException("로그인 세션이 만료되었습니다. 다시 로그인해주세요."));
@@ -78,15 +80,10 @@ public class AuthService {
             throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
         }
 
-        if (accessToken == null) {
-            throw new TokenException("액세스 토큰이 필요합니다.");
-        }
-        Claims accessClaims = jwtProvider.parseExpiredToken(accessToken);
-        UserType userType = UserType.valueOf(accessClaims.get("role", String.class));
         UserStatus userStatus = UserStatus.valueOf(cache.status());
 
         String newAccessToken = jwtProvider.generateAccessToken(userId, userType, userStatus);
-        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
+        String newRefreshToken = jwtProvider.generateRefreshToken();
         userAuthCacheRepository.save(userId, newRefreshToken, userStatus, jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
