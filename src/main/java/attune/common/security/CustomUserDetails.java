@@ -71,4 +71,8 @@ public class CustomUserDetails implements UserDetails {
     public UserType getUserType() {
         return userType;
     }
+
+    public UserStatus getUserStatus() {
+        return userStatus;
+    }
 }

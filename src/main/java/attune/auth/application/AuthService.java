@@ -7,13 +7,10 @@ import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
 import attune.common.error.TokenException;
-import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
-import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
-import attune.user.domain.repository.UserRepository;
 
 
 import io.jsonwebtoken.Claims;
@@ -35,7 +32,6 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
     private final JwtConfig jwtConfig;
-    private final UserRepository userRepository;
     private final UserAuthCacheRepository userAuthCacheRepository;
 
     public AuthResult login(LoginRequest request) {
@@ -45,12 +41,10 @@ public class AuthService {
         );
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId())
-                .orElseThrow(UserNotFoundException::new);
 
-        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), user.getUserStatus());
+        String accessToken = jwtProvider.generateAccessToken(userDetails.getId(), userDetails.getUserType(), userDetails.getUserStatus());
         String refreshToken = jwtProvider.generateRefreshToken();
-        userAuthCacheRepository.save(user.getId(), refreshToken, user.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
+        userAuthCacheRepository.save(userDetails.getId(), refreshToken, userDetails.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
                 new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration()),
@@ -64,14 +58,15 @@ public class AuthService {
         }
 
         Claims accessClaims;
+        UUID userId;
+        UserType userType;
         try {
             accessClaims = jwtProvider.parseExpiredToken(accessToken);
-        } catch (JwtException | IllegalArgumentException e) {
+            userId = UUID.fromString(accessClaims.getSubject());
+            userType = UserType.valueOf(accessClaims.get("role", String.class));
+        } catch (JwtException | IllegalArgumentException | NullPointerException e) {
             throw new TokenException("유효하지 않은 액세스 토큰입니다.");
         }
-
-        UUID userId = UUID.fromString(accessClaims.getSubject());
-        UserType userType = UserType.valueOf(accessClaims.get("role", String.class));
 
         UserAuthCache cache = userAuthCacheRepository.find(userId)
                 .orElseThrow(() -> new TokenException("로그인 세션이 만료되었습니다. 다시 로그인해주세요."));
