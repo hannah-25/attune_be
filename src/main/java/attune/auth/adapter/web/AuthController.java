@@ -62,7 +62,9 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
 
-        AuthResult result = authService.reissue(refreshToken);
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = (authHeader != null && authHeader.startsWith("Bearer ")) ? authHeader.substring(7) : null;
+        AuthResult result = authService.reissue(refreshToken, accessToken);
 
         cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
                 "/api/auth", jwtConfig.getRefreshTokenExpiration());

@@ -11,7 +11,11 @@ import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.User;
+import attune.user.domain.model.UserStatus;
+import attune.user.domain.model.UserType;
 import attune.user.domain.repository.UserRepository;
+
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -36,6 +40,7 @@ public class AuthService {
     private final UserAuthCacheRepository userAuthCacheRepository;
 
     public AuthResult login(LoginRequest request) {
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
@@ -44,8 +49,8 @@ public class AuthService {
         User user = userRepository.findById(userDetails.getId())
                 .orElseThrow(UserNotFoundException::new);
 
-        String accessToken = jwtProvider.generateAccessToken(user);
-        String refreshToken = jwtProvider.generateRefreshToken(user);
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), user.getUserStatus());
+        String refreshToken = jwtProvider.generateRefreshToken(user.getId());
         userAuthCacheRepository.save(user.getId(), refreshToken, user.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
@@ -54,17 +59,17 @@ public class AuthService {
         );
     }
 
-    public AuthResult reissue(String refreshToken) {
-        Claims claims;
+    public AuthResult reissue(String refreshToken, String accessToken) {
+        Claims refreshClaims;
         try {
-            claims = jwtProvider.parseToken(refreshToken);
+            refreshClaims = jwtProvider.parseToken(refreshToken);
         } catch (ExpiredJwtException e) {
             throw new TokenException("리프레시 토큰이 만료되었습니다. 다시 로그인해주세요.");
         } catch (JwtException | IllegalArgumentException e) {
             throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
         }
 
-        UUID userId = UUID.fromString(claims.getSubject());
+        UUID userId = UUID.fromString(refreshClaims.getSubject());
 
         UserAuthCache cache = userAuthCacheRepository.find(userId)
                 .orElseThrow(() -> new TokenException("로그인 세션이 만료되었습니다. 다시 로그인해주세요."));
@@ -73,12 +78,16 @@ public class AuthService {
             throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        if (accessToken == null) {
+            throw new TokenException("액세스 토큰이 필요합니다.");
+        }
+        Claims accessClaims = jwtProvider.parseExpiredToken(accessToken);
+        UserType userType = UserType.valueOf(accessClaims.get("role", String.class));
+        UserStatus userStatus = UserStatus.valueOf(cache.status());
 
-        String newAccessToken = jwtProvider.generateAccessToken(user);
-        String newRefreshToken = jwtProvider.generateRefreshToken(user);
-        userAuthCacheRepository.save(userId, newRefreshToken, user.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
+        String newAccessToken = jwtProvider.generateAccessToken(userId, userType, userStatus);
+        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
+        userAuthCacheRepository.save(userId, newRefreshToken, userStatus, jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
                 new LoginResponse(newAccessToken, jwtConfig.getAccessTokenExpiration()),

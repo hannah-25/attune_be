@@ -1,7 +1,5 @@
 package attune.common.filter;
 
-import attune.auth.domain.model.UserAuthCache;
-import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.UserStatus;
@@ -22,7 +20,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -31,7 +28,6 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
-    private final UserAuthCacheRepository userAuthCacheRepository;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -45,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 1차 검증: 서명 유효성 + 만료 확인
+        // 서명 유효성 + 만료 확인
         Claims claims;
         try {
             claims = jwtProvider.parseToken(token);
@@ -60,15 +56,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             UUID userId = UUID.fromString(claims.getSubject());
             UserType userType = UserType.valueOf(claims.get("role", String.class));
+            UserStatus userStatus = UserStatus.valueOf(claims.get("status", String.class));
 
-            // 2차 검증: Redis에서 세션 확인 + 실시간 status 반영
-            Optional<UserAuthCache> cache = userAuthCacheRepository.find(userId);
-            if (cache.isEmpty()) {
-                writeErrorResponse(response, "로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
-                return;
-            }
-
-            UserStatus userStatus = UserStatus.valueOf(cache.get().status());
             if (userStatus == UserStatus.SUSPENDED || userStatus == UserStatus.WITHDRAWAL) {
                 writeErrorResponse(response, "접근이 제한된 계정입니다.");
                 return;
@@ -91,6 +80,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"error\":\"" + message + "\"}");
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getRequestURI().equals("/api/auth/reissue");
     }
 
     private String resolveToken(HttpServletRequest request) {
