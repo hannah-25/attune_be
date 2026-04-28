@@ -31,80 +31,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
+
+    // 모든 HTTP 요청이 이 메서드를 거쳐감
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
+        // JWT 토큰 추출
         String token = resolveToken(request);
 
-        if (!StringUtils.hasText(token)) {
+        if(!StringUtils.hasText(token)){
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 서명 유효성 + 만료 확인
+        // 토큰 파싱 (1회) - 유효성 검증 + 만료 확인 + claims 추출
         Claims claims;
         try {
             claims = jwtProvider.parseToken(token);
         } catch (ExpiredJwtException e) {
-            writeErrorResponse(response, "액세스 토큰이 만료되었습니다.");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\":\"Access token expired\"}");
             return;
         } catch (JwtException | IllegalArgumentException e) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // 인증 객체 생성
         try {
-            String role = claims.get("role", String.class);
-            String status = claims.get("status", String.class);
-            if (role == null || status == null) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             UUID userId = UUID.fromString(claims.getSubject());
-            UserType userType = UserType.valueOf(role);
-            UserStatus userStatus = UserStatus.valueOf(status);
-
-            if (userStatus != UserStatus.ACTIVE) {
-                String message = switch (userStatus) {
-                    case PENDING -> "이메일 인증이 완료되지 않은 계정입니다.";
-                    case SUSPENDED -> "활동이 정지된 계정입니다.";
-                    case WITHDRAWAL -> "탈퇴 처리 중인 계정입니다.";
-                    default -> "접근이 제한된 계정입니다.";
-                };
-                writeErrorResponse(response, message);
-                return;
-            }
+            UserType userType = UserType.valueOf(claims.get("role", String.class));
+            UserStatus userStatus = UserStatus.valueOf(claims.get("status", String.class));
 
             CustomUserDetails userDetails = CustomUserDetails.fromJwt(userId, userType, userStatus);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
+            // 에러 로그 남기고 SecurityContext 초기화
             log.error("JWT 토큰 처리 중 오류 발생 : {}", e.getMessage());
             SecurityContextHolder.clearContext();
         }
 
+        // 다음 필터로 전달
         filterChain.doFilter(request, response);
     }
 
-    private void writeErrorResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"error\":\"" + message + "\"}");
-    }
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        return "/api/auth/reissue".equals(request.getServletPath());
-    }
-
-    private String resolveToken(HttpServletRequest request) {
+    // HttpServletRequest 에서 JWT 토큰 추출
+    private String resolveToken(HttpServletRequest request){
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
+        if(StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)){
             return bearerToken.substring(BEARER_PREFIX.length());
         }
         return null;
+
     }
+
+
 }

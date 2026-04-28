@@ -11,7 +11,6 @@ public class JwtConfig {
     @Value( "${jwt.secret-key}")
     private String jwtSecret;
 
-    // 초단위
     @Value("${jwt.access-token-expiration}")
     private int accessTokenExpiration;
 
@@ -20,4 +19,3 @@ public class JwtConfig {
 
 
 }
-
