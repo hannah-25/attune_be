@@ -50,9 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             claims = jwtProvider.parseToken(token);
         } catch (ExpiredJwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"error\":\"Access token expired\"}");
+            writeErrorResponse(response, "액세스 토큰이 만료되었습니다.");
             return;
         } catch (JwtException | IllegalArgumentException e) {
             filterChain.doFilter(request, response);
@@ -66,17 +64,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 2차 검증: Redis에서 세션 확인 + 실시간 status 반영
             Optional<UserAuthCache> cache = userAuthCacheRepository.find(userId);
             if (cache.isEmpty()) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write("{\"error\":\"로그인 세션이 만료되었습니다. 다시 로그인해주세요.\"}");
+                writeErrorResponse(response, "로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
                 return;
             }
 
             UserStatus userStatus = UserStatus.valueOf(cache.get().status());
             if (userStatus == UserStatus.SUSPENDED || userStatus == UserStatus.WITHDRAWAL) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write("{\"error\":\"접근이 제한된 계정입니다.\"}");
+                writeErrorResponse(response, "접근이 제한된 계정입니다.");
                 return;
             }
 
@@ -91,6 +85,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"error\":\"" + message + "\"}");
     }
 
     private String resolveToken(HttpServletRequest request) {
