@@ -10,12 +10,12 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class RedisConfig {
 
     @Bean
-    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
-        return new StringRedisTemplate(connectionFactory);
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 
     @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
+        return new StringRedisTemplate(connectionFactory);
     }
 }
