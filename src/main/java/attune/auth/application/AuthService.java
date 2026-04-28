@@ -46,7 +46,7 @@ public class AuthService {
 
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
-        userAuthCacheRepository.save(user.getId(), refreshToken, user.getUserStatus(), calculateRefreshTokenTtlSeconds());
+        userAuthCacheRepository.save(user.getId(), refreshToken, user.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
                 new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration()),
@@ -78,7 +78,7 @@ public class AuthService {
 
         String newAccessToken = jwtProvider.generateAccessToken(user);
         String newRefreshToken = jwtProvider.generateRefreshToken(user);
-        userAuthCacheRepository.save(userId, newRefreshToken, user.getUserStatus(), calculateRefreshTokenTtlSeconds());
+        userAuthCacheRepository.save(userId, newRefreshToken, user.getUserStatus(), jwtConfig.getRefreshTokenExpiration());
 
         return new AuthResult(
                 new LoginResponse(newAccessToken, jwtConfig.getAccessTokenExpiration()),
@@ -88,9 +88,5 @@ public class AuthService {
 
     public void logout(UUID userId) {
         userAuthCacheRepository.delete(userId);
-    }
-
-    private long calculateRefreshTokenTtlSeconds() {
-        return jwtConfig.getRefreshTokenExpiration() / 1000L;
     }
 }

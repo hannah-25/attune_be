@@ -24,7 +24,7 @@ public class JwtProvider {
 
     public String generateAccessToken(User user) {
         Date now = new Date();
-        Date expiration = new Date(now.getTime() + jwtConfig.getAccessTokenExpiration());
+        Date expiration = new Date(now.getTime() + jwtConfig.getAccessTokenExpiration() * 1000L);
 
         return Jwts.builder()
                 .subject(user.getId().toString())
@@ -39,7 +39,7 @@ public class JwtProvider {
 
     public String generateRefreshToken(User user) {
         Date now = new Date();
-        Date expiration = new Date(now.getTime() + jwtConfig.getRefreshTokenExpiration());
+        Date expiration = new Date(now.getTime() + jwtConfig.getRefreshTokenExpiration() * 1000L);
 
         return Jwts.builder()
                 .subject(user.getId().toString())
