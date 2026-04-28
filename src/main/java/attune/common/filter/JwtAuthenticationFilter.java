@@ -54,9 +54,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
+            String role = claims.get("role", String.class);
+            String status = claims.get("status", String.class);
+            if (role == null || status == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             UUID userId = UUID.fromString(claims.getSubject());
-            UserType userType = UserType.valueOf(claims.get("role", String.class));
-            UserStatus userStatus = UserStatus.valueOf(claims.get("status", String.class));
+            UserType userType = UserType.valueOf(role);
+            UserStatus userStatus = UserStatus.valueOf(status);
 
             if (userStatus != UserStatus.ACTIVE) {
                 String message = switch (userStatus) {

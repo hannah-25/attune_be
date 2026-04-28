@@ -34,9 +34,9 @@ public class UserAuthCacheRepository {
     public void updateStatus(UUID userId, UserStatus status) {
         find(userId).ifPresent(cache -> {
             Long ttl = stringRedisTemplate.getExpire(KEY_PREFIX + userId, TimeUnit.SECONDS);
+            if (ttl == null || ttl <= 0) return;
             String json = serialize(new UserAuthCache(cache.refreshToken(), status.name()));
-            long remainingTtl = (ttl != null && ttl > 0) ? ttl : 0;
-            stringRedisTemplate.opsForValue().set(KEY_PREFIX + userId, json, remainingTtl, TimeUnit.SECONDS);
+            stringRedisTemplate.opsForValue().set(KEY_PREFIX + userId, json, ttl, TimeUnit.SECONDS);
         });
     }
 
