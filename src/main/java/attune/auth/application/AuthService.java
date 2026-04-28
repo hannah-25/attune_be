@@ -64,7 +64,7 @@ public class AuthService {
             accessClaims = jwtProvider.parseExpiredToken(accessToken);
             userId = UUID.fromString(accessClaims.getSubject());
             userType = UserType.valueOf(accessClaims.get("role", String.class));
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException | NullPointerException e) {
             throw new TokenException("유효하지 않은 액세스 토큰입니다.");
         }
 
