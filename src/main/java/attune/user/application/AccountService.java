@@ -105,6 +105,7 @@ public class AccountService {
     }
 
 
+    @Transactional
     public void changePassword(UUID userId, ChangePasswordRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
@@ -142,6 +143,7 @@ public class AccountService {
         }
     }
 
+    @Transactional
     public void confirmPasswordReset(PasswordResetConfirmRequest request) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.token())
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));

@@ -44,7 +44,7 @@ public class AuthController {
         AuthResult result = authService.login(request);
 
         cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
-                "/api/auth", jwtConfig.getRefreshTokenExpiration() / 1000);
+                "/api/auth", jwtConfig.getRefreshTokenExpiration());
 
         return ResponseEntity.ok(result.loginResponse());
     }
@@ -62,10 +62,12 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
 
-        AuthResult result = authService.reissue(refreshToken);
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = (authHeader != null && authHeader.startsWith("Bearer ")) ? authHeader.substring(7) : null;
+        AuthResult result = authService.reissue(refreshToken, accessToken);
 
         cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
-                "/api/auth", jwtConfig.getRefreshTokenExpiration() / 1000);
+                "/api/auth", jwtConfig.getRefreshTokenExpiration());
 
         return ResponseEntity.ok(result.loginResponse());
     }
