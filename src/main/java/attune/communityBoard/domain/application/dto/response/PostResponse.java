@@ -1,4 +1,4 @@
-package attune.communityBoard.domain.application;
+package attune.communityBoard.domain.application.dto.response;
 
 import attune.communityBoard.domain.model.CommunityBoard;
 import attune.communityBoard.domain.model.PostCategory;
