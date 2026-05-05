@@ -59,7 +59,7 @@ public class CommunityBoardController {
     })
     @PutMapping("/posts/{postId}")
     public ResponseEntity<PostResponse> updatePost(@PathVariable Long postId,
-                                                   @RequestBody UpdatePostRequest request) {
+                                                   @Valid @RequestBody UpdatePostRequest request) {
         return ResponseEntity.ok(communityService.updatePost(postId, request));
     }
 
