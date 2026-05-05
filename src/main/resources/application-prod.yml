@@ -55,3 +55,7 @@ cors:
   allowed-origin-patterns:
     - "https://attune-me.com"
     - "https://www.attune-me.com"
+
+
+app:
+  frontend-url:
