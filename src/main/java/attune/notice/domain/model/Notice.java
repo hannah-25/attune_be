@@ -22,9 +22,11 @@ public class Notice {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    private Boolean isPinned;
+    @Column(nullable = false)
+    private boolean isPinned = false;
 
-    private Boolean isDeleted;
+    @Column(nullable = false)
+    private boolean isDeleted = false;
 
     private LocalDateTime createdAt;
 
