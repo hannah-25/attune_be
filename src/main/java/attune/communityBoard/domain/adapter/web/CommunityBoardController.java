@@ -30,7 +30,7 @@ public class CommunityBoardController {
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
     @PostMapping("/posts")
-    public ResponseEntity<PostResponse> createPost(@RequestBody CreatePostRequest request) {
+    public ResponseEntity<PostResponse> createPost(@Valid @RequestBody CreatePostRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(communityService.createPost(request));
     }
 
