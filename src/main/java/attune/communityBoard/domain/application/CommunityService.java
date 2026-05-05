@@ -27,6 +27,7 @@ public class CommunityService {
     private final CommunityBoardRepository communityBoardRepository;
 
 
+    @Transactional
     public PostResponse createPost(CreatePostRequest createPostRequest){
 
         UUID userId = SecurityUtils.getCurrentUserUuid();
