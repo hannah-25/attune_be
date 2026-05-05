@@ -68,8 +68,7 @@ management:
 
 
 # 앱 공통 설정
-app:
-  frontend-url: http://localhost:3000
+
 
 # Logging 설정
 logging:

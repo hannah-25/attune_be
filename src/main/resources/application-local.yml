@@ -38,3 +38,7 @@ cors:
     - "http://localhost:*"
     - "http://127.0.0.1:*"
     - "http://[::1]:*"
+
+
+app:
+  frontend-url: http://localhost:3000
