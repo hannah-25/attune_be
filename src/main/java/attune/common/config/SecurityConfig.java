@@ -78,6 +78,12 @@ public class SecurityConfig {
                         // 비밀번호 재설정 (비로그인 허용)
                         .requestMatchers("/api/account/password/reset/**").permitAll()
 
+                        // 공지사항 조회 (비로그인 허용)
+                        .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
+
+                        // 관리자 전용
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         // 개발/문서화 도구
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
 
