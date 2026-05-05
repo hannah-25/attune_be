@@ -47,6 +47,9 @@ public class CommentService {
     @Transactional
     public CreateCommentResponse createComment(Long postId, CreateCommentRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        if (userId == null) {
+            throw new AccessDeniedException("인증이 필요합니다.");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         CommunityBoard post = communityBoardRepository.findByIdAndIsDeletedFalse(postId)
