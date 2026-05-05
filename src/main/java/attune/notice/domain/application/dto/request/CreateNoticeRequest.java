@@ -6,6 +6,6 @@ import jakarta.validation.constraints.NotNull;
 public record CreateNoticeRequest(
         @NotBlank String title,
         @NotBlank String content,
-        @NotNull boolean isPinned,
+        boolean isPinned,
         boolean sendNotification
 ) {}
