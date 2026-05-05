@@ -30,6 +30,9 @@ public class CommunityService {
     public PostResponse createPost(CreatePostRequest createPostRequest){
 
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        if (userId == null) {
+            throw new AccessDeniedException("인증이 필요합니다.");
+        }
         User user = userRepository.findById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         LocalDateTime now = LocalDateTime.now();
