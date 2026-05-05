@@ -40,8 +40,12 @@ public class Comment {
     private LocalDateTime updatedAt;
 
     public void update(Boolean isAnonymous, String content) {
-        this.isAnonymous = isAnonymous;
-        this.content = content;
+        if (isAnonymous != null) {
+            this.isAnonymous = isAnonymous;
+        }
+        if (content != null) {
+            this.content = content;
+        }
         this.updatedAt = LocalDateTime.now();
     }
 
