@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -40,6 +40,7 @@ public class User {
 
 
     private Boolean isOnboarded;
+    private LocalDateTime onboardedAt;
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
@@ -47,5 +48,10 @@ public class User {
 
     public void activate() {
         this.userStatus = UserStatus.ACTIVE;
+    }
+
+    public void completeOnboarding(LocalDateTime completedAt) {
+        this.isOnboarded = true;
+        this.onboardedAt = completedAt;
     }
 }
