@@ -39,7 +39,7 @@ public class User {
     private String profileImageUrl;
 
 
-    private Boolean isOnboarded;
+    private Boolean isOnboarded = false;
     private LocalDateTime onboardedAt;
 
     public void changePassword(String encodedPassword) {
