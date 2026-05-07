@@ -32,13 +32,14 @@ public class OnboardingController {
     private final OnboardingService onboardingService;
 
     @Operation(summary = "ASRS 체크리스트 제출", description = "ADHD 자가 진단 척도(ASRS) 응답을 저장하고 점수를 반환합니다.")
-    @ApiResponse(responseCode = "200", description = "저장 성공")
+    @ApiResponse(responseCode = "201", description = "저장 성공")
     @PostMapping("/asrs")
     public ResponseEntity<AsrsResponse> submitAsrs(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody AsrsRequest request
     ) {
-        return ResponseEntity.ok(onboardingService.saveAsrs(userDetails.getId(), request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(onboardingService.saveAsrs(userDetails.getId(), request));
     }
 
     @Operation(summary = "초기 증상 서술 저장", description = "사용자가 직접 기술한 초기 증상을 저장합니다.")
