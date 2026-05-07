@@ -26,7 +26,7 @@ public class UserTermAgreement {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "terms_id")
+    @JoinColumn(name = "term_id")
     private Term term;
 
     @Column(name = "is_agreed")
