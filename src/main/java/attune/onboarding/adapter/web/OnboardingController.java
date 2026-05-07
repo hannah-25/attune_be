@@ -43,13 +43,14 @@ public class OnboardingController {
     }
 
     @Operation(summary = "초기 증상 서술 저장", description = "사용자가 직접 기술한 초기 증상을 저장합니다.")
-    @ApiResponse(responseCode = "200", description = "저장 성공")
+    @ApiResponse(responseCode = "201", description = "저장 성공")
     @PostMapping("/symptoms")
     public ResponseEntity<SymptomResponse> submitSymptom(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody SymptomRequest request
     ) {
-        return ResponseEntity.ok(onboardingService.saveSymptom(userDetails.getId(), request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(onboardingService.saveSymptom(userDetails.getId(), request));
     }
 
     @Operation(summary = "치료 목표 저장", description = "치료 기대치 및 목표를 저장합니다.")
