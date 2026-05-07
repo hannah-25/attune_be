@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,7 +40,7 @@ public class UserSettingController {
     @PatchMapping
     public ResponseEntity<UserSettingResponse> updateSettings(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody UpdateUserSettingRequest request
+            @Valid @RequestBody UpdateUserSettingRequest request
     ) {
         return ResponseEntity.ok(userSettingService.updateSettings(userDetails.getId(), request));
     }
