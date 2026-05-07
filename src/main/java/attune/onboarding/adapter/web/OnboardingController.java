@@ -3,9 +3,11 @@ package attune.onboarding.adapter.web;
 import attune.common.security.CustomUserDetails;
 import attune.onboarding.application.OnboardingService;
 import attune.onboarding.application.dto.request.AsrsRequest;
+import attune.onboarding.application.dto.request.GoalRequest;
 import attune.onboarding.application.dto.request.SymptomRequest;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
+import attune.onboarding.application.dto.response.GoalResponse;
 import attune.onboarding.application.dto.response.SymptomResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,6 +49,17 @@ public class OnboardingController {
             @Valid @RequestBody SymptomRequest request
     ) {
         return ResponseEntity.ok(onboardingService.saveSymptom(userDetails.getId(), request));
+    }
+
+    @Operation(summary = "치료 목표 저장", description = "치료 기대치 및 목표를 저장합니다.")
+    @ApiResponse(responseCode = "201", description = "저장 성공")
+    @PostMapping("/goals")
+    public ResponseEntity<GoalResponse> submitGoals(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody GoalRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(onboardingService.saveGoals(userDetails.getId(), request));
     }
 
     @Operation(summary = "온보딩 최종 제출", description = "ASRS와 증상 서술이 모두 완료된 경우 온보딩을 완료 처리합니다.")
