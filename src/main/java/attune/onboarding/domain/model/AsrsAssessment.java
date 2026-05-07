@@ -18,6 +18,7 @@ import java.util.List;
 @Table(name = "asrs_assessments")
 public class AsrsAssessment {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
