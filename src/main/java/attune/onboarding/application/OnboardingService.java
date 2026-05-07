@@ -39,8 +39,9 @@ public class OnboardingService {
     public AsrsResponse saveAsrs(UUID userId, AsrsRequest request) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
+        // 1~6 이 핵심 문항
         int partAScore = request.answers().stream()
-                .filter(a -> a.questionId() >= 1 && a.questionId() <= 18)
+                .filter(a -> a.questionId() >= 1 && a.questionId() <= 6)
                 .mapToInt(AsrsRequest.AnswerItem::score)
                 .sum();
         int totalScore = request.answers().stream()
