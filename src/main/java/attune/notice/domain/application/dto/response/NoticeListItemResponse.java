@@ -15,7 +15,7 @@ public record NoticeListItemResponse(
                 notice.getId(),
                 notice.getTitle(),
                 notice.getCreatedAt(),
-                notice.getIsPinned()
+                notice.isPinned()
         );
     }
 }
