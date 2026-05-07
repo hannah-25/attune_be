@@ -5,6 +5,7 @@ import attune.medication.domain.application.dto.request.CreateMedicationRequest;
 import attune.medication.domain.application.dto.request.UpdateMedicationRequest;
 import attune.medication.domain.application.dto.request.UpdateMedicationScheduleRequest;
 import attune.medication.domain.application.dto.response.*;
+import attune.medication.domain.application.dto.response.MedicationDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -25,6 +26,16 @@ import java.time.LocalDate;
 public class MedicationController {
 
     private final MedicationService medicationService;
+
+    @Operation(summary = "의약품 표준 정보 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "의약품 없음")
+    })
+    @GetMapping("/standards/{medicationId}")
+    public ResponseEntity<MedicationDetailResponse> getMedicationDetail(@PathVariable Long medicationId) {
+        return ResponseEntity.ok(medicationService.getMedicationDetail(medicationId));
+    }
 
     @Operation(summary = "복용 중인 약물 프로필 등록")
     @ApiResponse(responseCode = "201", description = "등록 성공")

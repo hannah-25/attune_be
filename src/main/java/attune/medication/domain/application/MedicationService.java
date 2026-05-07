@@ -6,6 +6,7 @@ import attune.medication.domain.application.dto.request.CreateMedicationRequest;
 import attune.medication.domain.application.dto.request.UpdateMedicationRequest;
 import attune.medication.domain.application.dto.request.UpdateMedicationScheduleRequest;
 import attune.medication.domain.application.dto.response.*;
+import attune.medication.domain.application.dto.response.MedicationDetailResponse;
 import attune.medication.domain.model.*;
 import attune.medication.domain.repository.*;
 import attune.user.domain.model.User;
@@ -28,6 +29,13 @@ public class MedicationService {
     private final UserMedicationScheduleRepository scheduleRepository;
     private final UserMedicationLogRepository logRepository;
     private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public MedicationDetailResponse getMedicationDetail(Long medicationId) {
+        return medicationRepository.findById(medicationId)
+                .map(MedicationDetailResponse::from)
+                .orElseThrow(MedicationNotFoundException::new);
+    }
 
     @Transactional
     public CreateMedicationResponse createMedication(CreateMedicationRequest request) {

@@ -2,15 +2,15 @@ package attune.medication.domain.application.dto.response;
 
 import attune.medication.domain.model.Medication;
 
-public record DrugDetailResponse(
+public record MedicationDetailResponse(
         String name,
         String ingredient,
         String indications,
         String sideEffects,
         String bloodConcentrationGraph
 ) {
-    public static DrugDetailResponse from(Medication m) {
-        return new DrugDetailResponse(
+    public static MedicationDetailResponse from(Medication m) {
+        return new MedicationDetailResponse(
                 m.getName(),
                 m.getGenericName(),
                 m.getEffect(),
