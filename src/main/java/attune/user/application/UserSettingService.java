@@ -1,7 +1,7 @@
 package attune.user.application;
 
 import attune.common.error.notfound.UserNotFoundException;
-import attune.user.application.dto.request.*;
+import attune.user.application.dto.request.UpdateUserSettingRequest;
 import attune.user.application.dto.response.UserSettingResponse;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserSetting;
@@ -26,34 +26,9 @@ public class UserSettingService {
         return UserSettingResponse.from(getOrCreate(userId));
     }
 
-    public UserSettingResponse updateEmailNotification(UUID userId, UpdateEmailNotificationRequest request) {
+    public UserSettingResponse updateSettings(UUID userId, UpdateUserSettingRequest request) {
         UserSetting setting = getOrCreate(userId);
-        setting.updateEmailNotification(request.emailDeadlineAlert(), request.emailSecurityAlert(), request.emailMarketingAlert());
-        return UserSettingResponse.from(setting);
-    }
-
-    public UserSettingResponse updatePushNotification(UUID userId, UpdatePushNotificationRequest request) {
-        UserSetting setting = getOrCreate(userId);
-        setting.updatePushNotification(request.pushBrowserAlert(), request.pushTimerAlert(), request.pushScheduleAlert(),
-                request.pushMedicationAlert(), request.pushCommunityAlert(), request.pushConsultationAlert(), request.pushCalendarAlert());
-        return UserSettingResponse.from(setting);
-    }
-
-    public UserSettingResponse updateTheme(UUID userId, UpdateThemeRequest request) {
-        UserSetting setting = getOrCreate(userId);
-        setting.updateTheme(request.theme());
-        return UserSettingResponse.from(setting);
-    }
-
-    public UserSettingResponse updateLocalization(UUID userId, UpdateLocalizationRequest request) {
-        UserSetting setting = getOrCreate(userId);
-        setting.updateLocalization(request.dateFormat(), request.timeFormat(), request.weekStartDay());
-        return UserSettingResponse.from(setting);
-    }
-
-    public UserSettingResponse updateWorkspaceSetting(UUID userId, UpdateWorkspaceSettingRequest request) {
-        UserSetting setting = getOrCreate(userId);
-        setting.updateWorkspaceSettings(request.breakTimeAlert());
+        setting.update(request.alarmEnabled(), request.takeMedicationOnHoliday(), request.theme());
         return UserSettingResponse.from(setting);
     }
 
