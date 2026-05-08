@@ -33,7 +33,7 @@ public class UserSettingService {
     }
 
     private UserSetting getOrCreate(UUID userId) {
-        return userSettingRepository.findByUserId(userId)
+        return userSettingRepository.findById(userId)
                 .orElseGet(() -> {
                     User user = userRepository.findById(userId)
                             .orElseThrow(UserNotFoundException::new);
