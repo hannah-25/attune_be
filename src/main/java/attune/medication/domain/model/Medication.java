@@ -33,5 +33,5 @@ public class Medication {
 
     private String typicalDosageRange;
 
-    private String medicationClass;
+    private String drugClass;
 }

@@ -39,13 +39,13 @@ public class MedicationService {
     @Transactional
     public CreateMedicationResponse createMedication(CreateMedicationRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        User userRef = userRepository.getReferenceById(userId);
         Medication medication = medicationRepository.findById(request.medicationId())
                 .orElseThrow(MedicationNotFoundException::new);
 
         LocalDateTime now = LocalDateTime.now();
         UserMedication um = UserMedication.builder()
-                .user(user)
+                .user(userRef)
                 .medication(medication)
                 .hospitalId(request.hospitalId())
                 .isActive(true)

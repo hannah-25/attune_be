@@ -102,7 +102,7 @@
 
 ---
 
-## MedicationLog (약물 복용 로그)
+## UserMedicationLog (약물 복용 로그)
 
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
