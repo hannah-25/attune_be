@@ -3,7 +3,6 @@ package attune.medication.domain.adapter.web;
 import attune.medication.domain.application.MedicationService;
 import attune.medication.domain.application.dto.request.CreateMedicationRequest;
 import attune.medication.domain.application.dto.request.UpdateMedicationRequest;
-import attune.medication.domain.application.dto.request.UpdateMedicationScheduleRequest;
 import attune.medication.domain.application.dto.response.*;
 import attune.medication.domain.application.dto.response.MedicationDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,7 +58,7 @@ public class MedicationController {
             @PathVariable Long userMedicationId,
             @RequestBody UpdateMedicationRequest request
     ) {
-        return ResponseEntity.ok(medicationService.updateMedication(medicationId, request));
+        return ResponseEntity.ok(medicationService.updateMedication(userMedicationId, request));
     }
 
     @Operation(summary = "특정 약물별 상세 이력 조회")
@@ -76,16 +75,4 @@ public class MedicationController {
         return ResponseEntity.ok(medicationService.getMedicationLogs(medicationId, startDate, endDate));
     }
 
-    @Operation(summary = "복용 시간 알림 설정")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "설정 성공"),
-            @ApiResponse(responseCode = "404", description = "약물 없음")
-    })
-    @PutMapping("/{medicationId}/schedule")
-    public ResponseEntity<UpdateMedicationScheduleResponse> updateSchedule(
-            @PathVariable Long medicationId,
-            @Valid @RequestBody UpdateMedicationScheduleRequest request
-    ) {
-        return ResponseEntity.ok(medicationService.updateSchedule(medicationId, request));
-    }
 }

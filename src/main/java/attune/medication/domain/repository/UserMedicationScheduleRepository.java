@@ -7,5 +7,4 @@ import java.util.List;
 
 public interface UserMedicationScheduleRepository extends JpaRepository<UserMedicationSchedule, Long> {
     List<UserMedicationSchedule> findByUserMedicationId(Long userMedicationId);
-    void deleteByUserMedicationId(Long userMedicationId);
 }

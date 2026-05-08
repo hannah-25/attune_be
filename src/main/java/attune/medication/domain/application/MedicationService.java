@@ -4,7 +4,6 @@ import attune.common.error.notfound.MedicationNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.medication.domain.application.dto.request.CreateMedicationRequest;
 import attune.medication.domain.application.dto.request.UpdateMedicationRequest;
-import attune.medication.domain.application.dto.request.UpdateMedicationScheduleRequest;
 import attune.medication.domain.application.dto.response.*;
 import attune.medication.domain.application.dto.response.MedicationDetailResponse;
 import attune.medication.domain.model.*;
@@ -58,14 +57,15 @@ public class MedicationService {
                 .build();
         UserMedication saved = userMedicationRepository.save(um);
 
-        for (CreateMedicationRequest.ScheduleEntry entry : request.schedules()) {
-            scheduleRepository.save(UserMedicationSchedule.builder()
-                    .userMedication(saved)
-                    .doseTime(entry.doseTime())
-                    .label(entry.label())
-                    .dosage(entry.dosage())
-                    .build());
-        }
+        List<UserMedicationSchedule> schedules = request.schedules().stream()
+                .map(entry -> UserMedicationSchedule.builder()
+                        .userMedication(saved)
+                        .doseTime(entry.doseTime())
+                        .label(entry.label())
+                        .dosage(entry.dosage())
+                        .build())
+                .toList();
+        scheduleRepository.saveAll(schedules);
 
         return CreateMedicationResponse.from(saved);
     }
@@ -106,28 +106,4 @@ public class MedicationService {
         );
     }
 
-    @Transactional
-    public UpdateMedicationScheduleResponse updateSchedule(Long userMedicationId, UpdateMedicationScheduleRequest request) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserMedication um = userMedicationRepository.findByIdAndUserId(userMedicationId, userId)
-                .orElseThrow(MedicationNotFoundException::new);
-
-        um.update(null, null, request.alarmActive());
-
-        scheduleRepository.deleteByUserMedicationId(userMedicationId);
-
-        List<UserMedicationSchedule> saved = request.schedules().stream()
-                .map(entry -> scheduleRepository.save(UserMedicationSchedule.builder()
-                        .userMedication(um)
-                        .doseTime(entry.doseTime())
-                        .label(entry.label())
-                        .dosage(entry.dosage())
-                        .build()))
-                .toList();
-
-        List<UpdateMedicationScheduleResponse.ScheduleEntry> entries =
-                saved.stream().map(UpdateMedicationScheduleResponse.ScheduleEntry::from).toList();
-
-        return new UpdateMedicationScheduleResponse(userMedicationId, um.getAlarmActive(), entries);
-    }
 }
