@@ -7,6 +7,4 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserSettingRepository extends JpaRepository<UserSetting, UUID> {
-
-    Optional<UserSetting> findByUserId(UUID userId);
 }

@@ -2,6 +2,7 @@ package attune.term.adapter.web;
 
 import attune.term.application.TermService;
 import attune.term.application.dto.response.TermResponse;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,7 +23,7 @@ public class TermController {
     @Operation(summary = "최신 약관 조회", description = "회원가입 시 표시할 최신 약관을 조회합니다.")
     @ApiResponse(responseCode = "200", description = "약관 조회 성공")
     @GetMapping("/latest")
-    public ResponseEntity<TermResponse> getLatestTerm() {
+    public ResponseEntity<List<TermResponse>> getLatestTerm() {
         return ResponseEntity.ok(termService.getLatestTerm());
     }
 }

@@ -22,14 +22,12 @@ public class Term {
 
     private Integer version;
 
-    @Column(columnDefinition = "TEXT")
-    private String termsOfService;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TermType type;
 
     @Column(columnDefinition = "TEXT")
-    private String privacyPolicy;
-
-    @Column(columnDefinition = "TEXT")
-    private String marketingConsent;
+    private String content;
 
     private LocalDateTime effectiveAt;
 

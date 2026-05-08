@@ -29,16 +29,10 @@ public class UserTermAgreement {
     @JoinColumn(name = "term_id")
     private Term term;
 
+    @Column(name = "is_agreed")
+    private boolean agreed;
 
-    private boolean termsOfService;
-
-    private boolean privacyPolicy;
-
-    private boolean marketingConsent;
-
-    //약관 고지일
-    private LocalDateTime notifiedAt;
-    //약관 동의일
     private LocalDateTime agreedAt;
 
+    private LocalDateTime notifiedAt;
 }
