@@ -22,7 +22,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,7 +37,7 @@ public class ConsultationService {
 
     @Transactional
     public CreateConsultationResponse createConsultation(CreateConsultationRequest request) {
-        UUID userId = requireCurrentUserId();
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
         LocalDateTime now = LocalDateTime.now();
@@ -75,7 +77,7 @@ public class ConsultationService {
     public ConsultationUpdateResponse updatePreparation(Long consultationId,
                                                         UpdateConsultationPreparationRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updatePreparation(request.preConsultationNote(), request.nextTreatmentGoal());
+        consultation.updatePreparation(request.preConsultationNote());
         return ConsultationUpdateResponse.from(consultation);
     }
 
@@ -83,16 +85,18 @@ public class ConsultationService {
     public ConsultationUpdateResponse updateResult(Long consultationId,
                                                    UpdateConsultationResultRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateResult(request.doctorAdvice(), request.prescriptionNote());
+        consultation.updateResult(request.doctorAdvice(), request.prescriptionNote(), request.nextTreatmentGoal());
         return ConsultationUpdateResponse.from(consultation);
     }
 
     @Transactional(readOnly = true)
-    public ConsultationListResponse getConsultations(LocalDateTime startDate, LocalDateTime endDate) {
-        UUID userId = requireCurrentUserId();
+    public ConsultationListResponse getConsultations(LocalDate startDate, LocalDate endDate) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime startOfRange = startDate.atStartOfDay();
+        LocalDateTime endOfRange = endDate.atTime(LocalTime.MAX);
         List<ConsultationListItemResponse> items = consultationRepository
                 .findAllByUser_IdAndIsDeletedFalseAndConsultationDateBetweenOrderByConsultationDateAsc(
-                        userId, startDate, endDate)
+                        userId, startOfRange, endOfRange)
                 .stream()
                 .map(ConsultationListItemResponse::from)
                 .toList();
@@ -107,16 +111,10 @@ public class ConsultationService {
         return ConsultationScheduleResponse.from(consultation);
     }
 
-    private UUID requireCurrentUserId() {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        if (userId == null) {
-            throw new AccessDeniedException("인증이 필요합니다.");
-        }
-        return userId;
-    }
 
+    // 상담일정 유저 본인 확인
     private Consultation loadOwned(Long consultationId) {
-        UUID userId = requireCurrentUserId();
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         Consultation consultation = consultationRepository.findByIdAndIsDeletedFalse(consultationId)
                 .orElseThrow(ConsultationNotFoundException::new);
         if (!consultation.getUser().getId().equals(userId)) {

@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Tag(name = "상담", description = "상담 일정 및 기록 관리 API")
 @RequiredArgsConstructor
@@ -64,7 +64,7 @@ public class ConsultationController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "상담 결과 삭제")
+    @Operation(summary = "상담 기록 일지 삭제")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
             @ApiResponse(responseCode = "403", description = "삭제 권한 없음"),
@@ -114,8 +114,8 @@ public class ConsultationController {
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<ConsultationListResponse> getConsultations(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ResponseEntity.ok(consultationService.getConsultations(startDate, endDate));
     }
 

@@ -5,5 +5,5 @@ import java.time.LocalDateTime;
 public record UpdateConsultationScheduleRequest(
         LocalDateTime consultationDate,
         String place,
-        String alarmSettings
+        Boolean alarmSettings
 ) {}

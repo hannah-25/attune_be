@@ -51,7 +51,9 @@ public class Consultation {
     @Column(columnDefinition = "TEXT")
     private String nextTreatmentGoal;
 
-    private String alarmSettings;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean alarmSettings = true;
 
     @Column(nullable = false)
     private boolean isDeleted;
@@ -60,28 +62,29 @@ public class Consultation {
 
     private LocalDateTime updatedAt;
 
-    public void updateSchedule(LocalDateTime consultationDate, String place, String alarmSettings) {
+    public void updateSchedule(LocalDateTime consultationDate, String place, Boolean alarmSettings) {
         if (consultationDate != null) this.consultationDate = consultationDate;
         if (place != null) this.place = place;
         if (alarmSettings != null) this.alarmSettings = alarmSettings;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void updatePreparation(String preConsultationNote, String nextTreatmentGoal) {
+    public void updatePreparation(String preConsultationNote) {
         if (preConsultationNote != null) this.preConsultationNote = preConsultationNote;
-        if (nextTreatmentGoal != null) this.nextTreatmentGoal = nextTreatmentGoal;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void updateResult(String doctorAdvice, String prescriptionNote) {
+    public void updateResult(String doctorAdvice, String prescriptionNote, String nextTreatmentGoal) {
         if (doctorAdvice != null) this.doctorAdvice = doctorAdvice;
         if (prescriptionNote != null) this.prescriptionNote = prescriptionNote;
+        if (nextTreatmentGoal != null) this.nextTreatmentGoal = nextTreatmentGoal;
         this.updatedAt = LocalDateTime.now();
     }
 
     public void clearResult() {
         this.doctorAdvice = null;
         this.prescriptionNote = null;
+        this.nextTreatmentGoal = null;
         this.summaryReport = null;
         this.updatedAt = LocalDateTime.now();
     }
