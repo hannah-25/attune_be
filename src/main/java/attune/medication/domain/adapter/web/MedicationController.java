@@ -54,9 +54,9 @@ public class MedicationController {
             @ApiResponse(responseCode = "200", description = "수정 성공"),
             @ApiResponse(responseCode = "404", description = "약물 없음")
     })
-    @PatchMapping("/{medicationId}")
+    @PatchMapping("/{userMedicationId}")
     public ResponseEntity<UpdateMedicationResponse> updateMedication(
-            @PathVariable Long medicationId,
+            @PathVariable Long userMedicationId,
             @RequestBody UpdateMedicationRequest request
     ) {
         return ResponseEntity.ok(medicationService.updateMedication(medicationId, request));
