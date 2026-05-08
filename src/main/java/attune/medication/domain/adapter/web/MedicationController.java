@@ -66,13 +66,13 @@ public class MedicationController {
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "404", description = "약물 없음")
     })
-    @GetMapping("/{medicationId}/logs")
+    @GetMapping("/{userMedicationId}/logs")
     public ResponseEntity<MedicationLogResponse> getMedicationLogs(
-            @PathVariable Long medicationId,
+            @PathVariable Long userMedicationId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        return ResponseEntity.ok(medicationService.getMedicationLogs(medicationId, startDate, endDate));
+        return ResponseEntity.ok(medicationService.getMedicationLogs(userMedicationId, startDate, endDate));
     }
 
 }
