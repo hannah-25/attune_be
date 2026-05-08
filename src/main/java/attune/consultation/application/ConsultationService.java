@@ -1,7 +1,6 @@
 package attune.consultation.application;
 
 import attune.common.error.notfound.ConsultationNotFoundException;
-import attune.common.error.notfound.UserNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.consultation.application.dto.request.CreateConsultationRequest;
 import attune.consultation.application.dto.request.UpdateConsultationPreparationRequest;
@@ -38,11 +37,11 @@ public class ConsultationService {
     @Transactional
     public CreateConsultationResponse createConsultation(CreateConsultationRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        User userRef = userRepository.getReferenceById(userId);
 
         LocalDateTime now = LocalDateTime.now();
         Consultation consultation = Consultation.builder()
-                .user(user)
+                .user(userRef)
                 .consultationDate(request.consultationDate())
                 .place(request.place())
                 .doctorName(request.doctorName())
