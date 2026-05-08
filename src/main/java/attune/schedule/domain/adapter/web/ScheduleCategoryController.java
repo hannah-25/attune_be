@@ -48,7 +48,7 @@ public class ScheduleCategoryController {
     @PatchMapping("/{categoryId}")
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long categoryId,
-            @RequestBody UpdateCategoryRequest request
+            @Valid @RequestBody UpdateCategoryRequest request
     ) {
         return ResponseEntity.ok(scheduleCategoryService.updateCategory(categoryId, request));
     }
