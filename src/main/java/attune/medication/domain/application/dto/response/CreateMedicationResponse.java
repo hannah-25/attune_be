@@ -3,7 +3,7 @@ package attune.medication.domain.application.dto.response;
 import attune.medication.domain.model.UserMedication;
 
 public record CreateMedicationResponse(
-        Long medicationId,
+        Long userMedicationId,
         String name,
         boolean isActive
 ) {
