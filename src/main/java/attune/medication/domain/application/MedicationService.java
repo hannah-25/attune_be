@@ -39,7 +39,7 @@ public class MedicationService {
     @Transactional
     public CreateMedicationResponse createMedication(CreateMedicationRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        User user = userRepository.findById(userId).orElseThrow();
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         Medication medication = medicationRepository.findById(request.medicationId())
                 .orElseThrow(MedicationNotFoundException::new);
 
