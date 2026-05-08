@@ -1,11 +1,11 @@
-package attune.communityBoard.domain.adapter.web;
+package attune.communityBoard.adapter.web;
 
-import attune.communityBoard.domain.application.*;
-import attune.communityBoard.domain.application.dto.request.CreateCommentRequest;
-import attune.communityBoard.domain.application.dto.request.UpdateCommentRequest;
-import attune.communityBoard.domain.application.dto.response.CommentResponse;
-import attune.communityBoard.domain.application.dto.response.CreateCommentResponse;
-import attune.communityBoard.domain.application.dto.response.UpdateCommentResponse;
+import attune.communityBoard.application.CommentService;
+import attune.communityBoard.application.dto.request.CreateCommentRequest;
+import attune.communityBoard.application.dto.request.UpdateCommentRequest;
+import attune.communityBoard.application.dto.response.CommentResponse;
+import attune.communityBoard.application.dto.response.CreateCommentResponse;
+import attune.communityBoard.application.dto.response.UpdateCommentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

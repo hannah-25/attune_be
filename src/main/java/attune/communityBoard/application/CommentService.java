@@ -1,11 +1,11 @@
-package attune.communityBoard.domain.application;
+package attune.communityBoard.application;
 
 import attune.common.util.SecurityUtils;
-import attune.communityBoard.domain.application.dto.request.CreateCommentRequest;
-import attune.communityBoard.domain.application.dto.request.UpdateCommentRequest;
-import attune.communityBoard.domain.application.dto.response.CommentResponse;
-import attune.communityBoard.domain.application.dto.response.CreateCommentResponse;
-import attune.communityBoard.domain.application.dto.response.UpdateCommentResponse;
+import attune.communityBoard.application.dto.request.CreateCommentRequest;
+import attune.communityBoard.application.dto.request.UpdateCommentRequest;
+import attune.communityBoard.application.dto.response.CommentResponse;
+import attune.communityBoard.application.dto.response.CreateCommentResponse;
+import attune.communityBoard.application.dto.response.UpdateCommentResponse;
 import attune.communityBoard.domain.model.Comment;
 import attune.communityBoard.domain.model.CommunityBoard;
 import attune.communityBoard.domain.repository.CommentRepository;

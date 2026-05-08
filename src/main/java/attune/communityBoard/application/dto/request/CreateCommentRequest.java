@@ -1,4 +1,4 @@
-package attune.communityBoard.domain.application.dto.request;
+package attune.communityBoard.application.dto.request;
 
 public record CreateCommentRequest(
         String content,

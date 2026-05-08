@@ -1,4 +1,4 @@
-package attune.communityBoard.domain.application.dto.request;
+package attune.communityBoard.application.dto.request;
 
 import attune.communityBoard.domain.model.PostCategory;
 import io.swagger.v3.oas.annotations.media.Schema;

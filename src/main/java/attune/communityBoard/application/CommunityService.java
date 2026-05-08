@@ -1,9 +1,9 @@
-package attune.communityBoard.domain.application;
+package attune.communityBoard.application;
 
 import attune.common.util.SecurityUtils;
-import attune.communityBoard.domain.application.dto.request.CreatePostRequest;
-import attune.communityBoard.domain.application.dto.request.UpdatePostRequest;
-import attune.communityBoard.domain.application.dto.response.PostResponse;
+import attune.communityBoard.application.dto.request.CreatePostRequest;
+import attune.communityBoard.application.dto.request.UpdatePostRequest;
+import attune.communityBoard.application.dto.response.PostResponse;
 import attune.user.domain.model.User;
 import attune.communityBoard.domain.model.CommunityBoard;
 import attune.communityBoard.domain.repository.CommunityBoardRepository;
