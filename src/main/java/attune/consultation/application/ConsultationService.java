@@ -1,5 +1,6 @@
 package attune.consultation.application;
 
+import attune.common.error.InvalidDateRangeException;
 import attune.common.error.notfound.ConsultationNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.consultation.application.dto.request.CreateConsultationRequest;
@@ -90,6 +91,9 @@ public class ConsultationService {
 
     @Transactional(readOnly = true)
     public ConsultationListResponse getConsultations(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new InvalidDateRangeException();
+        }
         UUID userId = SecurityUtils.getCurrentUserUuid();
         LocalDateTime startOfRange = startDate.atStartOfDay();
         LocalDateTime endOfRange = endDate.atTime(LocalTime.MAX);
