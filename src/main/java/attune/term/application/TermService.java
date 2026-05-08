@@ -49,7 +49,7 @@ public class TermService {
                     return UserTermAgreement.builder()
                             .user(user)
                             .term(term)
-                            .agreed(agreementMap.get(type))
+                            .agreed(agreementMap.getOrDefault(type, false))
                             .notifiedAt(now)
                             .agreedAt(now)
                             .build();
