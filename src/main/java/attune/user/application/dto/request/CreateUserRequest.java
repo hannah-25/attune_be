@@ -30,9 +30,5 @@ public record CreateUserRequest(
         boolean privacyPolicy,
 
         @Schema(description = "마케팅 정보 수신 동의(선택)", example = "false")
-        boolean marketingConsent,
-
-        @Schema(description = "동의한 약관 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "약관 ID는 필수입니다")
-        Long termId
+        boolean marketingConsent
 ) {}

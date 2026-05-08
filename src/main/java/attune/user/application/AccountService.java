@@ -55,7 +55,7 @@ public class AccountService {
         }
 
         User user = createAndSaveUser(request);
-        termService.saveAgreement(user, request.termId(), request.termsOfService(), request.privacyPolicy(), request.marketingConsent());
+        termService.saveAgreement(user, request.termsOfService(), request.privacyPolicy(), request.marketingConsent());
 
         String token = UUID.randomUUID().toString();
         emailVerificationTokenRepository.save(EmailVerificationToken.builder()

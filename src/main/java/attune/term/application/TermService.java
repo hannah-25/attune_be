@@ -1,6 +1,5 @@
 package attune.term.application;
 
-import attune.common.error.InvalidTermException;
 import attune.common.error.notfound.TermNotFoundException;
 import attune.term.application.dto.response.TermResponse;
 import attune.term.domain.model.Term;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -26,25 +26,15 @@ public class TermService {
 
     @Transactional(readOnly = true)
     public List<TermResponse> getLatestTerm() {
-        Term latest = termRepository.findTopByOrderByVersionDesc()
-                .orElseThrow(TermNotFoundException::new);
-        return termRepository.findAllByVersion(latest.getVersion()).stream()
+        return Arrays.stream(TermType.values())
+                .map(type -> termRepository.findTopByTypeOrderByVersionDesc(type)
+                        .orElseThrow(TermNotFoundException::new))
                 .map(TermResponse::from)
                 .toList();
     }
 
     @Transactional
-    public void saveAgreement(User user, Long termId, boolean termsOfService, boolean privacyPolicy, boolean marketingConsent) {
-        Term term = termRepository.findById(termId)
-                .orElseThrow(TermNotFoundException::new);
-        Term latestTerm = termRepository.findTopByOrderByVersionDesc()
-                .orElseThrow(TermNotFoundException::new);
-
-        if (!term.getVersion().equals(latestTerm.getVersion())) {
-            throw new InvalidTermException();
-        }
-
-        List<Term> allTerms = termRepository.findAllByVersion(term.getVersion());
+    public void saveAgreement(User user, boolean termsOfService, boolean privacyPolicy, boolean marketingConsent) {
         Map<TermType, Boolean> agreementMap = Map.of(
                 TermType.TERMS_OF_SERVICE, termsOfService,
                 TermType.PRIVACY_POLICY, privacyPolicy,
@@ -52,14 +42,18 @@ public class TermService {
         );
 
         LocalDateTime now = LocalDateTime.now();
-        List<UserTermAgreement> agreements = allTerms.stream()
-                .map(t -> UserTermAgreement.builder()
-                        .user(user)
-                        .term(t)
-                        .agreed(agreementMap.getOrDefault(t.getType(), false))
-                        .notifiedAt(now)
-                        .agreedAt(now)
-                        .build())
+        List<UserTermAgreement> agreements = Arrays.stream(TermType.values())
+                .map(type -> {
+                    Term term = termRepository.findTopByTypeOrderByVersionDesc(type)
+                            .orElseThrow(TermNotFoundException::new);
+                    return UserTermAgreement.builder()
+                            .user(user)
+                            .term(term)
+                            .agreed(agreementMap.get(type))
+                            .notifiedAt(now)
+                            .agreedAt(now)
+                            .build();
+                })
                 .toList();
 
         userTermAgreementRepository.saveAll(agreements);
