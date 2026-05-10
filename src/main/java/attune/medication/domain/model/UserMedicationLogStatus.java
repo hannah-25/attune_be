@@ -1,6 +1,6 @@
 package attune.medication.domain.model;
 
-public enum LogStatus {
+public enum UserMedicationLogStatus {
     TAKEN,
     SKIPPED,
     MISSED

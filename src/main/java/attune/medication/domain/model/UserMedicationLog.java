@@ -29,5 +29,5 @@ public class UserMedicationLog {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LogStatus status;
+    private UserMedicationLogStatus status;
 }

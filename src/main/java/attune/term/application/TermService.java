@@ -1,6 +1,9 @@
 package attune.term.application;
 
 import attune.common.error.notfound.TermNotFoundException;
+import attune.common.mail.event.TermsUpdatedEvent;
+import attune.term.application.dto.request.CreateTermRequest;
+import attune.term.application.dto.response.CreateTermResponse;
 import attune.term.application.dto.response.TermResponse;
 import attune.term.domain.model.Term;
 import attune.term.domain.model.TermType;
@@ -9,6 +12,7 @@ import attune.term.domain.repository.TermRepository;
 import attune.term.domain.repository.UserTermAgreementRepository;
 import attune.user.domain.model.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,25 @@ public class TermService {
 
     private final TermRepository termRepository;
     private final UserTermAgreementRepository userTermAgreementRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    @Transactional
+    public CreateTermResponse createTerm(CreateTermRequest request) {
+        Term term = Term.builder()
+                .version(request.version())
+                .type(request.type())
+                .content(request.content())
+                .effectiveAt(request.effectiveDate())
+                .createdAt(request.createdAt())
+                .build();
+        Term saved = termRepository.save(term);
+
+        if (request.sendEmail()) {
+            eventPublisher.publishEvent(new TermsUpdatedEvent(request.title(), request.content()));
+        }
+
+        return CreateTermResponse.from(saved);
+    }
 
     @Transactional(readOnly = true)
     public List<TermResponse> getLatestTerm() {

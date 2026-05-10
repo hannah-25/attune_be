@@ -38,9 +38,10 @@ public class User {
 
     private String profileImageUrl;
 
-
     private boolean isOnboarded = false;
     private LocalDateTime onboardedAt;
+
+    private LocalDateTime withdrawalAt;
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
@@ -53,5 +54,23 @@ public class User {
     public void completeOnboarding(LocalDateTime completedAt) {
         this.isOnboarded = true;
         this.onboardedAt = completedAt;
+    }
+
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void changeProfileImageUrl(String url) {
+        this.profileImageUrl = url;
+    }
+
+    public void withdraw() {
+        this.userStatus = UserStatus.WITHDRAWAL;
+        this.withdrawalAt = LocalDateTime.now();
+    }
+
+    public void restore() {
+        this.userStatus = UserStatus.ACTIVE;
+        this.withdrawalAt = null;
     }
 }

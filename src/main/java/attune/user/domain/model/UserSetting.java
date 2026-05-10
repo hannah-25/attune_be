@@ -24,15 +24,19 @@ public class UserSetting {
     @JoinColumn(name = "user_id")
     private User user;
 
-    private boolean alarmEnabled;
+    private boolean medicationNotification;
+    private boolean reportNotification;
+    private boolean marketingNotification;
     private boolean takeMedicationOnHoliday;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Theme theme;
 
-    public void update(Boolean alarmEnabled, Boolean takeMedicationOnHoliday, Theme theme) {
-        if (alarmEnabled != null) this.alarmEnabled = alarmEnabled;
+    public void update(Boolean medicationNotification, Boolean reportNotification, Boolean marketingNotification, Boolean takeMedicationOnHoliday, Theme theme) {
+        if (medicationNotification != null) this.medicationNotification = medicationNotification;
+        if (reportNotification != null) this.reportNotification = reportNotification;
+        if (marketingNotification != null) this.marketingNotification = marketingNotification;
         if (takeMedicationOnHoliday != null) this.takeMedicationOnHoliday = takeMedicationOnHoliday;
         if (theme != null) this.theme = theme;
     }
@@ -40,7 +44,9 @@ public class UserSetting {
     public static UserSetting createDefault(User user) {
         return UserSetting.builder()
                 .user(user)
-                .alarmEnabled(true)
+                .medicationNotification(true)
+                .reportNotification(true)
+                .marketingNotification(false)
                 .takeMedicationOnHoliday(false)
                 .theme(Theme.SYSTEM)
                 .build();

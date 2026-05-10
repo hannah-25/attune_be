@@ -1,6 +1,7 @@
 package attune.user.application;
 
 import attune.common.error.DuplicateEmailException;
+import attune.common.error.DuplicateNicknameException;
 import attune.common.error.InvalidPasswordException;
 import attune.common.error.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
@@ -10,6 +11,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import attune.user.application.dto.request.ChangePasswordRequest;
 import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
+import attune.user.application.dto.request.UpdateNicknameRequest;
+import attune.user.application.dto.request.UpdateProfileImageRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import attune.term.application.TermService;
 import attune.user.domain.model.EmailVerificationToken;
@@ -141,6 +144,23 @@ public class AccountService {
         if (resetToken.isExpired()) {
             throw new TokenException("만료된 링크입니다.");
         }
+    }
+
+    @Transactional
+    public void updateNickname(UUID userId, UpdateNicknameRequest request) {
+        if (userRepository.existsByNickname(request.newNickname())) {
+            throw new DuplicateNicknameException();
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+        user.changeNickname(request.newNickname());
+    }
+
+    @Transactional
+    public void updateProfileImage(UUID userId, UpdateProfileImageRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+        user.changeProfileImageUrl(request.profileImageUrl());
     }
 
     @Transactional
