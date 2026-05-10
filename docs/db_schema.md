@@ -15,6 +15,20 @@
 | user_status | VARCHAR(50) | DEFAULT PENDING (PENDING, ACTIVE, SUSPENDED, WITHDRAWAL) | 계정 상태 |
 | user_type | VARCHAR(50) | DEFAULT USER (USER, ADMIN) | 사용자 유형 (Enum) |
 | onboarded_at | TIMESTAMP | | 온보딩 시점 |
+| withdrawal_at | TIMESTAMP | | 탈퇴 요청 시점 (영구 삭제 배치 기준) |
+
+---
+
+## UserSetting (유저 설정)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| user_id | UUID | PK, FK → User.id, NOT NULL | 사용자 ID |
+| medication_notification | BOOLEAN | DEFAULT true | 복약 알림 여부 |
+| report_notification | BOOLEAN | DEFAULT true | 리포트 알림 여부 |
+| marketing_notification | BOOLEAN | DEFAULT false | 마케팅 알림 여부 |
+| take_medication_on_holiday | BOOLEAN | DEFAULT false | 휴일 복약 여부 |
+| theme | VARCHAR(50) | DEFAULT SYSTEM (DARK, LIGHT, SYSTEM) | 테마 설정 |
 
 ---
 
@@ -335,3 +349,15 @@
 | date | DATE | NOT NULL | 리포트 날짜 |
 | | | UNIQUE(id, date) | 일자당 하나의 일지만 생성 |
 | analysis | TEXT | NOT NULL | |
+
+---
+
+## OnboardingSymptom (온보딩 증상)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 온보딩 증상 고유 식별자 |
+| user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
+| description | TEXT | | 초기 증상 서술 |
+| emotional_event | TEXT | | 감정적 사건 서술 |
+| saved_at | TIMESTAMP | | 저장 일시 |

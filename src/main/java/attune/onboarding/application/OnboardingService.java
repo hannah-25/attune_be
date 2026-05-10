@@ -75,6 +75,7 @@ public class OnboardingService {
         OnboardingSymptom symptom = OnboardingSymptom.builder()
                 .user(user)
                 .description(request.description())
+                .emotionalEvent(request.emotionalEvent())
                 .savedAt(now)
                 .build();
 

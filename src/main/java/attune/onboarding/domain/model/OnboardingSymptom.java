@@ -28,5 +28,8 @@ public class OnboardingSymptom {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(columnDefinition = "TEXT")
+    private String emotionalEvent;
+
     private LocalDateTime savedAt;
 }
