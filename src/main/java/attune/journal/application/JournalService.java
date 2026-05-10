@@ -109,6 +109,7 @@ public class JournalService {
         dates.addAll(troubleLogRepository.findDistinctDatesInRange(userId, startAt, endAt));
         dates.addAll(dailyStatusLogRepository.findDistinctDatesInRange(userId, startDate, endDate));
         dates.addAll(dailyGoalLogRepository.findDistinctDatesInRange(userId, startDate, endDate));
+        dates.addAll(memoRepository.findDistinctDatesInRange(userId, startDate, endDate));
 
         return new JournalListResponse(List.copyOf(dates));
     }
