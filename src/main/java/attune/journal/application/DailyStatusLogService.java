@@ -1,6 +1,7 @@
 package attune.journal.application;
 
 import attune.common.error.DailyStatusAlreadyExistsException;
+import attune.common.error.InvalidSleepHourException;
 import attune.common.error.notfound.DailyStatusLogNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CreateDailyStatusRequest;
@@ -45,6 +46,10 @@ public class DailyStatusLogService {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         DailyStatusLog log = dailyStatusLogRepository.findByUserIdAndDate(userId, date)
                 .orElseThrow(DailyStatusLogNotFoundException::new);
+
+        request.sleepHour().ifPresent(value -> {
+            if (value != null && (value < 0 || value > 24)) throw new InvalidSleepHourException();
+        });
 
         log.update(
                 request.sleepHour(),

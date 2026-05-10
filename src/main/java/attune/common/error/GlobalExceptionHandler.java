@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, e.getMessage()));
     }
 
-    @ExceptionHandler({InvalidTermException.class, OnboardingNotCompleteException.class})
+    @ExceptionHandler({InvalidTermException.class, OnboardingNotCompleteException.class, InvalidSleepHourException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
         log.info("400 BadRequest: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
