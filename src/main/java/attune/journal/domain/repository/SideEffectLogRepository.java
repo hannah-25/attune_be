@@ -1,6 +1,7 @@
 package attune.journal.domain.repository;
 
 import attune.journal.domain.model.SideEffectLog;
+import jakarta.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -14,14 +15,14 @@ import java.util.UUID;
 public interface SideEffectLogRepository extends JpaRepository<SideEffectLog, Long> {
 
     @Query("""
-            SELECT l, t FROM SideEffectLog l, SideEffectTag t
+            SELECT l AS log, t AS tag FROM SideEffectLog l, SideEffectTag t
             WHERE l.sideEffectTagId = t.id
               AND t.userId = :userId
               AND l.checkedAt >= :startAt
               AND l.checkedAt < :endAt
             ORDER BY l.checkedAt ASC
             """)
-    List<Object[]> findAllInRangeWithTag(
+    List<Tuple> findAllInRangeWithTag(
             @Param("userId") UUID userId,
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt

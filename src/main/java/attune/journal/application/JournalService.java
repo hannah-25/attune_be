@@ -4,6 +4,7 @@ import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.response.*;
 import attune.journal.domain.model.*;
 import attune.journal.domain.repository.*;
+import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,23 +50,23 @@ public class JournalService {
 
         List<ConditionCheckResponse> conditions = conditionLogRepository
                 .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(row -> ConditionCheckResponse.of(
-                        (ConditionTag) row[1],
-                        (ConditionLog) row[0]))
+                .map(tuple -> ConditionCheckResponse.of(
+                        tuple.get("tag", ConditionTag.class),
+                        tuple.get("log", ConditionLog.class)))
                 .toList();
 
         List<SideEffectCheckResponse> sideEffects = sideEffectLogRepository
                 .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(row -> SideEffectCheckResponse.of(
-                        (SideEffectTag) row[1],
-                        (SideEffectLog) row[0]))
+                .map(tuple -> SideEffectCheckResponse.of(
+                        tuple.get("tag", SideEffectTag.class),
+                        tuple.get("log", SideEffectLog.class)))
                 .toList();
 
         List<TroubleCheckResponse> troubles = troubleLogRepository
                 .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(row -> TroubleCheckResponse.of(
-                        (TroubleTag) row[1],
-                        (TroubleLog) row[0]))
+                .map(tuple -> TroubleCheckResponse.of(
+                        tuple.get("tag", TroubleTag.class),
+                        tuple.get("log", TroubleLog.class)))
                 .toList();
 
         DailyStatusLog status = dailyStatusLogRepository
