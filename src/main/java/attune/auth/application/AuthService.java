@@ -100,7 +100,7 @@ public class AuthService {
 
     public AuthResult restore(RestoreRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(InvalidPasswordException::new);
+                .orElseThrow(() -> new UserNotFoundException());
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new InvalidPasswordException();
