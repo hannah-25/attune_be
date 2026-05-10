@@ -5,7 +5,6 @@ import attune.common.error.notfound.TroubleTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckTroubleRequest;
 import attune.journal.application.dto.request.CreateTroubleTagRequest;
-import attune.journal.application.dto.request.DeleteTagRequest;
 import attune.journal.application.dto.response.TroubleCheckResponse;
 import attune.journal.application.dto.response.TroubleTagResponse;
 import attune.journal.domain.model.TroubleLog;
@@ -16,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +51,7 @@ public class TroubleTagService {
     }
 
     @Transactional
-    public void deleteTag(Long tagId, DeleteTagRequest request) {
+    public void deleteTag(Long tagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
                 .orElseThrow(TroubleTagNotFoundException::new);
@@ -61,7 +61,7 @@ public class TroubleTagService {
 
         troubleLogRepository.deleteAllByTagFromDate(
                 tagId,
-                request.journalDate().atStartOfDay()
+                journalDate.atStartOfDay()
         );
         tag.deactivate();
     }

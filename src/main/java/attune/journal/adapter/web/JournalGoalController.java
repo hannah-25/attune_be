@@ -2,15 +2,16 @@ package attune.journal.adapter.web;
 
 import attune.journal.application.DailyGoalService;
 import attune.journal.application.dto.request.CreateGoalRequest;
-import attune.journal.application.dto.request.DeleteGoalRequest;
 import attune.journal.application.dto.request.ScoreGoalRequest;
 import attune.journal.application.dto.response.CreateGoalResponse;
 import attune.journal.application.dto.response.ScoreGoalResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -45,9 +46,10 @@ public class JournalGoalController {
     @DeleteMapping("/goals/{goalId}")
     public ResponseEntity<Void> deleteGoal(
             @PathVariable Long goalId,
-            @Valid @RequestBody DeleteGoalRequest request
+            @Parameter(description = "삭제 시작 날짜 (이 날짜부터 이후의 점수 로그가 삭제된다)", example = "2026-05-09", required = true)
+            @NotNull @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate journalDate
     ) {
-        dailyGoalService.deleteGoal(goalId, request);
+        dailyGoalService.deleteGoal(goalId, journalDate);
         return ResponseEntity.noContent().build();
     }
 

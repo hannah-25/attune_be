@@ -5,7 +5,6 @@ import attune.common.error.notfound.SideEffectTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckSideEffectRequest;
 import attune.journal.application.dto.request.CreateSideEffectTagRequest;
-import attune.journal.application.dto.request.DeleteTagRequest;
 import attune.journal.application.dto.response.SideEffectCheckResponse;
 import attune.journal.application.dto.response.SideEffectTagResponse;
 import attune.journal.domain.model.SideEffectLog;
@@ -16,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -50,7 +50,7 @@ public class SideEffectTagService {
     }
 
     @Transactional
-    public void deleteTag(Long tagId, DeleteTagRequest request) {
+    public void deleteTag(Long tagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
                 .orElseThrow(SideEffectTagNotFoundException::new);
@@ -60,7 +60,7 @@ public class SideEffectTagService {
 
         sideEffectLogRepository.deleteAllByTagFromDate(
                 tagId,
-                request.journalDate().atStartOfDay()
+                journalDate.atStartOfDay()
         );
         tag.deactivate();
     }

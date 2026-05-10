@@ -3,7 +3,6 @@ package attune.journal.application;
 import attune.common.error.notfound.DailyGoalNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CreateGoalRequest;
-import attune.journal.application.dto.request.DeleteGoalRequest;
 import attune.journal.application.dto.request.ScoreGoalRequest;
 import attune.journal.application.dto.response.CreateGoalResponse;
 import attune.journal.application.dto.response.ScoreGoalResponse;
@@ -37,7 +36,7 @@ public class DailyGoalService {
     }
 
     @Transactional
-    public void deleteGoal(Long goalId, DeleteGoalRequest request) {
+    public void deleteGoal(Long goalId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         DailyGoal goal = dailyGoalRepository.findByIdAndIsActiveTrue(goalId)
                 .orElseThrow(DailyGoalNotFoundException::new);
@@ -45,7 +44,7 @@ public class DailyGoalService {
             throw new DailyGoalNotFoundException();
         }
 
-        dailyGoalLogRepository.deleteAllByGoalFromDate(goalId, request.journalDate());
+        dailyGoalLogRepository.deleteAllByGoalFromDate(goalId, journalDate);
         goal.deactivate();
     }
 

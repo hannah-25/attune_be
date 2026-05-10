@@ -3,19 +3,23 @@ package attune.journal.adapter.web;
 import attune.journal.application.TroubleTagService;
 import attune.journal.application.dto.request.CheckTroubleRequest;
 import attune.journal.application.dto.request.CreateTroubleTagRequest;
-import attune.journal.application.dto.request.DeleteTagRequest;
 import attune.journal.application.dto.response.TroubleCheckResponse;
 import attune.journal.application.dto.response.TroubleTagResponse;
-import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Tag(name = "일지 - 업무 실수/불편", description = "업무적 실수/불편 태그 및 체크 API")
 @RequiredArgsConstructor
@@ -52,9 +56,10 @@ public class JournalTroubleController {
     @DeleteMapping("/trouble-tags/{tagId}")
     public ResponseEntity<Void> deleteTag(
             @PathVariable Long tagId,
-            @Valid @RequestBody DeleteTagRequest request
+            @Parameter(description = "삭제 시작 날짜 (이 날짜부터 이후의 체크 로그가 삭제된다)", example = "2026-05-09", required = true)
+            @NotNull @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate journalDate
     ) {
-        troubleTagService.deleteTag(tagId, request);
+        troubleTagService.deleteTag(tagId, journalDate);
         return ResponseEntity.noContent().build();
     }
 

@@ -5,7 +5,6 @@ import attune.common.error.notfound.ConditionTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckConditionRequest;
 import attune.journal.application.dto.request.CreateConditionTagRequest;
-import attune.journal.application.dto.request.DeleteTagRequest;
 import attune.journal.application.dto.response.ConditionCheckResponse;
 import attune.journal.application.dto.response.ConditionTagResponse;
 import attune.journal.domain.model.ConditionLog;
@@ -16,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -51,7 +51,7 @@ public class ConditionTagService {
     }
 
     @Transactional
-    public void deleteTag(Long tagId, DeleteTagRequest request) {
+    public void deleteTag(Long tagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         ConditionTag tag = conditionTagRepository.findByIdAndIsActiveTrue(tagId)
                 .orElseThrow(ConditionTagNotFoundException::new);
@@ -61,7 +61,7 @@ public class ConditionTagService {
 
         conditionLogRepository.deleteAllByTagFromDate(
                 tagId,
-                request.journalDate().atStartOfDay()
+                journalDate.atStartOfDay()
         );
         tag.deactivate();
     }
