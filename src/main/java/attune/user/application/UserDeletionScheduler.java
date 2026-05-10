@@ -39,7 +39,7 @@ public class UserDeletionScheduler {
                     user.getId(), user.getEmail(), user.getWithdrawalAt());
         }
 
-        targets.forEach(user -> user.updateActiveStatus(false));
+        userRepository.deleteAll(targets);
         log.info("[영구삭제] 완료 - 총 {}명", targets.size());
     }
 }
