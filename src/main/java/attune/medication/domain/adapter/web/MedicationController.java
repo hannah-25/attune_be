@@ -44,7 +44,7 @@ public class MedicationController {
     ) {
         CreateMedicationResponse response = medicationService.createMedication(request);
         return ResponseEntity
-                .created(URI.create("/api/medications/" + response.medicationId()))
+                .created(URI.create("/api/medications/" + response.userMedicationId()))
                 .body(response);
     }
 
