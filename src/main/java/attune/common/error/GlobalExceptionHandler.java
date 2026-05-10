@@ -24,6 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
             DuplicateEmailException.class,
             DailyStatusAlreadyExistsException.class,
+            MemoAlreadyExistsException.class,
             DuplicateConditionTagException.class,
             DuplicateSideEffectTagException.class,
             DuplicateTroubleTagException.class

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -25,6 +26,14 @@ public class SideEffectTagService {
 
     private final SideEffectTagRepository sideEffectTagRepository;
     private final SideEffectLogRepository sideEffectLogRepository;
+
+    @Transactional(readOnly = true)
+    public List<SideEffectTagResponse> getActiveTags() {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        return sideEffectTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+                .map(SideEffectTagResponse::from)
+                .toList();
+    }
 
     @Transactional
     public SideEffectTagResponse createTag(CreateSideEffectTagRequest request) {

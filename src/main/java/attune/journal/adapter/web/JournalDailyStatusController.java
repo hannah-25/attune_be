@@ -1,9 +1,9 @@
 package attune.journal.adapter.web;
 
 import attune.journal.application.DailyStatusLogService;
-import attune.journal.application.dto.request.CreateSleepMealRequest;
-import attune.journal.application.dto.request.UpdateSleepMealRequest;
-import attune.journal.application.dto.response.SleepMealResponse;
+import attune.journal.application.dto.request.CreateDailyStatusRequest;
+import attune.journal.application.dto.request.UpdateDailyStatusRequest;
+import attune.journal.application.dto.response.DailyStatusResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,7 +21,7 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/journals/{date}/sleep-meal")
-public class JournalSleepMealController {
+public class JournalDailyStatusController {
 
     private final DailyStatusLogService dailyStatusLogService;
 
@@ -31,9 +31,9 @@ public class JournalSleepMealController {
             @ApiResponse(responseCode = "409", description = "해당 날짜 기록 이미 존재")
     })
     @PostMapping
-    public ResponseEntity<SleepMealResponse> create(
+    public ResponseEntity<DailyStatusResponse> create(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @Valid @RequestBody CreateSleepMealRequest request
+            @Valid @RequestBody CreateDailyStatusRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(dailyStatusLogService.create(date, request));
     }
@@ -44,9 +44,9 @@ public class JournalSleepMealController {
             @ApiResponse(responseCode = "404", description = "기록 없음")
     })
     @PatchMapping
-    public ResponseEntity<SleepMealResponse> update(
+    public ResponseEntity<DailyStatusResponse> update(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @Valid @RequestBody UpdateSleepMealRequest request
+            @Valid @RequestBody UpdateDailyStatusRequest request
     ) {
         return ResponseEntity.ok(dailyStatusLogService.update(date, request));
     }

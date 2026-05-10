@@ -6,6 +6,7 @@ import attune.journal.application.dto.request.CreateTroubleTagRequest;
 import attune.journal.application.dto.request.DeleteTagRequest;
 import attune.journal.application.dto.response.TroubleCheckResponse;
 import attune.journal.application.dto.response.TroubleTagResponse;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,6 +24,15 @@ import org.springframework.web.bind.annotation.*;
 public class JournalTroubleController {
 
     private final TroubleTagService troubleTagService;
+
+    @Operation(summary = "업무적 실수/불편 태그 목록 조회", description = "현재 사용자의 활성 업무적 실수/불편 태그를 모두 반환한다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공")
+    })
+    @GetMapping("/trouble-tags")
+    public ResponseEntity<List<TroubleTagResponse>> getTags() {
+        return ResponseEntity.ok(troubleTagService.getActiveTags());
+    }
 
     @Operation(summary = "업무적 실수/불편 태그 추가")
     @ApiResponses({

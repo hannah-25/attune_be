@@ -25,7 +25,7 @@ public class TroubleTag {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private TroubleType type;
+    private TroubleType type;   // 부주의, 과잉행동, 충동성, 시간관리, 인지 오류
 
     @Column(nullable = false)
     private boolean isActive = true;

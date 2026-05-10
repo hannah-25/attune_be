@@ -3,9 +3,9 @@ package attune.journal.application;
 import attune.common.error.DailyStatusAlreadyExistsException;
 import attune.common.error.notfound.DailyStatusLogNotFoundException;
 import attune.common.util.SecurityUtils;
-import attune.journal.application.dto.request.CreateSleepMealRequest;
-import attune.journal.application.dto.request.UpdateSleepMealRequest;
-import attune.journal.application.dto.response.SleepMealResponse;
+import attune.journal.application.dto.request.CreateDailyStatusRequest;
+import attune.journal.application.dto.request.UpdateDailyStatusRequest;
+import attune.journal.application.dto.response.DailyStatusResponse;
 import attune.journal.domain.model.DailyStatusLog;
 import attune.journal.domain.repository.DailyStatusLogRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class DailyStatusLogService {
     private final DailyStatusLogRepository dailyStatusLogRepository;
 
     @Transactional
-    public SleepMealResponse create(LocalDate date, CreateSleepMealRequest request) {
+    public DailyStatusResponse create(LocalDate date, CreateDailyStatusRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         if (dailyStatusLogRepository.existsByUserIdAndDate(userId, date)) {
             throw new DailyStatusAlreadyExistsException();
@@ -37,11 +37,11 @@ public class DailyStatusLogService {
                 .ateLunch(request.ateLunch())
                 .ateDinner(request.ateDinner())
                 .build();
-        return SleepMealResponse.from(dailyStatusLogRepository.save(log));
+        return DailyStatusResponse.from(dailyStatusLogRepository.save(log));
     }
 
     @Transactional
-    public SleepMealResponse update(LocalDate date, UpdateSleepMealRequest request) {
+    public DailyStatusResponse update(LocalDate date, UpdateDailyStatusRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         DailyStatusLog log = dailyStatusLogRepository.findByUserIdAndDate(userId, date)
                 .orElseThrow(DailyStatusLogNotFoundException::new);
@@ -53,6 +53,6 @@ public class DailyStatusLogService {
                 request.ateLunch(),
                 request.ateDinner()
         );
-        return SleepMealResponse.from(log);
+        return DailyStatusResponse.from(log);
     }
 }

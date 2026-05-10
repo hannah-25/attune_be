@@ -28,6 +28,7 @@ public class JournalService {
     private final DailyStatusLogRepository dailyStatusLogRepository;
     private final DailyGoalRepository dailyGoalRepository;
     private final DailyGoalLogRepository dailyGoalLogRepository;
+    private final MemoRepository memoRepository;
 
     @Transactional(readOnly = true)
     public JournalDetailResponse getJournal(LocalDate date) {
@@ -78,6 +79,11 @@ public class JournalService {
                         (DailyGoalLog) row[0]))
                 .toList();
 
+        String memo = memoRepository
+                .findByUserIdAndJournalDate(userId, date)
+                .map(Memo::getMemo)
+                .orElse(null);
+
         CheckedResponse checked = new CheckedResponse(
                 conditions,
                 sideEffects,
@@ -85,7 +91,7 @@ public class JournalService {
                 SleepResponse.from(status),
                 MealResponse.from(status),
                 goals,
-                null
+                memo
         );
 
         return new JournalDetailResponse(activeTags, checked);
@@ -130,6 +136,7 @@ public class JournalService {
         total += troubleLogRepository.deleteAllInRange(userId, startAt, endAt);
         total += dailyStatusLogRepository.deleteAllInRange(userId, startDate, endDate);
         total += dailyGoalLogRepository.deleteAllInRange(userId, startDate, endDate);
+        total += memoRepository.deleteAllInRange(userId, startDate, endDate);
         return total;
     }
 }

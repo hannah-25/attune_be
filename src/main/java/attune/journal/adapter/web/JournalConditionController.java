@@ -6,6 +6,7 @@ import attune.journal.application.dto.request.CreateConditionTagRequest;
 import attune.journal.application.dto.request.DeleteTagRequest;
 import attune.journal.application.dto.response.ConditionCheckResponse;
 import attune.journal.application.dto.response.ConditionTagResponse;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,6 +24,15 @@ import org.springframework.web.bind.annotation.*;
 public class JournalConditionController {
 
     private final ConditionTagService conditionTagService;
+
+    @Operation(summary = "감정/증상 태그 목록 조회", description = "현재 사용자의 활성 감정/증상 태그를 모두 반환한다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공")
+    })
+    @GetMapping("/condition-tags")
+    public ResponseEntity<List<ConditionTagResponse>> getTags() {
+        return ResponseEntity.ok(conditionTagService.getActiveTags());
+    }
 
     @Operation(summary = "감정/증상 태그 추가")
     @ApiResponses({

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -25,6 +26,14 @@ public class TroubleTagService {
 
     private final TroubleTagRepository troubleTagRepository;
     private final TroubleLogRepository troubleLogRepository;
+
+    @Transactional(readOnly = true)
+    public List<TroubleTagResponse> getActiveTags() {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        return troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+                .map(TroubleTagResponse::from)
+                .toList();
+    }
 
     @Transactional
     public TroubleTagResponse createTag(CreateTroubleTagRequest request) {

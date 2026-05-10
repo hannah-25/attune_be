@@ -1,7 +1,6 @@
 package attune.journal.domain.repository;
 
 import attune.journal.domain.model.ConditionLog;
-import attune.journal.domain.model.ConditionTag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

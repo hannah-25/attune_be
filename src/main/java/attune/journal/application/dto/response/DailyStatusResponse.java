@@ -5,7 +5,7 @@ import attune.journal.domain.model.SleepQuality;
 
 import java.time.LocalDate;
 
-public record SleepMealResponse(
+public record DailyStatusResponse(
         LocalDate journalDate,
         Float sleepHour,
         SleepQuality sleepQuality,
@@ -13,8 +13,8 @@ public record SleepMealResponse(
         Boolean ateLunch,
         Boolean ateDinner
 ) {
-    public static SleepMealResponse from(DailyStatusLog log) {
-        return new SleepMealResponse(
+    public static DailyStatusResponse from(DailyStatusLog log) {
+        return new DailyStatusResponse(
                 log.getDate(),
                 log.getSleepHour(),
                 log.getSleepQuality(),

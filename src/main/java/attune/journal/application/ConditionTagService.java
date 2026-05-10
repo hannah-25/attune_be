@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -25,6 +26,14 @@ public class ConditionTagService {
 
     private final ConditionTagRepository conditionTagRepository;
     private final ConditionLogRepository conditionLogRepository;
+
+    @Transactional(readOnly = true)
+    public List<ConditionTagResponse> getActiveTags() {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        return conditionTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+                .map(ConditionTagResponse::from)
+                .toList();
+    }
 
     @Transactional
     public ConditionTagResponse createTag(CreateConditionTagRequest request) {
