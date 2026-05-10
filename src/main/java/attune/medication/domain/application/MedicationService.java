@@ -133,15 +133,8 @@ public class MedicationService {
             return new QuickLogResponse(null, QuickLogAction.POSTPONE, now);
         }
 
-        UserMedicationSchedule schedule;
-        if (request.scheduleId() != null) {
-            schedule = scheduleRepository.findById(request.scheduleId())
-                    .orElseThrow(MedicationScheduleNotFoundException::new);
-        } else {
-            List<UserMedicationSchedule> schedules = scheduleRepository.findByUserMedicationId(userMedicationId);
-            if (schedules.isEmpty()) throw new MedicationScheduleNotFoundException();
-            schedule = schedules.get(0);
-        }
+        UserMedicationSchedule schedule = scheduleRepository.findById(request.scheduleId())
+                .orElseThrow(MedicationScheduleNotFoundException::new);
 
         UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN ? UserMedicationLogStatus.TAKEN : UserMedicationLogStatus.SKIPPED;
         UserMedicationLog saved = logRepository.save(
