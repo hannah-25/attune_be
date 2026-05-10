@@ -27,7 +27,8 @@ public class GlobalExceptionHandler {
             MemoAlreadyExistsException.class,
             DuplicateConditionTagException.class,
             DuplicateSideEffectTagException.class,
-            DuplicateTroubleTagException.class
+            DuplicateTroubleTagException.class,
+            DuplicateDailyGoalException.class
     })
     public ResponseEntity<ErrorResponse> handleConflict(RuntimeException e) {
         log.info("409 Conflict: {}", e.getMessage());

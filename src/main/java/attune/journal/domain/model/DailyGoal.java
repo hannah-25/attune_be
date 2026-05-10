@@ -32,4 +32,8 @@ public class DailyGoal {
     public void deactivate() {
         this.isActive = false;
     }
+
+    public void reactivate() {
+        this.isActive = true;
+    }
 }
