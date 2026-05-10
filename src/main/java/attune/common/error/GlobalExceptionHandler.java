@@ -23,6 +23,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             DuplicateEmailException.class,
+            DuplicateNicknameException.class,
             DailyStatusAlreadyExistsException.class,
             MemoAlreadyExistsException.class,
             DuplicateConditionTagException.class,
@@ -43,7 +44,7 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, e.getMessage()));
     }
 
-    @ExceptionHandler({InvalidTermException.class, OnboardingNotCompleteException.class, InvalidSleepHourException.class})
+    @ExceptionHandler({InvalidTermException.class, OnboardingNotCompleteException.class, InvalidSleepHourException.class, InvalidAccountStatusException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
         log.info("400 BadRequest: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

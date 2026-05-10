@@ -6,20 +6,19 @@ import attune.medication.domain.model.UserMedicationLog;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record MedicationLogResponse(
-        Long userMedicationId,
-        List<LogEntry> logs
-) {
+public record MedicationPeriodLogResponse(List<LogEntry> logs) {
     public record LogEntry(
-            LocalDateTime takenAt,
-            UserMedicationLogStatus status,
-            Long scheduleId
+            Long medicationId,
+            String name,
+            LocalDateTime intakeTime,
+            boolean taken
     ) {
         public static LogEntry from(UserMedicationLog log) {
             return new LogEntry(
+                    log.getUserMedicationSchedule().getUserMedication().getId(),
+                    log.getUserMedicationSchedule().getUserMedication().getMedication().getName(),
                     log.getTakenAt(),
-                    log.getStatus(),
-                    log.getUserMedicationSchedule().getId()
+                    log.getStatus() == UserMedicationLogStatus.TAKEN
             );
         }
     }

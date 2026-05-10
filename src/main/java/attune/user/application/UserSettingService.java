@@ -28,7 +28,7 @@ public class UserSettingService {
 
     public UserSettingResponse updateSettings(UUID userId, UpdateUserSettingRequest request) {
         UserSetting setting = getOrCreate(userId);
-        setting.update(request.alarmEnabled(), request.takeMedicationOnHoliday(), request.theme());
+        setting.update(request.medicationNotification(), request.reportNotification(), request.marketingNotification(), request.takeMedicationOnHoliday(), request.theme());
         return UserSettingResponse.from(setting);
     }
 

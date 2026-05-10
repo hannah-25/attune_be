@@ -2,8 +2,10 @@ package attune.auth.adapter.web;
 
 import attune.auth.application.AuthService;
 import attune.auth.application.dto.request.LoginRequest;
+import attune.auth.application.dto.request.RestoreRequest;
 import attune.auth.application.dto.response.AuthResult;
 import attune.auth.application.dto.response.LoginResponse;
+import attune.auth.application.dto.response.RestoreResponse;
 import attune.common.config.JwtConfig;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.CookieUtil;
@@ -82,5 +84,29 @@ public class AuthController {
         authService.logout(userDetails.getId());
         cookieUtil.removeCookie(response, "refresh_token", "/api/auth");
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "회원 복구", description = "탈퇴 상태의 계정을 이메일/비밀번호로 인증 후 복구합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "복구 성공"),
+            @ApiResponse(responseCode = "400", description = "탈퇴 상태가 아닌 계정"),
+            @ApiResponse(responseCode = "401", description = "이메일 또는 비밀번호 불일치")
+    })
+    @PostMapping("/restore")
+    public ResponseEntity<RestoreResponse> restore(
+            @jakarta.validation.Valid @RequestBody RestoreRequest request,
+            HttpServletResponse response
+    ) {
+        AuthResult result = authService.restore(request);
+
+        cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
+                "/api/auth", jwtConfig.getRefreshTokenExpiration());
+
+        return ResponseEntity.ok(new RestoreResponse(
+                result.loginResponse().accessToken(),
+                result.loginResponse().expiresIn(),
+                result.refreshToken(),
+                "ACTIVE"
+        ));
     }
 }

@@ -1,17 +1,22 @@
 package attune.auth.application;
 
 import attune.auth.application.dto.request.LoginRequest;
+import attune.auth.application.dto.request.RestoreRequest;
 import attune.auth.application.dto.response.AuthResult;
 import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
+import attune.common.error.InvalidAccountStatusException;
+import attune.common.error.InvalidPasswordException;
 import attune.common.error.TokenException;
+import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
+import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
-
+import attune.user.domain.repository.UserRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -19,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +39,8 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final JwtConfig jwtConfig;
     private final UserAuthCacheRepository userAuthCacheRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthResult login(LoginRequest request) {
 
@@ -89,5 +97,29 @@ public class AuthService {
 
     public void logout(UUID userId) {
         userAuthCacheRepository.delete(userId);
+    }
+
+    public AuthResult restore(RestoreRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new UserNotFoundException());
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new InvalidPasswordException();
+        }
+
+        if (user.getUserStatus() != UserStatus.WITHDRAWAL) {
+            throw new InvalidAccountStatusException("탈퇴 상태의 계정만 복구할 수 있습니다.");
+        }
+
+        user.restore();
+
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);
+        String refreshToken = jwtProvider.generateRefreshToken();
+        userAuthCacheRepository.save(user.getId(), refreshToken, UserStatus.ACTIVE, jwtConfig.getRefreshTokenExpiration());
+
+        return new AuthResult(
+                new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration()),
+                refreshToken
+        );
     }
 }

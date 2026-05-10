@@ -46,6 +46,61 @@ public class MailService {
         sendEmail(to, "[Attune] 비밀번호 재설정 안내", buildPasswordResetHtml(nickname, resetLink));
     }
 
+    public void sendTermsUpdateEmail(String to, String title, String htmlContent) {
+        sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent));
+    }
+
+    private String wrapWithLayout(String bodyHtml) {
+        return """
+                <!DOCTYPE html>
+                <html lang="ko">
+                <head><meta charset="UTF-8"></head>
+                <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Apple SD Gothic Neo',Arial,sans-serif;">
+                  <table width="100%%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td align="center" style="padding:40px 0;">
+                        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+
+                          <!-- 헤더 -->
+                          <tr>
+                            <td style="background:#1a1a2e;padding:28px 40px;">
+                              <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Attune</span>
+                            </td>
+                          </tr>
+
+                          <!-- 본문 -->
+                          <tr>
+                            <td style="padding:44px 40px 32px;">
+                              %s
+                            </td>
+                          </tr>
+
+                          <!-- 구분선 -->
+                          <tr>
+                            <td style="padding:0 40px;">
+                              <hr style="border:none;border-top:1px solid #eeeeee;margin:0;">
+                            </td>
+                          </tr>
+
+                          <!-- 푸터 -->
+                          <tr>
+                            <td style="padding:24px 40px;background:#fafafa;">
+                              <p style="margin:0;font-size:11px;color:#aaa;line-height:1.8;">
+                                이 메일은 Attune 서비스 약관 변경 안내를 위해 발송된 메일로, 수신 동의 여부와 무관하게 발송되었습니다.<br>
+                                이 메일은 발신 전용으로 회신하실 수 없습니다.
+                              </p>
+                            </td>
+                          </tr>
+
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(bodyHtml);
+    }
+
 
 
     // html 생성 메서드들
