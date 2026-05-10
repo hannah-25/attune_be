@@ -12,4 +12,6 @@ public interface ConditionTagRepository extends JpaRepository<ConditionTag, Long
     Optional<ConditionTag> findByIdAndIsActiveTrue(Long id);
 
     List<ConditionTag> findAllByUserIdAndIsActiveTrue(UUID userId);
+
+    boolean existsByUserIdAndConditionAndIsActiveTrue(UUID userId, String condition);
 }

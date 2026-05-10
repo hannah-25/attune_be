@@ -23,8 +23,9 @@ public class ConditionTag {
     @Column(nullable = false, length = 255)
     private String condition;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 50)
-    private String conditionType;
+    private ConditionType conditionType;
 
     @Column(nullable = false)
     private boolean isActive = true;

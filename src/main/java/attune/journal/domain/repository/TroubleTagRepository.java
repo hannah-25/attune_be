@@ -12,4 +12,6 @@ public interface TroubleTagRepository extends JpaRepository<TroubleTag, Long> {
     Optional<TroubleTag> findByIdAndIsActiveTrue(Long id);
 
     List<TroubleTag> findAllByUserIdAndIsActiveTrue(UUID userId);
+
+    boolean existsByUserIdAndTroubleAndIsActiveTrue(UUID userId, String trouble);
 }

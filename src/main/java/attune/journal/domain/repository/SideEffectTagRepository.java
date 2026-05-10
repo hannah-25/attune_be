@@ -12,4 +12,6 @@ public interface SideEffectTagRepository extends JpaRepository<SideEffectTag, Lo
     Optional<SideEffectTag> findByIdAndIsActiveTrue(Long id);
 
     List<SideEffectTag> findAllByUserIdAndIsActiveTrue(UUID userId);
+
+    boolean existsByUserIdAndSideEffectAndIsActiveTrue(UUID userId, String sideEffect);
 }

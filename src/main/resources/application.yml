@@ -32,11 +32,13 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     enabled: true
+    try-it-out-enabled: true
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
     display-request-duration: true
     doc-expansion: none
+    persist-authorization: true
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 

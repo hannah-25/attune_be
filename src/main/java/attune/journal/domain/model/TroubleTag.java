@@ -23,8 +23,9 @@ public class TroubleTag {
     @Column(nullable = false, length = 255)
     private String trouble;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String type;
+    private TroubleType type;
 
     @Column(nullable = false)
     private boolean isActive = true;
