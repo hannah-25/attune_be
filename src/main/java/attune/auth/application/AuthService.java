@@ -10,6 +10,7 @@ import attune.common.config.JwtConfig;
 import attune.common.error.InvalidAccountStatusException;
 import attune.common.error.InvalidPasswordException;
 import attune.common.error.TokenException;
+import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.User;
