@@ -38,7 +38,6 @@ public class User {
 
     private String profileImageUrl;
 
-    private boolean isOnboarded = false;
     private LocalDateTime onboardedAt;
 
     private LocalDateTime withdrawalAt;
@@ -51,8 +50,11 @@ public class User {
         this.userStatus = UserStatus.ACTIVE;
     }
 
+    public boolean isOnboarded() {
+        return onboardedAt != null;
+    }
+
     public void completeOnboarding(LocalDateTime completedAt) {
-        this.isOnboarded = true;
         this.onboardedAt = completedAt;
     }
 

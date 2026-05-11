@@ -80,7 +80,6 @@ public class AccountService {
                 .nickname(request.nickname())
                 .userType(UserType.USER)
                 .userStatus(UserStatus.PENDING)
-                .isOnboarded(false)
                 .build();
 
         userRepository.save(user);
