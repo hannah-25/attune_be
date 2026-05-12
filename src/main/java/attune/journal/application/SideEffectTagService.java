@@ -1,6 +1,6 @@
 package attune.journal.application;
 
-import attune.common.error.DuplicateSideEffectTagException;
+import attune.common.error.conflict.DuplicateTagException;
 import attune.common.error.notfound.SideEffectTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckSideEffectRequest;
@@ -39,7 +39,7 @@ public class SideEffectTagService {
     public SideEffectTagResponse createTag(CreateSideEffectTagRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         if (sideEffectTagRepository.existsByUserIdAndSideEffectAndIsActiveTrue(userId, request.sideEffect())) {
-            throw new DuplicateSideEffectTagException();
+            throw new DuplicateTagException("부작용");
         }
         SideEffectTag tag = SideEffectTag.builder()
                 .userId(userId)

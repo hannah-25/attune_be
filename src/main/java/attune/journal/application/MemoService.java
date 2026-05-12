@@ -1,6 +1,6 @@
 package attune.journal.application;
 
-import attune.common.error.MemoAlreadyExistsException;
+import attune.common.error.conflict.AlreadyExistsException;
 import attune.common.error.notfound.MemoNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CreateMemoRequest;
@@ -25,7 +25,7 @@ public class MemoService {
     public MemoResponse create(LocalDate journalDate, CreateMemoRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         if (memoRepository.existsByUserIdAndJournalDate(userId, journalDate)) {
-            throw new MemoAlreadyExistsException();
+            throw new AlreadyExistsException("해당 날짜에 이미 메모가 존재합니다. PATCH로 수정하세요.");
         }
 
         Memo memo = Memo.builder()

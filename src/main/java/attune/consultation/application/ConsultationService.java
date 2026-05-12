@@ -1,6 +1,6 @@
 package attune.consultation.application;
 
-import attune.common.error.InvalidDateRangeException;
+import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.error.notfound.ConsultationNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.consultation.application.dto.request.CreateConsultationRequest;
