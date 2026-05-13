@@ -1,6 +1,6 @@
 package attune.journal.application;
 
-import attune.common.error.DuplicateConditionTagException;
+import attune.common.error.conflict.DuplicateTagException;
 import attune.common.error.notfound.ConditionTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckConditionRequest;
@@ -39,7 +39,7 @@ public class ConditionTagService {
     public ConditionTagResponse createTag(CreateConditionTagRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         if (conditionTagRepository.existsByUserIdAndConditionAndIsActiveTrue(userId, request.condition())) {
-            throw new DuplicateConditionTagException();
+            throw new DuplicateTagException("컨디션");
         }
         ConditionTag tag = ConditionTag.builder()
                 .userId(userId)

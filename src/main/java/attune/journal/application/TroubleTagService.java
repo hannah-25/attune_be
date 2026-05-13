@@ -1,6 +1,6 @@
 package attune.journal.application;
 
-import attune.common.error.DuplicateTroubleTagException;
+import attune.common.error.conflict.DuplicateTagException;
 import attune.common.error.notfound.TroubleTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckTroubleRequest;
@@ -39,7 +39,7 @@ public class TroubleTagService {
     public TroubleTagResponse createTag(CreateTroubleTagRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         if (troubleTagRepository.existsByUserIdAndTroubleAndIsActiveTrue(userId, request.trouble())) {
-            throw new DuplicateTroubleTagException();
+            throw new DuplicateTagException("트러블");
         }
         TroubleTag tag = TroubleTag.builder()
                 .userId(userId)

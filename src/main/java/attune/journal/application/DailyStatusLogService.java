@@ -1,7 +1,7 @@
 package attune.journal.application;
 
-import attune.common.error.DailyStatusAlreadyExistsException;
-import attune.common.error.InvalidSleepHourException;
+import attune.common.error.conflict.AlreadyExistsException;
+import attune.common.error.badrequest.InvalidSleepHourException;
 import attune.common.error.notfound.DailyStatusLogNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CreateDailyStatusRequest;
@@ -26,7 +26,7 @@ public class DailyStatusLogService {
     public DailyStatusResponse create(LocalDate date, CreateDailyStatusRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         if (dailyStatusLogRepository.existsByUserIdAndDate(userId, date)) {
-            throw new DailyStatusAlreadyExistsException();
+            throw new AlreadyExistsException("해당 날짜에 이미 수면/식사 기록이 존재합니다. PATCH로 수정하세요.");
         }
 
         DailyStatusLog log = DailyStatusLog.builder()

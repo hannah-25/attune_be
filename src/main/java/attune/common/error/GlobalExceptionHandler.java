@@ -21,31 +21,22 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.NOT_FOUND, e.getMessage()));
     }
 
-    @ExceptionHandler({
-            DuplicateEmailException.class,
-            DuplicateNicknameException.class,
-            DailyStatusAlreadyExistsException.class,
-            MemoAlreadyExistsException.class,
-            DuplicateConditionTagException.class,
-            DuplicateSideEffectTagException.class,
-            DuplicateTroubleTagException.class,
-            DuplicateDailyGoalException.class
-    })
-    public ResponseEntity<ErrorResponse> handleConflict(RuntimeException e) {
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException e) {
         log.info("409 Conflict: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(HttpStatus.CONFLICT, e.getMessage()));
     }
 
-    @ExceptionHandler({TokenException.class, InvalidPasswordException.class})
-    public ResponseEntity<ErrorResponse> handleUnauthorized(RuntimeException e) {
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException e) {
         log.info("401 Unauthorized: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ErrorResponse.of(HttpStatus.UNAUTHORIZED, e.getMessage()));
     }
 
-    @ExceptionHandler({InvalidTermException.class, OnboardingNotCompleteException.class, InvalidSleepHourException.class, InvalidAccountStatusException.class})
-    public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException e) {
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException e) {
         log.info("400 BadRequest: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, e.getMessage()));

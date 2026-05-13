@@ -6,7 +6,6 @@
 |---|---|---|---|
 | id | UUID | PK, NOT NULL | 사용자 고유 식별자 |
 | email | VARCHAR(255) | NOT NULL, UNIQUE | 이메일 |
-| is_onboarded | BOOLEAN | DEFAULT false | 온보딩 완료 여부 |
 | nickname | VARCHAR(100) | NOT NULL, UNIQUE | 닉네임 |
 | password | VARCHAR(255) | | 비밀번호 |
 | profile_image_url | TEXT | | 프로필 이미지 URL |

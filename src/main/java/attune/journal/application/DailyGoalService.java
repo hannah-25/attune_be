@@ -1,6 +1,6 @@
 package attune.journal.application;
 
-import attune.common.error.DuplicateDailyGoalException;
+import attune.common.error.conflict.DuplicateDailyGoalException;
 import attune.common.error.notfound.DailyGoalNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CreateGoalRequest;

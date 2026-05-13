@@ -1,9 +1,9 @@
 package attune.user.application;
 
-import attune.common.error.DuplicateEmailException;
-import attune.common.error.DuplicateNicknameException;
-import attune.common.error.InvalidPasswordException;
-import attune.common.error.TokenException;
+import attune.common.error.conflict.DuplicateEmailException;
+import attune.common.error.conflict.DuplicateNicknameException;
+import attune.common.error.unauthorized.InvalidPasswordException;
+import attune.common.error.unauthorized.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.mail.MailService;
 import attune.common.mail.event.WelcomeEmailEvent;
@@ -80,7 +80,6 @@ public class AccountService {
                 .nickname(request.nickname())
                 .userType(UserType.USER)
                 .userStatus(UserStatus.PENDING)
-                .isOnboarded(false)
                 .build();
 
         userRepository.save(user);

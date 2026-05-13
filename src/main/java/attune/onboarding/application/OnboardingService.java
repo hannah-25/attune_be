@@ -1,6 +1,6 @@
 package attune.onboarding.application;
 
-import attune.common.error.OnboardingNotCompleteException;
+import attune.common.error.badrequest.OnboardingNotCompleteException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.onboarding.application.dto.request.AsrsRequest;
 import attune.onboarding.application.dto.request.GoalRequest;
