@@ -51,6 +51,5 @@ jobs:
             docker rm attune-prod-apps || true
             docker system prune -f
             
-            # 충돌 마크 제거하고 깔끔하게 attune-be:prod 로 통일 완료!
             docker pull hannah098/attune-be:prod
             docker run -d --name attune-prod-apps -p 8080:8080 hannah098/attune-be:prod
