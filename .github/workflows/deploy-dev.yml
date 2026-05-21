@@ -36,7 +36,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: hannah098/attune-be:dev
+          tags: hannah098/attune:dev
 
       # 개발 서버(DEV)에 접속해서 컨테이너 교체
       - name: Execute Remote SSH Commands
