@@ -38,6 +38,7 @@ jobs:
           push: true
           tags: hannah098/attune-be:prod
 
+
       # 운영 서버(PROD)에 접속해서 컨테이너 교체
       - name: Execute Remote SSH Commands
         uses: appleboy/ssh-action@v1.0.3
