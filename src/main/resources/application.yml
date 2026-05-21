@@ -2,32 +2,50 @@ spring:
   application:
     name: attune
 
-  # ?? ??? ?? (local ??)
   profiles:
-    default: dev
+    default: local
 
-  # application-secret.yml import (???? ???)
+  # application-secret.yml import
   config:
     import:
       - optional:classpath:application-secret.yml
 
   jpa:
-    # ?? JPA ??
-    open-in-view: false
+    open-in-view: false # OSIV 비활성화 (성능/안정성 향상)
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 
-# Springdoc OpenAPI (Swagger) ??
+# Springdoc OpenAPI (Swagger)
 springdoc:
   api-docs:
     enabled: true
     path: /v3/api-docs
   swagger-ui:
     enabled: true
+    try-it-out-enabled: true
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
     display-request-duration: true
     doc-expansion: none
+    persist-authorization: true
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 
@@ -38,8 +56,14 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, info, metrics
       base-path: /actuator
+  metrics:
+    export:
+      simple:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
   endpoint:
     health:
       show-details: never
@@ -52,7 +76,10 @@ management:
 
 
 
-# ?? ?? ??
+# 앱 공통 설정
+
+
+# Logging 설정
 logging:
   pattern:
     console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'

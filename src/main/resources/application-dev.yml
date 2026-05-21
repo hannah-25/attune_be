@@ -1,10 +1,14 @@
-# Dev 환경 설정 (MySQL 8.4.x 사용)
+# Dev 환경 설정 (개발 서버용, MySQL 8.4.x)
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: 15
+      minimum-idle: 3
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
 
   jpa:
     hibernate:
@@ -13,20 +17,25 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
-        format_sql: false
+        format_sql: true
 
 
 # 개발 서버 로깅 설정
 logging:
   level:
-    com.attune-me: DEBUG
-    org.springframework.web: DEBUG
+    root: INFO
+    attune: DEBUG # 내 코드: 디버그 로그
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG        # SQL문 보기
+    org.springframework.security: INFO
 
 
+# 개발 서버 CORS
+cors:
+  allowed-origin-patterns:
+    - "https://dev.attune-me.com"
+    - "https://*.dev.attune-me.com"
 
 
-# API 서버 URL 설정
-api:
-  server:
-    url: http://api.attune-me.com:8080
-    description: Develop Server
+app:
+  frontend-url:
