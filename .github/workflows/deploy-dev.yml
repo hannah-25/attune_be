@@ -50,6 +50,6 @@ jobs:
             docker stop attune-dev-apps || true
             docker rm attune-dev-apps || true
             docker system prune -f
-            docker pull hannah098/attune:dev
+            docker pull hannah098/attune-be:dev
             # 컨테이너 이름을 dev용으로 구분하여 실행
             docker run -d --name attune-dev-apps -p 8080:8080 hannah098/attune:dev
