@@ -2,7 +2,6 @@ package attune.journal.adapter.web;
 
 import attune.journal.application.MemoService;
 import attune.journal.application.dto.request.CreateMemoRequest;
-import attune.journal.application.dto.request.UpdateMemoRequest;
 import attune.journal.application.dto.response.MemoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,10 +24,23 @@ public class JournalMemoController {
 
     private final MemoService memoService;
 
-    @Operation(summary = "메모 등록", description = "해당 날짜의 메모를 최초 등록한다. 이미 존재하면 409.")
+    @Operation(summary = "메모 조회", description = "해당 날짜의 메모를 반환한다. 기록이 없으면 204.")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "생성 성공"),
-            @ApiResponse(responseCode = "409", description = "해당 날짜 메모 이미 존재")
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "204", description = "기록 없음")
+    })
+    @GetMapping
+    public ResponseEntity<MemoResponse> get(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return memoService.get(date)
+                .map(body -> ResponseEntity.ok(body))
+                .orElse(ResponseEntity.noContent().build());
+    }
+
+    @Operation(summary = "메모 등록/수정", description = "해당 날짜의 메모를 등록하거나, 이미 존재하면 덮어쓴다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "등록/수정 성공")
     })
     @PostMapping
     public ResponseEntity<MemoResponse> create(
@@ -38,16 +50,5 @@ public class JournalMemoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(memoService.create(date, request));
     }
 
-    @Operation(summary = "메모 수정")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "수정 성공"),
-            @ApiResponse(responseCode = "404", description = "메모 없음")
-    })
-    @PatchMapping
-    public ResponseEntity<MemoResponse> update(
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @Valid @RequestBody UpdateMemoRequest request
-    ) {
-        return ResponseEntity.ok(memoService.update(date, request));
-    }
+
 }

@@ -5,6 +5,7 @@ import attune.common.error.notfound.DailyGoalNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CreateGoalRequest;
 import attune.journal.application.dto.request.ScoreGoalRequest;
+import attune.journal.application.dto.request.UpdateGoalRequest;
 import attune.journal.application.dto.response.CreateGoalResponse;
 import attune.journal.application.dto.response.ScoreGoalResponse;
 import attune.journal.domain.model.DailyGoal;
@@ -43,6 +44,22 @@ public class DailyGoalService {
                                 .isActive(true)
                                 .build()
                 ));
+        return CreateGoalResponse.from(goal);
+    }
+
+    @Transactional
+    public CreateGoalResponse updateGoal(Long goalId, UpdateGoalRequest request) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        DailyGoal goal = dailyGoalRepository.findByIdAndIsActiveTrue(goalId)
+                .orElseThrow(DailyGoalNotFoundException::new);
+        if (!goal.getUserId().equals(userId)) {
+            throw new DailyGoalNotFoundException();
+        }
+        if (dailyGoalRepository.findByUserIdAndDailyGoal(userId, request.content())
+                .filter(DailyGoal::isActive).isPresent()) {
+            throw new DuplicateDailyGoalException();
+        }
+        goal.update(request.content());
         return CreateGoalResponse.from(goal);
     }
 

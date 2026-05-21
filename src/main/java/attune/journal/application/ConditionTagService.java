@@ -67,6 +67,21 @@ public class ConditionTagService {
     }
 
     @Transactional
+    public void uncheckByDate(Long tagId, LocalDate date) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        ConditionTag tag = conditionTagRepository.findByIdAndIsActiveTrue(tagId)
+                .orElseThrow(ConditionTagNotFoundException::new);
+        if (!tag.getUserId().equals(userId)) {
+            throw new ConditionTagNotFoundException();
+        }
+        conditionLogRepository.deleteAllByTagAndDate(
+                tagId,
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay()
+        );
+    }
+
+    @Transactional
     public ConditionCheckResponse check(CheckConditionRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         ConditionTag tag = conditionTagRepository.findByIdAndIsActiveTrue(request.tagId())

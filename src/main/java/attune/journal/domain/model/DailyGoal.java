@@ -29,6 +29,10 @@ public class DailyGoal {
     @Column(nullable = false)
     private boolean isActive = true;
 
+    public void update(String content) {
+        this.dailyGoal = content;
+    }
+
     public void deactivate() {
         this.isActive = false;
     }

@@ -73,4 +73,19 @@ public class JournalTroubleController {
     public ResponseEntity<TroubleCheckResponse> check(@Valid @RequestBody CheckTroubleRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(troubleTagService.check(request));
     }
+
+    @Operation(summary = "업무적 실수/불편 체크 취소", description = "특정 날짜의 업무적 실수/불편 체크 로그를 삭제한다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "태그 없음")
+    })
+    @DeleteMapping("/troubles")
+    public ResponseEntity<Void> uncheck(
+            @Parameter(description = "태그 ID", required = true) @NotNull @RequestParam Long tagId,
+            @Parameter(description = "취소할 날짜", example = "2026-05-09", required = true)
+            @NotNull @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        troubleTagService.uncheckByDate(tagId, date);
+        return ResponseEntity.noContent().build();
+    }
 }

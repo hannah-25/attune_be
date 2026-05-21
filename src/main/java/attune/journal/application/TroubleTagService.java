@@ -67,6 +67,21 @@ public class TroubleTagService {
     }
 
     @Transactional
+    public void uncheckByDate(Long tagId, LocalDate date) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
+                .orElseThrow(TroubleTagNotFoundException::new);
+        if (!tag.getUserId().equals(userId)) {
+            throw new TroubleTagNotFoundException();
+        }
+        troubleLogRepository.deleteAllByTagAndDate(
+                tagId,
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay()
+        );
+    }
+
+    @Transactional
     public TroubleCheckResponse check(CheckTroubleRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(request.tagId())
