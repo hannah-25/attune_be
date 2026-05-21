@@ -64,4 +64,17 @@ public interface TroubleLogRepository extends JpaRepository<TroubleLog, Long> {
             @Param("tagId") Long tagId,
             @Param("startAt") LocalDateTime startAt
     );
+
+    @Modifying
+    @Query("""
+            DELETE FROM TroubleLog l
+            WHERE l.troubleTagId = :tagId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    int deleteAllByTagAndDate(
+            @Param("tagId") Long tagId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
 }

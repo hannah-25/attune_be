@@ -20,7 +20,7 @@ public class ConditionTag {
     @Column(nullable = false)
     private UUID userId;
 
-    @Column(nullable = false, length = 255)
+    @Column(name = "condition_name", nullable = false, length = 255)
     private String condition;
 
     @Enumerated(EnumType.STRING)

@@ -64,4 +64,17 @@ public interface SideEffectLogRepository extends JpaRepository<SideEffectLog, Lo
             @Param("tagId") Long tagId,
             @Param("startAt") LocalDateTime startAt
     );
+
+    @Modifying
+    @Query("""
+            DELETE FROM SideEffectLog l
+            WHERE l.sideEffectTagId = :tagId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    int deleteAllByTagAndDate(
+            @Param("tagId") Long tagId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
 }

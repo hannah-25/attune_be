@@ -64,4 +64,17 @@ public interface ConditionLogRepository extends JpaRepository<ConditionLog, Long
             @Param("tagId") Long tagId,
             @Param("startAt") LocalDateTime startAt
     );
+
+    @Modifying
+    @Query("""
+            DELETE FROM ConditionLog l
+            WHERE l.conditionTagId = :tagId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    int deleteAllByTagAndDate(
+            @Param("tagId") Long tagId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
 }

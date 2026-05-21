@@ -3,6 +3,7 @@ package attune.journal.adapter.web;
 import attune.journal.application.DailyGoalService;
 import attune.journal.application.dto.request.CreateGoalRequest;
 import attune.journal.application.dto.request.ScoreGoalRequest;
+import attune.journal.application.dto.request.UpdateGoalRequest;
 import attune.journal.application.dto.response.CreateGoalResponse;
 import attune.journal.application.dto.response.ScoreGoalResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -51,6 +52,21 @@ public class JournalGoalController {
     ) {
         dailyGoalService.deleteGoal(goalId, journalDate);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "목표 내용 수정")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "404", description = "목표 없음"),
+            @ApiResponse(responseCode = "409", description = "동일한 목표 내용 이미 존재")
+    })
+    @PatchMapping("/goals/{goalId}")
+    public ResponseEntity<CreateGoalResponse> updateGoal(
+            @PathVariable Long goalId,
+            @Valid @RequestBody UpdateGoalRequest request
+    ) {
+        return ResponseEntity.ok(dailyGoalService.updateGoal(goalId, request));
     }
 
     @Operation(summary = "목표 성취도 점수 체크", description = "특정 날짜의 목표 점수를 등록 또는 갱신한다.")

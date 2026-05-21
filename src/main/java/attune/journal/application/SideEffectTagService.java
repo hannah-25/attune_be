@@ -66,6 +66,21 @@ public class SideEffectTagService {
     }
 
     @Transactional
+    public void uncheckByDate(Long tagId, LocalDate date) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
+                .orElseThrow(SideEffectTagNotFoundException::new);
+        if (!tag.getUserId().equals(userId)) {
+            throw new SideEffectTagNotFoundException();
+        }
+        sideEffectLogRepository.deleteAllByTagAndDate(
+                tagId,
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay()
+        );
+    }
+
+    @Transactional
     public SideEffectCheckResponse check(CheckSideEffectRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(request.tagId())
