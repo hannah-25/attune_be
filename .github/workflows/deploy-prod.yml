@@ -21,6 +21,14 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 1. secrets에 저장된 yml 내용을 빌드 환경 내에 실제 파일로 생성하는 단계
+      - name: Make application-secret.yml
+        run: |
+          mkdir -p ./src/main/resources
+          echo "${{ secrets.APPLICATION_SECRET_YML }}" > ./src/main/resources/application-secret.yml
+        shell: bash
+
+        # 2. 파일이 잘 만들어졌으니 이제 안심하고 빌드 진행
       - name: Build with Gradle
         run: ./gradlew clean build -x test
 
