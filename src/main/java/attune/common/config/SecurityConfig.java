@@ -67,22 +67,22 @@ public class SecurityConfig {
 
                         // ✅ 헬스/인포는 무조건 허용
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/health/**").permitAll()
+                        .requestMatchers("/v1/health/**").permitAll()
 
                         // 인증 관련 엔드포인트
-                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/api/account/signup", "/api/account/verify-email", "/api/auth/login", "/api/auth/reissue").permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/v1/account/signup", "/v1/account/verify-email", "/v1/auth/login", "/v1/auth/reissue").permitAll()
 
                         // 약관 조회 (비로그인 허용)
-                        .requestMatchers("/api/terms/**").permitAll()
+                        .requestMatchers("/v1/terms/**").permitAll()
 
                         // 비밀번호 재설정 (비로그인 허용)
-                        .requestMatchers("/api/account/password/reset/**").permitAll()
+                        .requestMatchers("/v1/account/password/reset/**").permitAll()
 
                         // 공지사항 조회 (비로그인 허용)
-                        .requestMatchers(HttpMethod.GET, "/api/notices/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/notices/**").permitAll()
 
                         // 관리자 전용
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/v1/admin/**").hasRole("ADMIN")
 
                         // 개발/문서화 도구
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()

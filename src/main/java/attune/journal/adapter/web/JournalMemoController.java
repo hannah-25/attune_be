@@ -19,7 +19,7 @@ import java.time.LocalDate;
 @Tag(name = "일지 - 메모", description = "일지 메모 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals/{date}/memo")
+@RequestMapping("/v1/journals/{date}/memo")
 public class JournalMemoController {
 
     private final MemoService memoService;

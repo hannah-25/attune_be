@@ -21,7 +21,7 @@ import java.util.List;
 @Tag(name = "커뮤니티 댓글", description = "커뮤니티 게시글 댓글 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/community")
+@RequestMapping("/v1/community")
 public class CommentController {
 
     private final CommentService commentService;

@@ -19,7 +19,7 @@ import java.time.LocalDate;
 @Tag(name = "일지 - 수면/식사", description = "수면/식사 기록 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals/{date}/sleep-meal")
+@RequestMapping("/v1/journals/{date}/sleep-meal")
 public class JournalDailyStatusController {
 
     private final DailyStatusLogService dailyStatusLogService;

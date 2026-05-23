@@ -18,7 +18,7 @@ import java.time.LocalDate;
 @Tag(name = "일지", description = "일지(Journal) 조회/삭제 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping("/v1/journals")
 public class JournalController {
 
     private final JournalService journalService;

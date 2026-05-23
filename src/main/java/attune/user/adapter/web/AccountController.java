@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Account", description = "계정 API")
 @RestController
-@RequestMapping("/api/account")
+@RequestMapping("/v1/account")
 @RequiredArgsConstructor
 public class AccountController {
 // 계정 정보 : 회원가입, 비밀번호 변경, 탈퇴 관리

@@ -34,7 +34,7 @@ import java.time.LocalDate;
 @Tag(name = "상담", description = "상담 일정 및 기록 관리 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/consultations")
+@RequestMapping("/v1/consultations")
 public class ConsultationController {
 
     private final ConsultationService consultationService;

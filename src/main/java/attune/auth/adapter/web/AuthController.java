@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Auth", description = "인증 API")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
 // 인증 : 로그인, 로그아웃, 토큰 관리
@@ -46,7 +46,7 @@ public class AuthController {
         AuthResult result = authService.login(request);
 
         cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
-                "/api/auth", jwtConfig.getRefreshTokenExpiration());
+                "/v1/auth", jwtConfig.getRefreshTokenExpiration());
 
         return ResponseEntity.ok(result.loginResponse());
     }
@@ -69,7 +69,7 @@ public class AuthController {
         AuthResult result = authService.reissue(refreshToken, accessToken);
 
         cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
-                "/api/auth", jwtConfig.getRefreshTokenExpiration());
+                "/v1/auth", jwtConfig.getRefreshTokenExpiration());
 
         return ResponseEntity.ok(result.loginResponse());
     }
@@ -82,7 +82,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@AuthenticationPrincipal CustomUserDetails userDetails, HttpServletResponse response) {
         authService.logout(userDetails.getId());
-        cookieUtil.removeCookie(response, "refresh_token", "/api/auth");
+        cookieUtil.removeCookie(response, "refresh_token", "/v1/auth");
         return ResponseEntity.ok().build();
     }
 
@@ -100,7 +100,7 @@ public class AuthController {
         AuthResult result = authService.restore(request);
 
         cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
-                "/api/auth", jwtConfig.getRefreshTokenExpiration());
+                "/v1/auth", jwtConfig.getRefreshTokenExpiration());
 
         return ResponseEntity.ok(new RestoreResponse(
                 result.loginResponse().accessToken(),

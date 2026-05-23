@@ -24,7 +24,7 @@ import java.util.List;
 @Tag(name = "일지 - 업무 실수/불편", description = "업무적 실수/불편 태그 및 체크 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping("/v1/journals")
 public class JournalTroubleController {
 
     private final TroubleTagService troubleTagService;

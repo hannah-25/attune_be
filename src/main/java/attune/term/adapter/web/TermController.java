@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Terms", description = "약관 API")
 @RestController
-@RequestMapping("/api/terms")
+@RequestMapping("/v1/terms")
 @RequiredArgsConstructor
 public class TermController {
 

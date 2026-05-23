@@ -24,7 +24,7 @@ import java.util.List;
 @Tag(name = "일지 - 감정/증상", description = "감정/증상 태그 및 체크 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping("/v1/journals")
 public class JournalConditionController {
 
     private final ConditionTagService conditionTagService;

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "일정 카테고리", description = "일정 카테고리(라벨) 관리 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/schedule-categories")
+@RequestMapping("/v1/schedule-categories")
 public class ScheduleCategoryController {
 
     private final ScheduleCategoryService scheduleCategoryService;

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "UserProfile", description = "유저 프로필 API")
 @RestController
-@RequestMapping("/api/users/me")
+@RequestMapping("/v1/users/me")
 @RequiredArgsConstructor
 public class UserProfileController {
 

@@ -97,7 +97,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return "/api/auth/reissue".equals(request.getServletPath());
+        return "/v1/auth/reissue".equals(request.getServletPath());
     }
 
     private String resolveToken(HttpServletRequest request) {

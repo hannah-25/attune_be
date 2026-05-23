@@ -19,7 +19,7 @@ import java.util.List;
 @Tag(name = "커뮤니티 게시판", description = "커뮤니티 게시글 CRUD API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/community")
+@RequestMapping("/v1/community")
 public class CommunityBoardController {
 
     private final CommunityService communityService;

@@ -22,7 +22,7 @@ import java.time.LocalDate;
 @Tag(name = "약물 복용", description = "약물 복용 프로필 및 이력 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/medications")
+@RequestMapping("/v1/medications")
 public class MedicationController {
 
     private final MedicationService medicationService;
@@ -45,7 +45,7 @@ public class MedicationController {
     ) {
         CreateMedicationResponse response = medicationService.createMedication(request);
         return ResponseEntity
-                .created(URI.create("/api/medications/" + response.userMedicationId()))
+                .created(URI.create("/v1/medications/" + response.userMedicationId()))
                 .body(response);
     }
 
