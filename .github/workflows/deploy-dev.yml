@@ -68,5 +68,5 @@ jobs:
             docker run -d --name attune-dev-apps --network host \
               -e SPRING_PROFILES_ACTIVE=dev \
               hannah098/attune-be:dev
-            sleep 20
+            sleep 40
             curl -f http://localhost:8080/actuator/health || exit 1
