@@ -1,5 +1,7 @@
 package attune.schedule.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.schedule.application.ScheduleService;
 import attune.schedule.application.dto.request.CreateScheduleRequest;
 import attune.schedule.application.dto.request.UpdateAlarmsRequest;
@@ -22,7 +24,7 @@ import java.time.LocalDate;
 @Tag(name = "일정", description = "일정 관리 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/schedules")
+@RequestMapping(ApiVersion.V1 + "/schedules")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;

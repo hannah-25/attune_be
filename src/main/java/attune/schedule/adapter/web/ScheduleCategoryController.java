@@ -1,5 +1,7 @@
 package attune.schedule.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.schedule.application.ScheduleCategoryService;
 import attune.schedule.application.dto.request.CreateCategoryRequest;
 import attune.schedule.application.dto.request.UpdateCategoryRequest;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "일정 카테고리", description = "일정 카테고리(라벨) 관리 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/schedule-categories")
+@RequestMapping(ApiVersion.V1 + "/schedule-categories")
 public class ScheduleCategoryController {
 
     private final ScheduleCategoryService scheduleCategoryService;

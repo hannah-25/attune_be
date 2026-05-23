@@ -1,5 +1,7 @@
 package attune.user.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.common.security.CustomUserDetails;
 import attune.user.application.AccountService;
 import attune.user.application.UserProfileService;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "UserProfile", description = "유저 프로필 API")
 @RestController
-@RequestMapping("/api/users/me")
+@RequestMapping(ApiVersion.V1 + "/users/me")
 @RequiredArgsConstructor
 public class UserProfileController {
 

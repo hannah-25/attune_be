@@ -1,5 +1,7 @@
 package attune.common.filter;
 
+import attune.common.ApiVersion;
+
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.UserStatus;
@@ -97,7 +99,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return "/api/auth/reissue".equals(request.getServletPath());
+        return (ApiVersion.V1 + "/auth/reissue").equals(request.getServletPath());
     }
 
     private String resolveToken(HttpServletRequest request) {

@@ -1,5 +1,7 @@
 package attune.consultation.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.consultation.application.ConsultationService;
 import attune.consultation.application.dto.request.CreateConsultationRequest;
 import attune.consultation.application.dto.request.UpdateConsultationPreparationRequest;
@@ -34,7 +36,7 @@ import java.time.LocalDate;
 @Tag(name = "상담", description = "상담 일정 및 기록 관리 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/consultations")
+@RequestMapping(ApiVersion.V1 + "/consultations")
 public class ConsultationController {
 
     private final ConsultationService consultationService;

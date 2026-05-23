@@ -1,5 +1,7 @@
 package attune.journal.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.journal.application.ConditionTagService;
 import attune.journal.application.dto.request.CheckConditionRequest;
 import attune.journal.application.dto.request.CreateConditionTagRequest;
@@ -24,7 +26,7 @@ import java.util.List;
 @Tag(name = "일지 - 감정/증상", description = "감정/증상 태그 및 체크 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping(ApiVersion.V1 + "/journals")
 public class JournalConditionController {
 
     private final ConditionTagService conditionTagService;

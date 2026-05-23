@@ -1,5 +1,7 @@
 package attune.communityBoard.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.communityBoard.application.CommunityService;
 import attune.communityBoard.application.dto.request.CreatePostRequest;
 import attune.communityBoard.application.dto.request.UpdatePostRequest;
@@ -19,7 +21,7 @@ import java.util.List;
 @Tag(name = "커뮤니티 게시판", description = "커뮤니티 게시글 CRUD API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/community")
+@RequestMapping(ApiVersion.V1 + "/community")
 public class CommunityBoardController {
 
     private final CommunityService communityService;

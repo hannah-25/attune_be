@@ -1,5 +1,7 @@
 package attune.medication.domain.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.medication.domain.application.MedicationService;
 import attune.medication.domain.application.dto.request.CreateMedicationRequest;
 import attune.medication.domain.application.dto.request.QuickLogRequest;
@@ -22,7 +24,7 @@ import java.time.LocalDate;
 @Tag(name = "약물 복용", description = "약물 복용 프로필 및 이력 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/medications")
+@RequestMapping(ApiVersion.V1 + "/medications")
 public class MedicationController {
 
     private final MedicationService medicationService;
@@ -45,7 +47,7 @@ public class MedicationController {
     ) {
         CreateMedicationResponse response = medicationService.createMedication(request);
         return ResponseEntity
-                .created(URI.create("/api/medications/" + response.userMedicationId()))
+                .created(URI.create(ApiVersion.V1 + "/medications/" + response.userMedicationId()))
                 .body(response);
     }
 
