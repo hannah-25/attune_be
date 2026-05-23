@@ -21,12 +21,22 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Gradle Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
       # 1. secrets에 저장된 yml 내용을 빌드 환경 내에 실제 파일로 생성하는 단계
       - name: Make application-secret.yml
         run: |
                  mkdir -p ./src/main/resources
-                 echo "${{ secrets.APPLICATION_SECRET_YML }}" > ./src/main/resources/application-secret.yml
+                 echo "${{ secrets.APPLICATION_SECRET_YML }}" | base64 --decode > ./src/main/resources/application-secret.yml
         shell: bash
+
 
         # 2. 파일이 잘 만들어졌으니 이제 안심하고 빌드 진행
       - name: Build with Gradle
@@ -60,4 +70,6 @@ jobs:
             docker system prune -f
             docker pull hannah098/attune-be:dev
             # 컨테이너 이름을 dev용으로 구분하여 실행
-            docker run -d --name attune-dev-apps -p 8080:8080 hannah098/attune-be:dev
+            docker run -d --name attune-dev-apps -p 8080:8080 \
+              -e SPRING_PROFILES_ACTIVE=dev \
+              hannah098/attune-be:dev
