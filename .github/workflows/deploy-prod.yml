@@ -59,6 +59,7 @@ jobs:
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
           script: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
             docker stop attune-prod-apps || true
             docker rm attune-prod-apps || true
             docker image prune -f
