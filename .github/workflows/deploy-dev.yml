@@ -33,7 +33,7 @@ jobs:
       - name: Make application-secret.yml
         run: |
           mkdir -p ./src/main/resources
-          echo "${{ secrets.APPLICATION_SECRET_YML_DEV }}" | base64 --decode > ./src/main/resources/application-secret.yml
+          echo "${{ secrets.APPLICATION_SECRET_YML }}" | base64 --decode > ./src/main/resources/application-secret.yml
         shell: bash
 
       - name: Build with Gradle
