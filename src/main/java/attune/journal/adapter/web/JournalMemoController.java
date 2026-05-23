@@ -1,5 +1,7 @@
 package attune.journal.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.journal.application.MemoService;
 import attune.journal.application.dto.request.CreateMemoRequest;
 import attune.journal.application.dto.response.MemoResponse;
@@ -19,7 +21,7 @@ import java.time.LocalDate;
 @Tag(name = "일지 - 메모", description = "일지 메모 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/v1/journals/{date}/memo")
+@RequestMapping(ApiVersion.V1 + "/journals/{date}/memo")
 public class JournalMemoController {
 
     private final MemoService memoService;

@@ -1,5 +1,7 @@
 package attune.onboarding.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.common.security.CustomUserDetails;
 import attune.onboarding.application.OnboardingService;
 import attune.onboarding.application.dto.request.AsrsRequest;
@@ -25,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Onboarding", description = "온보딩 API")
 @RestController
-@RequestMapping("/v1/onboarding")
+@RequestMapping(ApiVersion.V1 + "/onboarding")
 @RequiredArgsConstructor
 public class OnboardingController {
 

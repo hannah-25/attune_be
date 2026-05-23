@@ -1,5 +1,7 @@
 package attune.term.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.term.application.TermService;
 import attune.term.application.dto.response.TermResponse;
 import java.util.List;
@@ -14,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Terms", description = "약관 API")
 @RestController
-@RequestMapping("/v1/terms")
+@RequestMapping(ApiVersion.V1 + "/terms")
 @RequiredArgsConstructor
 public class TermController {
 

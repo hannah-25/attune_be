@@ -1,5 +1,7 @@
 package attune.user.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.common.security.CustomUserDetails;
 import attune.user.application.UserSettingService;
 import attune.user.application.dto.request.UpdateUserSettingRequest;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "UserSetting", description = "유저 설정 API")
 @RestController
-@RequestMapping("/v1/users/settings")
+@RequestMapping(ApiVersion.V1 + "/users/settings")
 @RequiredArgsConstructor
 public class UserSettingController {
 

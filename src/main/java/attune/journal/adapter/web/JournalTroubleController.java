@@ -1,5 +1,7 @@
 package attune.journal.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.journal.application.TroubleTagService;
 import attune.journal.application.dto.request.CheckTroubleRequest;
 import attune.journal.application.dto.request.CreateTroubleTagRequest;
@@ -24,7 +26,7 @@ import java.util.List;
 @Tag(name = "일지 - 업무 실수/불편", description = "업무적 실수/불편 태그 및 체크 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/v1/journals")
+@RequestMapping(ApiVersion.V1 + "/journals")
 public class JournalTroubleController {
 
     private final TroubleTagService troubleTagService;
