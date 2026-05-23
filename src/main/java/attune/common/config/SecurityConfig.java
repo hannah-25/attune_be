@@ -70,7 +70,7 @@ public class SecurityConfig {
                         .requestMatchers("/v1/health/**").permitAll()
 
                         // 인증 관련 엔드포인트
-                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/v1/account/signup", "/v1/account/verify-email", "/v1/auth/login", "/v1/auth/reissue").permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", "/v1/account/signup", "/v1/account/verify-email", "/v1/auth/login", "/v1/auth/reissue", "/v1/auth/restore").permitAll()
 
                         // 약관 조회 (비로그인 허용)
                         .requestMatchers("/v1/terms/**").permitAll()
