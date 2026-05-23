@@ -1,5 +1,7 @@
 package attune.notice.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.notice.application.NoticeService;
 import attune.notice.application.dto.request.CreateNoticeRequest;
 import attune.notice.application.dto.request.UpdateNoticeRequest;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "관리자 공지사항", description = "관리자 공지사항 관리 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/admin/notices")
+@RequestMapping(ApiVersion.V1 + "/admin/notices")
 public class AdminNoticeController {
 
     private final NoticeService noticeService;

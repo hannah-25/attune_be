@@ -1,5 +1,7 @@
 package attune.communityBoard.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.communityBoard.application.CommentService;
 import attune.communityBoard.application.dto.request.CreateCommentRequest;
 import attune.communityBoard.application.dto.request.UpdateCommentRequest;
@@ -21,7 +23,7 @@ import java.util.List;
 @Tag(name = "커뮤니티 댓글", description = "커뮤니티 게시글 댓글 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/community")
+@RequestMapping(ApiVersion.V1 + "/community")
 public class CommentController {
 
     private final CommentService commentService;

@@ -1,5 +1,7 @@
 package attune.journal.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.journal.application.JournalService;
 import attune.journal.application.dto.response.DeleteJournalRangeResponse;
 import attune.journal.application.dto.response.DeleteJournalResponse;
@@ -18,7 +20,7 @@ import java.time.LocalDate;
 @Tag(name = "일지", description = "일지(Journal) 조회/삭제 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping(ApiVersion.V1 + "/journals")
 public class JournalController {
 
     private final JournalService journalService;

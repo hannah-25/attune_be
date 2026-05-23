@@ -1,5 +1,7 @@
 package attune.common.web;
 
+import attune.common.ApiVersion;
+
 
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Tag(name = "Health", description = "헬스체크 API")
 @RestController
-@RequestMapping("/api/health")
+@RequestMapping(ApiVersion.V1 + "/health")
 public class HealthController {
 
     @Autowired

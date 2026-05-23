@@ -64,7 +64,7 @@ jobs:
             docker rm attune-prod-apps || true
             docker image prune -f
             docker pull hannah098/attune-be:prod
-            docker run -d --name attune-prod-apps -p 8080:8080 \
+            docker run -d --name attune-prod-apps --network host \
               -e SPRING_PROFILES_ACTIVE=prod \
               hannah098/attune-be:prod
             sleep 20

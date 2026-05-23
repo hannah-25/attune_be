@@ -1,5 +1,7 @@
 package attune.journal.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.journal.application.DailyGoalService;
 import attune.journal.application.dto.request.CreateGoalRequest;
 import attune.journal.application.dto.request.ScoreGoalRequest;
@@ -24,7 +26,7 @@ import java.time.LocalDate;
 @Tag(name = "일지 - 목표 성취도", description = "일일 목표 및 점수 기록 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping(ApiVersion.V1 + "/journals")
 public class JournalGoalController {
 
     private final DailyGoalService dailyGoalService;

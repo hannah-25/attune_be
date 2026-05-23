@@ -1,5 +1,7 @@
 package attune.user.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.common.security.CustomUserDetails;
 import attune.user.application.AccountService;
 import attune.user.application.dto.request.ChangePasswordRequest;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Account", description = "계정 API")
 @RestController
-@RequestMapping("/api/account")
+@RequestMapping(ApiVersion.V1 + "/account")
 @RequiredArgsConstructor
 public class AccountController {
 // 계정 정보 : 회원가입, 비밀번호 변경, 탈퇴 관리

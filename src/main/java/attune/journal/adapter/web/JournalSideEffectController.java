@@ -1,5 +1,7 @@
 package attune.journal.adapter.web;
 
+import attune.common.ApiVersion;
+
 import attune.journal.application.SideEffectTagService;
 import attune.journal.application.dto.request.CheckSideEffectRequest;
 import attune.journal.application.dto.request.CreateSideEffectTagRequest;
@@ -24,7 +26,7 @@ import java.util.List;
 @Tag(name = "일지 - 부작용", description = "부작용 태그 및 체크 API")
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/journals")
+@RequestMapping(ApiVersion.V1 + "/journals")
 public class JournalSideEffectController {
 
     private final SideEffectTagService sideEffectTagService;
