@@ -39,6 +39,7 @@ public class User {
     private String profileImageUrl;
 
     private LocalDateTime onboardedAt;
+    private boolean onboardingSkipped;
 
     private LocalDateTime withdrawalAt;
 
@@ -56,6 +57,10 @@ public class User {
 
     public void completeOnboarding(LocalDateTime completedAt) {
         this.onboardedAt = completedAt;
+    }
+
+    public void skipOnboarding() {
+        this.onboardingSkipped = true;
     }
 
     public void changeNickname(String nickname) {

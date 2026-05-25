@@ -39,7 +39,31 @@ public class OnboardingService {
     @Transactional(readOnly = true)
     public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        return OnboardingStatusResponse.from(user);
+
+        if (user.isOnboarded()) {
+            return OnboardingStatusResponse.completed(user);
+        }
+        if (user.isOnboardingSkipped()) {
+            return OnboardingStatusResponse.ofSkipped();
+        }
+
+        boolean hasSymptom = onboardingSymptomRepository.existsByUser(user);
+        boolean hasAsrs = asrsAssessmentRepository.existsByUser(user);
+        boolean hasGoals = treatmentGoalRepository.existsByUser(user);
+
+        int resumeStep;
+        if (hasGoals)         resumeStep = 5;
+        else if (hasAsrs)     resumeStep = 4;
+        else if (hasSymptom)  resumeStep = 3;
+        else                  resumeStep = 2;
+
+        return OnboardingStatusResponse.inProgress(resumeStep);
+    }
+
+    @Transactional
+    public void skipOnboarding(UUID userId) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        user.skipOnboarding();
     }
 
     @Transactional

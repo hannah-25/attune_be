@@ -14,6 +14,7 @@
 | user_status | VARCHAR(50) | DEFAULT PENDING (PENDING, ACTIVE, SUSPENDED, WITHDRAWAL) | 계정 상태 |
 | user_type | VARCHAR(50) | DEFAULT USER (USER, ADMIN) | 사용자 유형 (Enum) |
 | onboarded_at | TIMESTAMP | | 온보딩 시점 |
+| onboarding_skipped | BOOLEAN | DEFAULT false | 온보딩 전체 건너뜀 여부 |
 | withdrawal_at | TIMESTAMP | | 탈퇴 요청 시점 (영구 삭제 배치 기준) |
 
 ---

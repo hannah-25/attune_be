@@ -88,4 +88,14 @@ public class OnboardingController {
     ) {
         return ResponseEntity.ok(onboardingService.completeOnboarding(userDetails.getId()));
     }
+
+    @Operation(summary = "온보딩 건너뜀", description = "온보딩 전체를 건너뛰고 나중에 진행할 수 있도록 처리합니다.")
+    @ApiResponse(responseCode = "204", description = "건너뜀 처리 완료")
+    @PostMapping("/skip")
+    public ResponseEntity<Void> skipOnboarding(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        onboardingService.skipOnboarding(userDetails.getId());
+        return ResponseEntity.noContent().build();
+    }
 }
