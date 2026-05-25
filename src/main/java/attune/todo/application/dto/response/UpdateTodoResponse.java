@@ -4,9 +4,9 @@ import attune.todo.domain.model.Todo;
 
 public record UpdateTodoResponse(
         Long todoId,
-        String title
+        String text
 ) {
     public static UpdateTodoResponse from(Todo todo) {
-        return new UpdateTodoResponse(todo.getId(), todo.getTitle());
+        return new UpdateTodoResponse(todo.getId(), todo.getText());
     }
 }

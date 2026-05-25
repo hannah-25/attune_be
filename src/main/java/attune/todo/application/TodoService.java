@@ -31,7 +31,7 @@ public class TodoService {
 
         Todo todo = Todo.builder()
                 .userId(userId)
-                .title(request.title())
+                .text(request.text())
                 .dueAt(request.dueAt())
                 .isAllDay(request.isAllDay())
                 .isCompleted(false)
@@ -76,7 +76,7 @@ public class TodoService {
             throw new TodoNotFoundException();
         }
 
-        todo.update(request.title(), request.dueAt(), request.isAllDay(), request.isCompleted());
+        todo.update(request.text(), request.dueAt(), request.isAllDay(), request.isCompleted());
 
         return UpdateTodoResponse.from(todo);
     }

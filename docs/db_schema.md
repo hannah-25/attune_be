@@ -370,7 +370,7 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 할 일 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| title | VARCHAR(100) | NOT NULL | 할 일 제목 |
+| text | VARCHAR(100) | NOT NULL | 할 일 내용 |
 | due_at | TIMESTAMP | NOT NULL | 마감일시 |
 | is_all_day | BOOLEAN | DEFAULT false | 종일 여부 |
 | is_completed | BOOLEAN | DEFAULT false | 완료 여부 |

@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record TodoListItemResponse(
         Long todoId,
-        String title,
+        String text,
         LocalDateTime dueAt,
         boolean isAllDay,
         boolean isCompleted
@@ -14,7 +14,7 @@ public record TodoListItemResponse(
     public static TodoListItemResponse from(Todo todo) {
         return new TodoListItemResponse(
                 todo.getId(),
-                todo.getTitle(),
+                todo.getText(),
                 todo.getDueAt(),
                 todo.isAllDay(),
                 todo.isCompleted()

@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public record UpdateTodoRequest(
-        @Size(min = 1, max = 100) String title,
+        @Size(min = 1, max = 100) String text,
         LocalDateTime dueAt,
         Boolean isAllDay,
         Boolean isCompleted

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public record CreateTodoRequest(
-        @NotBlank @Size(max = 100) String title,
+        @NotBlank @Size(max = 100) String text,
         @NotNull LocalDateTime dueAt,
         boolean isAllDay
 ) {}

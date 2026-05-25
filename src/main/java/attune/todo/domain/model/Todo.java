@@ -21,8 +21,8 @@ public class Todo {
     @Column(nullable = false)
     private UUID userId;
 
-    @Column(nullable = false, length = 100)
-    private String title;
+    @Column(name = "text", nullable = false, length = 100)
+    private String text;
 
     @Column(nullable = false)
     private LocalDateTime dueAt;
@@ -39,8 +39,8 @@ public class Todo {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public void update(String title, LocalDateTime dueAt, Boolean isAllDay, Boolean isCompleted) {
-        if (title != null) this.title = title;
+    public void update(String text, LocalDateTime dueAt, Boolean isAllDay, Boolean isCompleted) {
+        if (text != null) this.text = text;
         if (dueAt != null) this.dueAt = dueAt;
         if (isAllDay != null) this.isAllDay = isAllDay;
         if (isCompleted != null) this.isCompleted = isCompleted;
