@@ -45,11 +45,8 @@ public class TodoService {
     @Transactional(readOnly = true)
     public TodoDetailResponse getTodo(Long todoId) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        Todo todo = todoRepository.findByIdAndIsDeletedFalse(todoId)
+        Todo todo = todoRepository.findByIdAndUserIdAndIsDeletedFalse(todoId, userId)
                 .orElseThrow(TodoNotFoundException::new);
-        if (!todo.getUserId().equals(userId)) {
-            throw new TodoNotFoundException();
-        }
         return TodoDetailResponse.from(todo);
     }
 
