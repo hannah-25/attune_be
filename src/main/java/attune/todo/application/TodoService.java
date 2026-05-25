@@ -67,11 +67,8 @@ public class TodoService {
     @Transactional
     public UpdateTodoResponse updateTodo(Long todoId, UpdateTodoRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        Todo todo = todoRepository.findByIdAndIsDeletedFalse(todoId)
+        Todo todo = todoRepository.findByIdAndUserIdAndIsDeletedFalse(todoId, userId)
                 .orElseThrow(TodoNotFoundException::new);
-        if (!todo.getUserId().equals(userId)) {
-            throw new TodoNotFoundException();
-        }
 
         todo.update(request.text(), request.dueAt(), request.isAllDay(), request.isCompleted());
 
