@@ -68,7 +68,7 @@ public class AuthController {
                 : cookieUtil.extractCookie(request, "refresh_token");
 
         if (refreshToken == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         String authHeader = request.getHeader("Authorization");
