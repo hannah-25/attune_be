@@ -38,6 +38,7 @@ logging:
 # 로컬 CORS
 cors:
   allowed-origin-patterns:
+    - "http://192.168.219.104:3000" ## 임시용
     - "https://attune-me.com:*"
     - "https://attune-me.com.s3-website.ap-northeast-2.amazonaws.com:*"
     - "http://localhost:*"

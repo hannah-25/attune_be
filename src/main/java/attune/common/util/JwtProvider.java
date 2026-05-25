@@ -59,4 +59,16 @@ public class JwtProvider {
             return e.getClaims();
         }
     }
+
+    /**
+     * Reissue 흐름에서는 exp 만료 여부를 배제하고, 서명/형식만 검증한다.
+     */
+    public Claims parseTokenIgnoringExpiration(String token) {
+        return Jwts.parser()
+                .clock(() -> new Date(0L))
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
 }

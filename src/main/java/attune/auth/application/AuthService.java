@@ -69,7 +69,7 @@ public class AuthService {
         UUID userId;
         UserType userType;
         try {
-            accessClaims = jwtProvider.parseExpiredToken(accessToken);
+            accessClaims = jwtProvider.parseTokenIgnoringExpiration(accessToken);
             userId = UUID.fromString(accessClaims.getSubject());
             userType = UserType.valueOf(accessClaims.get("role", String.class));
         } catch (JwtException | IllegalArgumentException | NullPointerException e) {
