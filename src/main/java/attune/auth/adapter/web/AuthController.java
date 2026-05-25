@@ -2,6 +2,7 @@ package attune.auth.adapter.web;
 
 import attune.common.ApiVersion;
 import attune.common.ClientType;
+import attune.common.HttpHeaders;
 import attune.auth.application.AuthService;
 import attune.auth.application.dto.request.LoginRequest;
 import attune.auth.application.dto.request.RestoreRequest;
@@ -47,7 +48,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request,
-            @RequestHeader(value = "X-Client-Type", defaultValue = "web") String clientTypeHeader,
+            @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
             HttpServletResponse response
     ) {
         ClientType clientType = ClientType.from(clientTypeHeader);
@@ -62,15 +63,15 @@ public class AuthController {
     })
     @PostMapping("/reissue")
     public ResponseEntity<LoginResponse> reissue(
-            @RequestHeader(value = "X-Client-Type", defaultValue = "web") String clientTypeHeader,
+            @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
             HttpServletRequest request,
             HttpServletResponse response
     ) {
         ClientType clientType = ClientType.from(clientTypeHeader);
 
         String refreshToken = clientType.isMobile()
-                ? request.getHeader("X-Refresh-Token")
-                : cookieUtil.extractCookie(request, "refresh_token");
+                ? request.getHeader(HttpHeaders.REFRESH_TOKEN)
+                : cookieUtil.extractCookie(request, HttpHeaders.REFRESH_TOKEN_COOKIE);
 
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -89,13 +90,13 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestHeader(value = "X-Client-Type", defaultValue = "web") String clientTypeHeader,
+            @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
             HttpServletResponse response
     ) {
         ClientType clientType = ClientType.from(clientTypeHeader);
         authService.logout(userDetails.getId());
         if (!clientType.isMobile()) {
-            cookieUtil.removeCookie(response, "refresh_token", ApiVersion.V1 + "/auth");
+            cookieUtil.removeCookie(response, HttpHeaders.REFRESH_TOKEN_COOKIE, ApiVersion.V1 + "/auth");
         }
         return ResponseEntity.ok().build();
     }
@@ -109,7 +110,7 @@ public class AuthController {
     @PostMapping("/restore")
     public ResponseEntity<RestoreResponse> restore(
             @Valid @RequestBody RestoreRequest request,
-            @RequestHeader(value = "X-Client-Type", defaultValue = "web") String clientTypeHeader,
+            @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
             HttpServletResponse response
     ) {
         ClientType clientType = ClientType.from(clientTypeHeader);
@@ -136,7 +137,7 @@ public class AuthController {
                     result.refreshToken()
             );
         }
-        cookieUtil.addCookie(response, "refresh_token", result.refreshToken(),
+        cookieUtil.addCookie(response, HttpHeaders.REFRESH_TOKEN_COOKIE, result.refreshToken(),
                 ApiVersion.V1 + "/auth", jwtConfig.getRefreshTokenExpiration());
         return result.loginResponse();
     }
