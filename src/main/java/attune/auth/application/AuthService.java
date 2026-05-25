@@ -8,16 +8,15 @@ import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
 import attune.common.error.badrequest.InvalidAccountStatusException;
+import attune.common.error.notfound.UserNotFoundException;
 import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
-import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
 import attune.user.domain.repository.UserRepository;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +61,7 @@ public class AuthService {
 
     public AuthResult reissue(String refreshToken, String accessToken) {
         if (accessToken == null) {
-            throw new TokenException("?≪꽭???좏겙???꾩슂?⑸땲??");
+            throw new TokenException("액세스 토큰이 필요합니다.");
         }
 
         Claims accessClaims;
@@ -73,14 +72,14 @@ public class AuthService {
             userId = UUID.fromString(accessClaims.getSubject());
             userType = UserType.valueOf(accessClaims.get("role", String.class));
         } catch (JwtException | IllegalArgumentException | NullPointerException e) {
-            throw new TokenException("?좏슚?섏? ?딆? ?≪꽭???좏겙?낅땲??");
+            throw new TokenException("유효하지 않은 액세스 토큰입니다.");
         }
 
         UserAuthCache cache = userAuthCacheRepository.find(userId)
-                .orElseThrow(() -> new TokenException("濡쒓렇???몄뀡??留뚮즺?섏뿀?듬땲?? ?ㅼ떆 濡쒓렇?명빐二쇱꽭??"));
+                .orElseThrow(() -> new TokenException("로그인 세션이 만료되었습니다. 다시 로그인해주세요."));
 
         if (!cache.refreshToken().equals(refreshToken)) {
-            throw new TokenException("?좏슚?섏? ?딆? 由ы봽?덉떆 ?좏겙?낅땲??");
+            throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
         }
 
         UserStatus userStatus = UserStatus.valueOf(cache.status());
@@ -108,7 +107,7 @@ public class AuthService {
         }
 
         if (user.getUserStatus() != UserStatus.WITHDRAWAL) {
-            throw new InvalidAccountStatusException("?덊눜 ?곹깭??怨꾩젙留?蹂듦뎄?????덉뒿?덈떎.");
+            throw new InvalidAccountStatusException("탈퇴 상태의 계정만 복구할 수 있습니다.");
         }
 
         user.restore();
@@ -123,4 +122,3 @@ public class AuthService {
         );
     }
 }
-
