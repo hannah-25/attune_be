@@ -10,8 +10,8 @@ import attune.auth.application.dto.response.AuthResult;
 import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.application.dto.response.RestoreResponse;
 import attune.common.config.JwtConfig;
-import attune.common.security.CustomUserDetails;
 import attune.common.util.CookieUtil;
+import attune.common.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,13 +21,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.http.HttpStatus;
+
+import java.util.UUID;
 
 
 @Tag(name = "Auth", description = "인증 API")
@@ -89,12 +90,12 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "로그아웃 성공")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
             HttpServletResponse response
     ) {
         ClientType clientType = ClientType.from(clientTypeHeader);
-        authService.logout(userDetails.getId());
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        authService.logout(userId);
         if (!clientType.isMobile()) {
             cookieUtil.removeCookie(response, HttpHeaders.REFRESH_TOKEN_COOKIE, ApiVersion.V1 + "/auth");
         }
