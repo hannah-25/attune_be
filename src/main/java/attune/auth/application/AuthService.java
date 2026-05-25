@@ -62,25 +62,25 @@ public class AuthService {
 
     public AuthResult reissue(String refreshToken, String accessToken) {
         if (accessToken == null) {
-            throw new TokenException("액세스 토큰이 필요합니다.");
+            throw new TokenException("?≪꽭???좏겙???꾩슂?⑸땲??");
         }
 
         Claims accessClaims;
         UUID userId;
         UserType userType;
         try {
-            accessClaims = jwtProvider.parseTokenIgnoringExpiration(accessToken);
+            accessClaims = jwtProvider.parseExpiredToken(accessToken);
             userId = UUID.fromString(accessClaims.getSubject());
             userType = UserType.valueOf(accessClaims.get("role", String.class));
         } catch (JwtException | IllegalArgumentException | NullPointerException e) {
-            throw new TokenException("유효하지 않은 액세스 토큰입니다.");
+            throw new TokenException("?좏슚?섏? ?딆? ?≪꽭???좏겙?낅땲??");
         }
 
         UserAuthCache cache = userAuthCacheRepository.find(userId)
-                .orElseThrow(() -> new TokenException("로그인 세션이 만료되었습니다. 다시 로그인해주세요."));
+                .orElseThrow(() -> new TokenException("濡쒓렇???몄뀡??留뚮즺?섏뿀?듬땲?? ?ㅼ떆 濡쒓렇?명빐二쇱꽭??"));
 
         if (!cache.refreshToken().equals(refreshToken)) {
-            throw new TokenException("유효하지 않은 리프레시 토큰입니다.");
+            throw new TokenException("?좏슚?섏? ?딆? 由ы봽?덉떆 ?좏겙?낅땲??");
         }
 
         UserStatus userStatus = UserStatus.valueOf(cache.status());
@@ -108,7 +108,7 @@ public class AuthService {
         }
 
         if (user.getUserStatus() != UserStatus.WITHDRAWAL) {
-            throw new InvalidAccountStatusException("탈퇴 상태의 계정만 복구할 수 있습니다.");
+            throw new InvalidAccountStatusException("?덊눜 ?곹깭??怨꾩젙留?蹂듦뎄?????덉뒿?덈떎.");
         }
 
         user.restore();
@@ -123,3 +123,4 @@ public class AuthService {
         );
     }
 }
+

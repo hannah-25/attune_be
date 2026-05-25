@@ -57,6 +57,7 @@ public class User {
 
     public void completeOnboarding(LocalDateTime completedAt) {
         this.onboardedAt = completedAt;
+        this.onboardingSkipped = false;
     }
 
     public void skipOnboarding() {
