@@ -1,11 +1,9 @@
 package attune.common.config;
 
 import attune.common.ApiVersion;
-
-
 import attune.common.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,13 +24,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(CorsProperties.class)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Value("${cors.allowed-origin-patterns:}")
-    private java.util.List<String> corsAllowedOriginPatterns;
+    private final CorsProperties corsProperties;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -113,12 +110,10 @@ public class SecurityConfig {
         );
 
         // application-{profile}.yml의 cors.allowed-origin-patterns 값 사용
-        // @Value로 YAML 리스트를 주입받을 때 빈 문자열 [""]이 들어올 수 있으므로 필터링
-        java.util.List<String> filteredPatterns = (corsAllowedOriginPatterns == null)
-                ? java.util.List.of()
-                : corsAllowedOriginPatterns.stream()
-                        .filter(p -> p != null && !p.isBlank())
-                        .toList();
+        // @ConfigurationProperties로 YAML 리스트를 안전하게 바인딩
+        java.util.List<String> filteredPatterns = corsProperties.allowedOriginPatterns().stream()
+                .filter(p -> p != null && !p.isBlank())
+                .toList();
 
         java.util.List<String> allowedPatterns = !filteredPatterns.isEmpty()
                 ? filteredPatterns
