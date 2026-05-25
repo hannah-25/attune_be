@@ -38,4 +38,4 @@ cors:
 
 
 app:
-  frontend-url:
+  frontend-url: "https://dev.attune-me.com"
