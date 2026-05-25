@@ -51,8 +51,8 @@ public class SecurityConfig {
                 // REST API에서는 일반적으로 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // CORS 필터 활성화
-                .cors(cors -> {})
+                // CORS 필터 활성화 (명시적으로 CorsConfigurationSource 빈 지정)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // 클릭재킹 방지
                 .headers(headers -> headers
@@ -113,8 +113,15 @@ public class SecurityConfig {
         );
 
         // application-{profile}.yml의 cors.allowed-origin-patterns 값 사용
-        java.util.List<String> allowedPatterns = (corsAllowedOriginPatterns != null && !corsAllowedOriginPatterns.isEmpty())
-                ? corsAllowedOriginPatterns
+        // @Value로 YAML 리스트를 주입받을 때 빈 문자열 [""]이 들어올 수 있으므로 필터링
+        java.util.List<String> filteredPatterns = (corsAllowedOriginPatterns == null)
+                ? java.util.List.of()
+                : corsAllowedOriginPatterns.stream()
+                        .filter(p -> p != null && !p.isBlank())
+                        .toList();
+
+        java.util.List<String> allowedPatterns = !filteredPatterns.isEmpty()
+                ? filteredPatterns
                 : defaultPatterns;
 
         configuration.setAllowedOriginPatterns(allowedPatterns);
