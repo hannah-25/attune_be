@@ -8,6 +8,7 @@ import attune.onboarding.application.dto.request.SymptomRequest;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
 import attune.onboarding.application.dto.response.GoalResponse;
+import attune.onboarding.application.dto.response.OnboardingStatusResponse;
 import attune.onboarding.application.dto.response.SymptomResponse;
 import attune.onboarding.domain.model.AsrsAnswer;
 import attune.onboarding.domain.model.AsrsAssessment;
@@ -34,6 +35,12 @@ public class OnboardingService {
     private final AsrsAssessmentRepository asrsAssessmentRepository;
     private final OnboardingSymptomRepository onboardingSymptomRepository;
     private final TreatmentGoalRepository treatmentGoalRepository;
+
+    @Transactional(readOnly = true)
+    public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        return OnboardingStatusResponse.from(user);
+    }
 
     @Transactional
     public AsrsResponse saveAsrs(UUID userId, AsrsRequest request) {

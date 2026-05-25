@@ -10,6 +10,7 @@ import attune.onboarding.application.dto.request.SymptomRequest;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
 import attune.onboarding.application.dto.response.GoalResponse;
+import attune.onboarding.application.dto.response.OnboardingStatusResponse;
 import attune.onboarding.application.dto.response.SymptomResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +34,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
+
+    @Operation(summary = "온보딩 상태 조회", description = "현재 로그인한 사용자의 온보딩 완료 여부를 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/status")
+    public ResponseEntity<OnboardingStatusResponse> getOnboardingStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(onboardingService.getOnboardingStatus(userDetails.getId()));
+    }
 
     @Operation(summary = "ASRS 체크리스트 제출", description = "ADHD 자가 진단 척도(ASRS) 응답을 저장하고 점수를 반환합니다.")
     @ApiResponse(responseCode = "201", description = "저장 성공")
