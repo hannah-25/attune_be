@@ -12,7 +12,7 @@ import java.util.UUID;
 
 public interface TodoRepository extends JpaRepository<Todo, Long> {
 
-    Optional<Todo> findByIdAndIsDeletedFalse(Long id);
+    Optional<Todo> findByIdAndUserIdAndIsDeletedFalse(Long id, UUID userId);
 
     @Query("""
             SELECT t FROM Todo t
