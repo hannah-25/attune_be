@@ -14,6 +14,7 @@
 | user_status | VARCHAR(50) | DEFAULT PENDING (PENDING, ACTIVE, SUSPENDED, WITHDRAWAL) | 계정 상태 |
 | user_type | VARCHAR(50) | DEFAULT USER (USER, ADMIN) | 사용자 유형 (Enum) |
 | onboarded_at | TIMESTAMP | | 온보딩 시점 |
+| onboarding_skipped | BOOLEAN | DEFAULT false | 온보딩 전체 건너뜀 여부 |
 | withdrawal_at | TIMESTAMP | | 탈퇴 요청 시점 (영구 삭제 배치 기준) |
 
 ---
@@ -360,3 +361,18 @@
 | description | TEXT | | 초기 증상 서술 |
 | emotional_event | TEXT | | 감정적 사건 서술 |
 | saved_at | TIMESTAMP | | 저장 일시 |
+
+---
+
+## Todo (할 일)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 할 일 고유 식별자 |
+| user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
+| text | VARCHAR(100) | NOT NULL | 할 일 내용 |
+| due_at | TIMESTAMP | NOT NULL | 마감일시 |
+| is_all_day | BOOLEAN | DEFAULT false | 종일 여부 |
+| is_completed | BOOLEAN | DEFAULT false | 완료 여부 |
+| is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |

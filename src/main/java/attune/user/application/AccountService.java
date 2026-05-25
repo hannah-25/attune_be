@@ -147,12 +147,12 @@ public class AccountService {
 
     @Transactional
     public void updateNickname(UUID userId, UpdateNicknameRequest request) {
-        if (userRepository.existsByNickname(request.newNickname())) {
+        if (userRepository.existsByNickname(request.newNickName())) {
             throw new DuplicateNicknameException();
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
-        user.changeNickname(request.newNickname());
+        user.changeNickname(request.newNickName());
     }
 
     @Transactional

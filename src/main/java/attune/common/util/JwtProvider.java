@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
-
 @Component
 @RequiredArgsConstructor
 public class JwtProvider {

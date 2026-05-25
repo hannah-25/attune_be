@@ -8,16 +8,15 @@ import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
 import attune.common.error.badrequest.InvalidAccountStatusException;
+import attune.common.error.notfound.UserNotFoundException;
 import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
-import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
 import attune.user.domain.repository.UserRepository;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
