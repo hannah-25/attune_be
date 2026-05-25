@@ -113,7 +113,7 @@ public class AuthController {
         return ResponseEntity.ok(new RestoreResponse(
                 loginResponse.accessToken(),
                 loginResponse.expiresIn(),
-                clientType.isMobile() ? result.refreshToken() : null,
+                loginResponse.refreshToken(),
                 "ACTIVE"
         ));
     }
