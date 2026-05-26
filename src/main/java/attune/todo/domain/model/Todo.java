@@ -45,4 +45,8 @@ public class Todo {
         if (isAllDay != null) this.isAllDay = isAllDay;
         if (isCompleted != null) this.isCompleted = isCompleted;
     }
+
+    public void toggleComplete() {
+        this.isCompleted = !this.isCompleted;
+    }
 }

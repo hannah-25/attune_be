@@ -7,6 +7,7 @@ import attune.todo.application.dto.request.UpdateTodoRequest;
 import attune.todo.application.dto.response.TodoDetailResponse;
 import attune.todo.application.dto.response.TodoListItemResponse;
 import attune.todo.application.dto.response.TodoListResponse;
+import attune.todo.application.dto.response.ToggleTodoResponse;
 import attune.todo.application.dto.response.UpdateTodoResponse;
 import attune.todo.domain.model.Todo;
 import attune.todo.domain.repository.TodoRepository;
@@ -73,5 +74,16 @@ public class TodoService {
         todo.update(request.text(), request.dueAt(), request.isAllDay(), request.isCompleted());
 
         return UpdateTodoResponse.from(todo);
+    }
+
+    @Transactional
+    public ToggleTodoResponse updateTodoStatus(Long todoId) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        Todo todo = todoRepository.findByIdAndUserIdAndIsDeletedFalse(todoId, userId)
+                .orElseThrow(TodoNotFoundException::new);
+
+        todo.toggleComplete();
+
+        return ToggleTodoResponse.from(todo);
     }
 }
