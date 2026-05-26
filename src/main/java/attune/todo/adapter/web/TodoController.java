@@ -6,7 +6,6 @@ import attune.todo.application.dto.request.CreateTodoRequest;
 import attune.todo.application.dto.request.UpdateTodoRequest;
 import attune.todo.application.dto.response.TodoDetailResponse;
 import attune.todo.application.dto.response.TodoListResponse;
-import attune.todo.application.dto.response.ToggleTodoResponse;
 import attune.todo.application.dto.response.UpdateTodoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -74,14 +73,4 @@ public class TodoController {
         return ResponseEntity.ok(todoService.updateTodo(todoId, request));
     }
 
-    @Operation(summary = "할 일 완료/미완료 토글")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "토글 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 필요"),
-            @ApiResponse(responseCode = "404", description = "할 일 없음")
-    })
-    @PatchMapping("/{todoId}/complete")
-    public ResponseEntity<ToggleTodoResponse> updateTodoStatus(@PathVariable Long todoId) {
-        return ResponseEntity.ok(todoService.updateTodoStatus(todoId));
-    }
 }

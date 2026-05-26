@@ -1,5 +1,7 @@
 package attune.todo.application;
 
+import attune.common.error.BadRequestException;
+import attune.common.error.badrequest.NoFieldToUpdateException;
 import attune.common.error.notfound.TodoNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.todo.application.dto.request.CreateTodoRequest;
@@ -7,7 +9,6 @@ import attune.todo.application.dto.request.UpdateTodoRequest;
 import attune.todo.application.dto.response.TodoDetailResponse;
 import attune.todo.application.dto.response.TodoListItemResponse;
 import attune.todo.application.dto.response.TodoListResponse;
-import attune.todo.application.dto.response.ToggleTodoResponse;
 import attune.todo.application.dto.response.UpdateTodoResponse;
 import attune.todo.domain.model.Todo;
 import attune.todo.domain.repository.TodoRepository;
@@ -67,23 +68,27 @@ public class TodoService {
 
     @Transactional
     public UpdateTodoResponse updateTodo(Long todoId, UpdateTodoRequest request) {
+        if (request.text() == null && request.dueAt() == null
+                && request.isAllDay() == null && request.isCompleted() == null) {
+            throw new NoFieldToUpdateException();
+        }
+
+        if (request.text() != null && request.text().isBlank()) {
+            throw new BadRequestException("할 일 내용은 공백만 입력할 수 없습니다.");
+        }
+
         UUID userId = SecurityUtils.getCurrentUserUuid();
         Todo todo = todoRepository.findByIdAndUserIdAndIsDeletedFalse(todoId, userId)
                 .orElseThrow(TodoNotFoundException::new);
 
-        todo.update(request.text(), request.dueAt(), request.isAllDay(), request.isCompleted());
+        LocalDateTime dueAt = request.dueAt();
+        if (Boolean.TRUE.equals(request.isAllDay()) && dueAt != null) {
+            dueAt = dueAt.toLocalDate().atStartOfDay();
+        }
+
+        todo.update(request.text(), dueAt, request.isAllDay(), request.isCompleted());
 
         return UpdateTodoResponse.from(todo);
     }
 
-    @Transactional
-    public ToggleTodoResponse updateTodoStatus(Long todoId) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        Todo todo = todoRepository.findByIdAndUserIdAndIsDeletedFalse(todoId, userId)
-                .orElseThrow(TodoNotFoundException::new);
-
-        todo.toggleComplete();
-
-        return ToggleTodoResponse.from(todo);
-    }
 }
