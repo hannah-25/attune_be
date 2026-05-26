@@ -82,8 +82,10 @@ public class TodoService {
                 .orElseThrow(TodoNotFoundException::new);
 
         LocalDateTime dueAt = request.dueAt();
-        if (Boolean.TRUE.equals(request.isAllDay()) && dueAt != null) {
-            dueAt = dueAt.toLocalDate().atStartOfDay();
+        boolean effectiveIsAllDay = request.isAllDay() != null ? request.isAllDay() : todo.isAllDay();
+        if (effectiveIsAllDay) {
+            LocalDateTime base = dueAt != null ? dueAt : todo.getDueAt();
+            dueAt = base.toLocalDate().atStartOfDay();
         }
 
         todo.update(request.text(), dueAt, request.isAllDay(), request.isCompleted());
