@@ -17,7 +17,7 @@ public class MailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    private void sendEmail(String to, String subject, String html) {
+    private void sendEmail(String to, String subject, String html, String replyTo) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
@@ -25,6 +25,7 @@ public class MailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);
+            if (replyTo != null) helper.setReplyTo(replyTo);
             mailSender.send(mimeMessage);
         } catch (MessagingException e) {
             throw new RuntimeException("메일 발송에 실패했습니다.", e);
@@ -35,46 +36,25 @@ public class MailService {
 
     //sendEmail 메서드들
     public void sendVerificationEmail(String to, String nickname, String verificationLink) {
-        sendEmail(to, "[Attune] 이메일 인증을 완료해주세요", buildVerificationHtml(nickname, verificationLink));
+        sendEmail(to, "[Attune] 이메일 인증을 완료해주세요", buildVerificationHtml(nickname, verificationLink), null);
     }
 
     public void sendWelcomeEmail(String to, String nickname) {
-        sendEmail(to, "[Attune] 회원가입을 축하합니다!", buildWelcomeHtml(nickname));
+        sendEmail(to, "[Attune] 회원가입을 축하합니다!", buildWelcomeHtml(nickname), null);
     }
 
     public void sendPasswordResetEmail(String to, String nickname, String resetLink) {
-        sendEmail(to, "[Attune] 비밀번호 재설정 안내", buildPasswordResetHtml(nickname, resetLink));
+        sendEmail(to, "[Attune] 비밀번호 재설정 안내", buildPasswordResetHtml(nickname, resetLink), null);
     }
 
     public void sendTermsUpdateEmail(String to, String title, String htmlContent) {
-        sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent));
+        sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent), null);
     }
 
     public void sendInquiryEmail(String replyTo, String type, String title, String content) {
-        try {
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
-            helper.setFrom(fromEmail);
-            helper.setTo(fromEmail);
-            helper.setReplyTo(replyTo);
-            helper.setSubject("[Attune 문의] " + title);
-            helper.setText(buildInquiryText(replyTo, type, title, content), false);
-            mailSender.send(mimeMessage);
-        } catch (MessagingException e) {
-            throw new RuntimeException("문의 이메일 발송에 실패했습니다.", e);
-        }
+        sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
     }
 
-    private String buildInquiryText(String replyTo, String type, String title, String content) {
-        return """
-                [문의 유형] %s
-                [제목] %s
-                [연락처] %s
-
-                [내용]
-                %s
-                """.formatted(type, title, replyTo, content);
-    }
 
     private String wrapWithLayout(String bodyHtml) {
         return """
@@ -128,8 +108,21 @@ public class MailService {
     }
 
 
-
     // html 생성 메서드들
+
+    private String buildInquiryHtml(String replyTo, String type, String content) {
+        return wrapWithLayout("""
+                <p style="margin:0 0 8px;font-size:13px;color:#888;">문의 유형</p>
+                <p style="margin:0 0 24px;font-size:15px;color:#222;">%s</p>
+
+                <p style="margin:0 0 8px;font-size:13px;color:#888;">연락처</p>
+                <p style="margin:0 0 24px;font-size:15px;color:#222;">%s</p>
+
+                <p style="margin:0 0 8px;font-size:13px;color:#888;">문의 내용</p>
+                <p style="margin:0;font-size:15px;color:#444;line-height:1.8;white-space:pre-wrap;">%s</p>
+                """.formatted(type, replyTo, content));
+    }
+
     private String buildVerificationHtml(String nickname, String verificationLink) {
         return """
                 <!DOCTYPE html>
