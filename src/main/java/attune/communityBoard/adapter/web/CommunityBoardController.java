@@ -57,6 +57,7 @@ public class CommunityBoardController {
     @GetMapping("/posts")
     public ResponseEntity<Page<PostResponse>> getPosts(
             @Parameter(description = "제목·본문 키워드 검색 (선택)")
+            @jakarta.validation.constraints.Size(max = 100, message = "검색어는 100자 이내여야 합니다.")
             @RequestParam(required = false) String q,
             @Parameter(description = "카테고리 필터 (선택): DEFAULT, DISORDER_INFO, MEDICATION, DAILY_LIFE")
             @RequestParam(required = false) PostCategory category,
