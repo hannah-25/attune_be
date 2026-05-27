@@ -34,18 +34,35 @@ GET /v1/community/posts
 GET /v1/community/posts?q=콘서타
 GET /v1/community/posts?category=MEDICATION
 GET /v1/community/posts?q=콘서타&category=MEDICATION
+GET /v1/community/posts?page=0&size=20
 ```
 
 **Query Parameters**
 
-| 파라미터 | 타입 | 필수 | 설명 |
-|----------|------|------|------|
-| q | string | ❌ | 제목·본문 키워드 검색 (대소문자 무시). 생략 시 전체 조회 |
-| category | PostCategory | ❌ | 카테고리 필터. 생략 시 전체 카테고리 |
+| 파라미터 | 타입 | 필수 | 기본값 | 설명 |
+|----------|------|------|--------|------|
+| q | string | ❌ | - | 제목·본문 키워드 검색 (대소문자 무시). 생략 시 전체 조회 |
+| category | PostCategory | ❌ | - | 카테고리 필터. 생략 시 전체 카테고리 |
+| page | number | ❌ | 0 | 페이지 번호 (0부터 시작) |
+| size | number | ❌ | 20 | 페이지 크기 |
 
 > `q`와 `category`는 AND 조건으로 결합됩니다.
 
-**Response** `200 OK` — `PostResponse[]`
+**Response** `200 OK` — `Page<PostResponse>`
+
+```json
+{
+  "content": [ /* PostResponse 배열 */ ],
+  "totalElements": 100,
+  "totalPages": 5,
+  "number": 0,
+  "size": 20,
+  "first": true,
+  "last": false
+}
+```
+
+**PostResponse 필드**
 
 | 필드 | 타입 | 설명 |
 |------|------|------|

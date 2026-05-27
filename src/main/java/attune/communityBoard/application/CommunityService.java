@@ -15,8 +15,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -63,17 +65,15 @@ public class CommunityService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> getPosts(String q, PostCategory category) {
+    public Page<PostResponse> getPosts(String q, PostCategory category, Pageable pageable) {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
 
         boolean hasFilter = (q != null && !q.isBlank()) || category != null;
-        List<CommunityBoard> boards = hasFilter
-                ? communityBoardRepository.searchPosts(q != null && !q.isBlank() ? q : null, category)
-                : communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc();
+        Page<CommunityBoard> boards = hasFilter
+                ? communityBoardRepository.searchPosts(q != null && !q.isBlank() ? q : null, category, pageable)
+                : communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc(pageable);
 
-        return boards.stream()
-                .map(board -> PostResponse.from(board, currentUserId))
-                .toList();
+        return boards.map(board -> PostResponse.from(board, currentUserId));
     }
 
     @Transactional

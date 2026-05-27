@@ -13,11 +13,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "커뮤니티 게시판", description = "커뮤니티 게시글 CRUD API")
 @RequiredArgsConstructor
@@ -41,21 +41,27 @@ public class CommunityBoardController {
     @Operation(
             summary = "게시글 목록 조회 / 검색",
             description = """
-                    삭제되지 않은 게시글을 최신순으로 반환합니다.
+                    삭제되지 않은 게시글을 최신순으로 페이지 단위로 반환합니다.
                     - q: 제목 또는 본문에 포함된 키워드 (대소문자 무시). 생략 시 전체 조회.
                     - category: 카테고리 필터 (DEFAULT / DISORDER_INFO / MEDICATION / DAILY_LIFE). 생략 시 전체 카테고리.
+                    - page: 페이지 번호 (0부터 시작, 기본값 0)
+                    - size: 페이지 크기 (기본값 20)
                     두 파라미터는 AND 조건으로 결합됩니다.
                     """
     )
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/posts")
-    public ResponseEntity<List<PostResponse>> getPosts(
+    public ResponseEntity<Page<PostResponse>> getPosts(
             @Parameter(description = "제목·본문 키워드 검색 (선택)")
             @RequestParam(required = false) String q,
             @Parameter(description = "카테고리 필터 (선택): DEFAULT, DISORDER_INFO, MEDICATION, DAILY_LIFE")
-            @RequestParam(required = false) PostCategory category
+            @RequestParam(required = false) PostCategory category,
+            @Parameter(description = "페이지 번호 (0부터 시작, 기본값 0)")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기 (기본값 20)")
+            @RequestParam(defaultValue = "20") int size
     ) {
-        return ResponseEntity.ok(communityService.getPosts(q, category));
+        return ResponseEntity.ok(communityService.getPosts(q, category, PageRequest.of(page, size)));
     }
 
     @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 단건 조회합니다.")
