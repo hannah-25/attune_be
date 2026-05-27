@@ -12,14 +12,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "커뮤니티 게시판", description = "커뮤니티 게시글 CRUD API")
+@Validated
 @RequiredArgsConstructor
 @RestController
 @RequestMapping(ApiVersion.V1 + "/community")
@@ -57,9 +61,9 @@ public class CommunityBoardController {
             @Parameter(description = "카테고리 필터 (선택): DEFAULT, DISORDER_INFO, MEDICATION, DAILY_LIFE")
             @RequestParam(required = false) PostCategory category,
             @Parameter(description = "페이지 번호 (0부터 시작, 기본값 0)")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기 (기본값 20)")
-            @RequestParam(defaultValue = "20") int size
+            @Min(0) @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기 (기본값 20, 최대 100)")
+            @Min(1) @Max(100) @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(communityService.getPosts(q, category, PageRequest.of(page, size)));
     }
