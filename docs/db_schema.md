@@ -364,6 +364,21 @@
 
 ---
 
+## SupportInquiry (고객 문의)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 고유 식별자 |
+| user_id | UUID | FK → User.id, NOT NULL | 작성자 ID |
+| type | VARCHAR(50) | NOT NULL | 문의 유형 Enum (BUG / FEATURE / USAGE / PAYMENT / OTHER) |
+| title | VARCHAR(100) | NOT NULL | 제목 |
+| content | TEXT | NOT NULL | 문의 내용 |
+| email | VARCHAR(255) | NOT NULL | 연락처 이메일 |
+| status | VARCHAR(50) | DEFAULT PENDING | 처리 상태 (PENDING / IN_PROGRESS / RESOLVED) |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |
+
+---
+
 ## Todo (할 일)
 
 | Column Name | DB Data Type | Constraints | Description |
