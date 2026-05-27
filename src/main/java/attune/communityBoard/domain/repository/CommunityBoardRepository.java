@@ -13,12 +13,14 @@ import java.util.Optional;
 @Repository
 public interface CommunityBoardRepository extends JpaRepository<CommunityBoard, Long> {
 
-    Optional<CommunityBoard> findByIdAndIsDeletedFalse(Long id);
+    @Query("SELECT b FROM CommunityBoard b JOIN FETCH b.user WHERE b.id = :id AND b.isDeleted = false")
+    Optional<CommunityBoard> findByIdAndIsDeletedFalse(@Param("id") Long id);
 
+    @Query("SELECT b FROM CommunityBoard b JOIN FETCH b.user WHERE b.isDeleted = false ORDER BY b.createdAt DESC")
     List<CommunityBoard> findAllByIsDeletedFalseOrderByCreatedAtDesc();
 
     @Query("""
-            SELECT b FROM CommunityBoard b
+            SELECT b FROM CommunityBoard b JOIN FETCH b.user
             WHERE b.isDeleted = false
               AND (:q IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
                              OR LOWER(b.content) LIKE LOWER(CONCAT('%', :q, '%')))
