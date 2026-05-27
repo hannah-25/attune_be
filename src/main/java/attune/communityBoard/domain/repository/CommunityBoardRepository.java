@@ -24,16 +24,14 @@ public interface CommunityBoardRepository extends JpaRepository<CommunityBoard, 
     @Query(value = """
             SELECT b FROM CommunityBoard b JOIN FETCH b.user
             WHERE b.isDeleted = false
-              AND (:q IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
-                             OR LOWER(b.content) LIKE LOWER(CONCAT('%', :q, '%')))
+              AND (:q IS NULL OR LOWER(b.title) LIKE :q OR LOWER(b.content) LIKE :q)
               AND (:category IS NULL OR b.postCategory = :category)
             ORDER BY b.createdAt DESC
             """,
            countQuery = """
             SELECT COUNT(b) FROM CommunityBoard b
             WHERE b.isDeleted = false
-              AND (:q IS NULL OR LOWER(b.title) LIKE LOWER(CONCAT('%', :q, '%'))
-                             OR LOWER(b.content) LIKE LOWER(CONCAT('%', :q, '%')))
+              AND (:q IS NULL OR LOWER(b.title) LIKE :q OR LOWER(b.content) LIKE :q)
               AND (:category IS NULL OR b.postCategory = :category)
             """)
     Page<CommunityBoard> searchPosts(@Param("q") String q,
