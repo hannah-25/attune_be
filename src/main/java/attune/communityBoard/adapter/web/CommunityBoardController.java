@@ -1,12 +1,13 @@
 package attune.communityBoard.adapter.web;
 
 import attune.common.ApiVersion;
-
 import attune.communityBoard.application.CommunityService;
 import attune.communityBoard.application.dto.request.CreatePostRequest;
 import attune.communityBoard.application.dto.request.UpdatePostRequest;
 import attune.communityBoard.application.dto.response.PostResponse;
+import attune.communityBoard.domain.model.PostCategory;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,11 +38,24 @@ public class CommunityBoardController {
         return ResponseEntity.status(HttpStatus.CREATED).body(communityService.createPost(request));
     }
 
-    @Operation(summary = "게시글 목록 조회", description = "삭제되지 않은 게시글을 최신순으로 조회합니다.")
+    @Operation(
+            summary = "게시글 목록 조회 / 검색",
+            description = """
+                    삭제되지 않은 게시글을 최신순으로 반환합니다.
+                    - q: 제목 또는 본문에 포함된 키워드 (대소문자 무시). 생략 시 전체 조회.
+                    - category: 카테고리 필터 (DEFAULT / DISORDER_INFO / MEDICATION / DAILY_LIFE). 생략 시 전체 카테고리.
+                    두 파라미터는 AND 조건으로 결합됩니다.
+                    """
+    )
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping("/posts")
-    public ResponseEntity<List<PostResponse>> getPosts() {
-        return ResponseEntity.ok(communityService.getPosts());
+    public ResponseEntity<List<PostResponse>> getPosts(
+            @Parameter(description = "제목·본문 키워드 검색 (선택)")
+            @RequestParam(required = false) String q,
+            @Parameter(description = "카테고리 필터 (선택): DEFAULT, DISORDER_INFO, MEDICATION, DAILY_LIFE")
+            @RequestParam(required = false) PostCategory category
+    ) {
+        return ResponseEntity.ok(communityService.getPosts(q, category));
     }
 
     @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 단건 조회합니다.")

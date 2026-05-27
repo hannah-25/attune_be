@@ -6,6 +6,7 @@ import attune.communityBoard.application.dto.request.UpdatePostRequest;
 import attune.communityBoard.application.dto.response.PostResponse;
 import attune.user.domain.model.User;
 import attune.communityBoard.domain.model.CommunityBoard;
+import attune.communityBoard.domain.model.PostCategory;
 import attune.communityBoard.domain.repository.CommunityBoardRepository;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,10 +63,15 @@ public class CommunityService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> getPosts() {
+    public List<PostResponse> getPosts(String q, PostCategory category) {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        return communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc()
-                .stream()
+
+        boolean hasFilter = (q != null && !q.isBlank()) || category != null;
+        List<CommunityBoard> boards = hasFilter
+                ? communityBoardRepository.searchPosts(q != null && !q.isBlank() ? q : null, category)
+                : communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc();
+
+        return boards.stream()
                 .map(board -> PostResponse.from(board, currentUserId))
                 .toList();
     }
