@@ -50,6 +50,32 @@ public class MailService {
         sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent));
     }
 
+    public void sendInquiryEmail(String replyTo, String type, String title, String content) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(fromEmail);
+            helper.setReplyTo(replyTo);
+            helper.setSubject("[Attune 문의] " + title);
+            helper.setText(buildInquiryText(replyTo, type, title, content), false);
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("문의 이메일 발송에 실패했습니다.", e);
+        }
+    }
+
+    private String buildInquiryText(String replyTo, String type, String title, String content) {
+        return """
+                [문의 유형] %s
+                [제목] %s
+                [연락처] %s
+
+                [내용]
+                %s
+                """.formatted(type, title, replyTo, content);
+    }
+
     private String wrapWithLayout(String bodyHtml) {
         return """
                 <!DOCTYPE html>
