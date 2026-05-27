@@ -1,6 +1,6 @@
 package attune.support.application;
 
-import attune.common.mail.MailService;
+import attune.common.mail.event.InquiryCreatedEvent;
 import attune.common.util.SecurityUtils;
 import attune.support.application.dto.request.CreateSupportInquiryRequest;
 import attune.support.domain.model.SupportInquiry;
@@ -8,6 +8,7 @@ import attune.support.domain.repository.SupportInquiryRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +22,7 @@ public class SupportInquiryService {
 
     private final SupportInquiryRepository supportInquiryRepository;
     private final UserRepository userRepository;
-    private final MailService mailService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void createInquiry(CreateSupportInquiryRequest request) {
@@ -40,11 +41,11 @@ public class SupportInquiryService {
 
         supportInquiryRepository.save(inquiry);
 
-        mailService.sendInquiryEmail(
+        eventPublisher.publishEvent(new InquiryCreatedEvent(
                 inquiry.getEmail(),
                 inquiry.getType().name(),
                 inquiry.getTitle(),
                 inquiry.getContent()
-        );
+        ));
     }
 }
