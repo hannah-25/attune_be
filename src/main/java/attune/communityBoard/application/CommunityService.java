@@ -6,6 +6,7 @@ import attune.communityBoard.application.dto.request.UpdatePostRequest;
 import attune.communityBoard.application.dto.response.PostResponse;
 import attune.user.domain.model.User;
 import attune.communityBoard.domain.model.CommunityBoard;
+import attune.communityBoard.domain.model.PostCategory;
 import attune.communityBoard.domain.repository.CommunityBoardRepository;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +15,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -62,12 +65,15 @@ public class CommunityService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> getPosts() {
+    public Page<PostResponse> getPosts(String q, PostCategory category, Pageable pageable) {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        return communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc()
-                .stream()
-                .map(board -> PostResponse.from(board, currentUserId))
-                .toList();
+
+        String keyword = (q != null && !q.isBlank()) ? "%" + q.trim().toLowerCase() + "%" : null;
+        Page<CommunityBoard> boards = (keyword != null || category != null)
+                ? communityBoardRepository.searchPosts(keyword, category, pageable)
+                : communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc(pageable);
+
+        return boards.map(board -> PostResponse.from(board, currentUserId));
     }
 
     @Transactional

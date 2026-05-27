@@ -1,6 +1,7 @@
 package attune.common.error;
 
 import attune.common.error.internalserver.MailSendFailedException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,20 @@ public class GlobalExceptionHandler {
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .collect(Collectors.joining(", "));
         log.info("400 Validation: {}", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, message));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream()
+                .map(cv -> {
+                    String path = cv.getPropertyPath().toString();
+                    String param = path.contains(".") ? path.substring(path.lastIndexOf('.') + 1) : path;
+                    return param + ": " + cv.getMessage();
+                })
+                .collect(Collectors.joining(", "));
+        log.info("400 ConstraintViolation: {}", message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, message));
     }
