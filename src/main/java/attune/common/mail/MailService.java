@@ -1,13 +1,17 @@
 package attune.common.mail;
 
+import attune.common.error.internalserver.MailSendFailedException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MailService {
@@ -28,7 +32,7 @@ public class MailService {
             if (replyTo != null) helper.setReplyTo(replyTo);
             mailSender.send(mimeMessage);
         } catch (MessagingException e) {
-            throw new RuntimeException("메일 발송에 실패했습니다.", e);
+            throw new MailSendFailedException(e);
         }
     }
 
@@ -51,8 +55,14 @@ public class MailService {
         sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent), null);
     }
 
+    @Async
     public void sendInquiryEmail(String replyTo, String type, String title, String content) {
-        sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
+        try {
+            sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
+            log.info("문의 이메일 발송 완료");
+        } catch (Exception e) {
+            log.error("문의 이메일 발송 실패 — error={}", e.getMessage(), e);
+        }
     }
 
 

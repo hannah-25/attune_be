@@ -1,5 +1,6 @@
 package attune.common.error;
 
+import attune.common.error.internalserver.MailSendFailedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +58,13 @@ public class GlobalExceptionHandler {
         log.info("400 Malformed JSON: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, "요청 본문 형식이 올바르지 않습니다."));
+    }
+
+    @ExceptionHandler(MailSendFailedException.class)
+    public ResponseEntity<ErrorResponse> handleMailSendFailed(MailSendFailedException e) {
+        log.error("500 MailSendFailed", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
