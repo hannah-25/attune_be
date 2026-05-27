@@ -68,7 +68,7 @@ public class CommunityService {
     public Page<PostResponse> getPosts(String q, PostCategory category, Pageable pageable) {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
 
-        String keyword = (q != null && !q.isBlank()) ? q.trim() : null;
+        String keyword = (q != null && !q.isBlank()) ? "%" + q.trim().toLowerCase() + "%" : null;
         Page<CommunityBoard> boards = (keyword != null || category != null)
                 ? communityBoardRepository.searchPosts(keyword, category, pageable)
                 : communityBoardRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc(pageable);
