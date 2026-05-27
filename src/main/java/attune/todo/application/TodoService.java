@@ -1,5 +1,7 @@
 package attune.todo.application;
 
+import attune.common.error.BadRequestException;
+import attune.common.error.badrequest.NoFieldToUpdateException;
 import attune.common.error.notfound.TodoNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.todo.application.dto.request.CreateTodoRequest;
@@ -66,12 +68,29 @@ public class TodoService {
 
     @Transactional
     public UpdateTodoResponse updateTodo(Long todoId, UpdateTodoRequest request) {
+        if (request.text() == null && request.dueAt() == null
+                && request.isAllDay() == null && request.isCompleted() == null) {
+            throw new NoFieldToUpdateException();
+        }
+
+        if (request.text() != null && request.text().isBlank()) {
+            throw new BadRequestException("할 일 내용은 공백만 입력할 수 없습니다.");
+        }
+
         UUID userId = SecurityUtils.getCurrentUserUuid();
         Todo todo = todoRepository.findByIdAndUserIdAndIsDeletedFalse(todoId, userId)
                 .orElseThrow(TodoNotFoundException::new);
 
-        todo.update(request.text(), request.dueAt(), request.isAllDay(), request.isCompleted());
+        LocalDateTime dueAt = request.dueAt();
+        boolean effectiveIsAllDay = request.isAllDay() != null ? request.isAllDay() : todo.isAllDay();
+        if (effectiveIsAllDay) {
+            LocalDateTime base = dueAt != null ? dueAt : todo.getDueAt();
+            dueAt = base.toLocalDate().atStartOfDay();
+        }
+
+        todo.update(request.text(), dueAt, request.isAllDay(), request.isCompleted());
 
         return UpdateTodoResponse.from(todo);
     }
+
 }

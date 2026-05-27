@@ -1,5 +1,6 @@
 package attune.common.mail;
 
+import attune.common.mail.event.InquiryCreatedEvent;
 import attune.common.mail.event.TermsUpdatedEvent;
 import attune.common.mail.event.WelcomeEmailEvent;
 import attune.user.domain.model.User;
@@ -22,6 +23,12 @@ public class MailEventListener {
 
     private final MailService mailService;
     private final UserRepository userRepository;
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleInquiryCreated(InquiryCreatedEvent event) {
+        mailService.sendInquiryEmail(event.email(), event.type(), event.title(), event.content());
+    }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
