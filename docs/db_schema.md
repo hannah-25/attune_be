@@ -78,14 +78,17 @@
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 약물 고유 식별자 |
-| name | VARCHAR(255) | NOT NULL, UNIQUE | 약물 상품명 |
-| genericName | VARCHAR(255) | | 약물 일반명 |
+| name | VARCHAR(255) | NOT NULL, UNIQUE | 약물 상품명 (예: 콘서타OROS서방정, 메디키넷리타드캡슐) |
+| genericName | VARCHAR(255) | | 성분명 (예: methylphenidate, atomoxetine) |
 | effect | TEXT | | 약물 효과 |
 | sideEffect | TEXT | | 약물 부작용 |
-| graphUrl | TEXT | | 약물 그래프 URL |
+| graphUrl | TEXT | | 혈중 농도 그래프 URL |
 | formulation | VARCHAR | | 제형 (예: IR 속방형, ER 서방형, OROS, 캡슐 등) |
 | typical_dosage_range | VARCHAR | | 일반적인 용량 범위 (성인 기준) |
-| drug_class | VARCHAR | | 약물 계열 (stimulant, non-stimulant) |
+| drug_class | VARCHAR | | 약물 계열 한국어 표시명 (예: ADHD 자극제, ADHD 비자극제, SSRI 항우울제/항불안제) |
+| description | TEXT | | 약별 특징·차이점·복용상 특징 |
+| image_url | TEXT | | 약 이미지 URL |
+| source_url | TEXT | | 공식 출처 링크 |
 
 ---
 

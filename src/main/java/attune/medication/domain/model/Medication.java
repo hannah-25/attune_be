@@ -34,4 +34,13 @@ public class Medication {
     private String typicalDosageRange;
 
     private String drugClass;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String imageUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String sourceUrl;
 }
