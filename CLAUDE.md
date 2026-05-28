@@ -36,8 +36,6 @@ attune/<domain>/
     repository/     ← Spring Data JPA 인터페이스
 ```
 
-> **예외**: `medication` 모듈은 패키지 경로가 `attune.medication.domain.adapter.web` / `attune.medication.domain.application` 형태로 중간에 `domain`이 추가로 들어간다.
-
 ### 도메인 모듈
 
 | 모듈 | 역할 |

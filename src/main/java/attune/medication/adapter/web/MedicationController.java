@@ -1,13 +1,12 @@
-package attune.medication.domain.adapter.web;
+package attune.medication.adapter.web;
 
 import attune.common.ApiVersion;
 
-import attune.medication.domain.application.MedicationService;
-import attune.medication.domain.application.dto.request.CreateMedicationRequest;
-import attune.medication.domain.application.dto.request.QuickLogRequest;
-import attune.medication.domain.application.dto.request.UpdateMedicationRequest;
-import attune.medication.domain.application.dto.response.*;
-import attune.medication.domain.application.dto.response.MedicationDetailResponse;
+import attune.medication.application.MedicationService;
+import attune.medication.application.dto.request.CreateMedicationRequest;
+import attune.medication.application.dto.request.QuickLogRequest;
+import attune.medication.application.dto.request.UpdateMedicationRequest;
+import attune.medication.application.dto.response.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -90,12 +89,12 @@ public class MedicationController {
 
     @Operation(summary = "간편 복용 기록 (알림 응답)")
     @ApiResponse(responseCode = "201", description = "기록 성공")
-    @PostMapping("/{medicationId}/log/quick")
+    @PostMapping("/{userMedicationId}/log/quick")
     public ResponseEntity<QuickLogResponse> quickLog(
-            @PathVariable Long medicationId,
+            @PathVariable Long userMedicationId,
             @Valid @RequestBody QuickLogRequest request
     ) {
-        return ResponseEntity.status(201).body(medicationService.quickLog(medicationId, request));
+        return ResponseEntity.status(201).body(medicationService.quickLog(userMedicationId, request));
     }
 
 }

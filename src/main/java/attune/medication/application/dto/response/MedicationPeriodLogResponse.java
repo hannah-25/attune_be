@@ -1,4 +1,4 @@
-package attune.medication.domain.application.dto.response;
+package attune.medication.application.dto.response;
 
 import attune.medication.domain.model.UserMedicationLogStatus;
 import attune.medication.domain.model.UserMedicationLog;

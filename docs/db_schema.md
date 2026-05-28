@@ -101,6 +101,8 @@
 | alarmActive | BOOLEAN | DEFAULT true | 알림 활성화 여부 |
 | startedAt | DATE | | 복용 시작일 |
 | endAt | DATE | | 복용 종료일 |
+| createdAt | TIMESTAMP | NOT NULL | 생성일시 |
+| updatedAt | TIMESTAMP | NOT NULL | 수정일시 |
 
 ---
 
@@ -123,8 +125,8 @@
 | id | BIGINT | PK, NOT NULL | 약물 복용 로그 고유 식별자 |
 | user_medication_schedule_id | BIGINT | FK → UserMedicationSchedule.id, NOT NULL | 사용자 약물 ID |
 | takenAt | TIMESTAMP | NOT NULL | 복용 일시 |
-| | | UNIQUE(id, takenAt) | 같은 약물을 같은 시간에 중복 복용 로그 방지 |
-| status | VARCHAR | NOT NULL | 복용 여부 enum값 (skipped, missed, taken) |
+| | | UNIQUE(user_medication_schedule_id, takenAt) | 동일 스케줄의 같은 시간 중복 로그 방지 |
+| status | VARCHAR | NOT NULL | 복용 여부 enum값 (TAKEN, SKIPPED, MISSED) |
 
 ---
 

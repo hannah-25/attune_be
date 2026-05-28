@@ -1,4 +1,4 @@
-package attune.medication.domain.application.dto.request;
+package attune.medication.application.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
