@@ -17,7 +17,7 @@ public class TroubleTag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column
     private UUID userId;
 
     @Column(nullable = false, length = 255)
@@ -25,10 +25,13 @@ public class TroubleTag {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private TroubleType type;   // 부주의, 과잉행동, 충동성, 시간관리, 인지 오류
+    private TroubleType type;
 
     @Column(nullable = false)
     private boolean isActive = true;
+
+    @Column(nullable = false)
+    private boolean isDefault = false;
 
     public void deactivate() {
         this.isActive = false;

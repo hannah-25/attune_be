@@ -1,4 +1,4 @@
-package attune.medication.domain.application.dto.response;
+package attune.medication.application.dto.response;
 
 import attune.medication.domain.model.UserMedication;
 
@@ -10,7 +10,7 @@ public record CreateMedicationResponse(
     public static CreateMedicationResponse from(UserMedication um) {
         return new CreateMedicationResponse(
                 um.getId(),
-                um.getMedication().getName(),
+                um.getMedicationDosage().getMedication().getName(),
                 um.getIsActive()
         );
     }

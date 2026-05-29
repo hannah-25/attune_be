@@ -1,4 +1,4 @@
-package attune.medication.domain.application.dto.response;
+package attune.medication.application.dto.response;
 
 import attune.medication.domain.model.UserMedicationLogStatus;
 import attune.medication.domain.model.UserMedicationLog;
@@ -8,7 +8,7 @@ import java.util.List;
 
 public record MedicationPeriodLogResponse(List<LogEntry> logs) {
     public record LogEntry(
-            Long medicationId,
+            Long userMedicationId,
             String name,
             LocalDateTime intakeTime,
             boolean taken
@@ -16,7 +16,7 @@ public record MedicationPeriodLogResponse(List<LogEntry> logs) {
         public static LogEntry from(UserMedicationLog log) {
             return new LogEntry(
                     log.getUserMedicationSchedule().getUserMedication().getId(),
-                    log.getUserMedicationSchedule().getUserMedication().getMedication().getName(),
+                    log.getUserMedicationSchedule().getUserMedication().getMedicationDosage().getMedication().getName(),
                     log.getTakenAt(),
                     log.getStatus() == UserMedicationLogStatus.TAKEN
             );
