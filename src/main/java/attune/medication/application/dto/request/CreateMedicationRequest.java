@@ -1,5 +1,6 @@
 package attune.medication.application.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
@@ -12,7 +13,7 @@ public record CreateMedicationRequest(
         @NotNull Long medicationDosageId,
         @NotNull LocalDate startedAt,
         LocalDate endAt,
-        @NotEmpty List<ScheduleEntry> schedules
+        @Valid @NotEmpty List<ScheduleEntry> schedules
 ) {
     public record ScheduleEntry(
             @NotNull LocalTime doseTime,
