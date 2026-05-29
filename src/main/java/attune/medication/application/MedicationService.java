@@ -1,5 +1,6 @@
 package attune.medication.application;
 
+import attune.common.error.badrequest.DuplicateScheduleTimeException;
 import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.error.badrequest.InvalidQuickLogRequestException;
 import attune.common.error.notfound.ConsultationNotFoundException;
@@ -116,7 +117,6 @@ public class MedicationService {
                 .count();
         if (uniqueDoseTimeCount < request.schedules().size()) {
             throw new DuplicateScheduleTimeException();
-        }
         }
 
         List<UserMedicationSchedule> schedules = request.schedules().stream()
