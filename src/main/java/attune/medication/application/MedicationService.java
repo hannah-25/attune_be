@@ -1,9 +1,14 @@
 package attune.medication.application;
 
 import attune.common.error.badrequest.InvalidDateRangeException;
+import attune.common.error.badrequest.InvalidQuickLogRequestException;
+import attune.common.error.notfound.ConsultationNotFoundException;
+import attune.common.error.notfound.MedicationDosageNotFoundException;
 import attune.common.error.notfound.MedicationNotFoundException;
 import attune.common.error.notfound.MedicationScheduleNotFoundException;
 import attune.common.util.SecurityUtils;
+import attune.consultation.domain.model.Consultation;
+import attune.consultation.domain.repository.ConsultationRepository;
 import attune.medication.application.dto.request.CreateMedicationRequest;
 import attune.medication.application.dto.request.QuickLogRequest;
 import attune.medication.application.dto.request.UpdateMedicationRequest;
@@ -13,12 +18,15 @@ import attune.medication.application.dto.response.MedicationLogResponse;
 import attune.medication.application.dto.response.MedicationPeriodLogResponse;
 import attune.medication.application.dto.response.QuickLogResponse;
 import attune.medication.application.dto.response.UpdateMedicationResponse;
+import attune.medication.application.dto.response.UserMedicationListItemResponse;
 import attune.medication.domain.model.Medication;
+import attune.medication.domain.model.MedicationDosage;
 import attune.medication.domain.model.QuickLogAction;
 import attune.medication.domain.model.UserMedication;
 import attune.medication.domain.model.UserMedicationLog;
 import attune.medication.domain.model.UserMedicationLogStatus;
 import attune.medication.domain.model.UserMedicationSchedule;
+import attune.medication.domain.repository.MedicationDosageRepository;
 import attune.medication.domain.repository.MedicationRepository;
 import attune.medication.domain.repository.UserMedicationLogRepository;
 import attune.medication.domain.repository.UserMedicationRepository;
@@ -32,7 +40,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -40,27 +50,58 @@ public class MedicationService {
 
     private final UserMedicationRepository userMedicationRepository;
     private final MedicationRepository medicationRepository;
+    private final MedicationDosageRepository medicationDosageRepository;
     private final UserMedicationScheduleRepository scheduleRepository;
     private final UserMedicationLogRepository logRepository;
     private final UserRepository userRepository;
+    private final ConsultationRepository consultationRepository;
+
+    @Transactional(readOnly = true)
+    public List<UserMedicationListItemResponse> getUserMedications() {
+        UUID userId = getCurrentUserId();
+        List<UserMedication> userMedications = userMedicationRepository.findAllByUserIdWithDetails(userId);
+        if (userMedications.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> userMedicationIds = userMedications.stream()
+                .map(UserMedication::getId)
+                .toList();
+        Map<Long, List<UserMedicationSchedule>> schedulesByUserMedicationId = scheduleRepository
+                .findByUserMedicationIdInOrderByUserMedicationIdAscDoseTimeAsc(userMedicationIds)
+                .stream()
+                .collect(Collectors.groupingBy(schedule -> schedule.getUserMedication().getId()));
+
+        return userMedications.stream()
+                .map(userMedication -> UserMedicationListItemResponse.from(
+                        userMedication,
+                        schedulesByUserMedicationId.getOrDefault(userMedication.getId(), List.of())
+                ))
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public MedicationDetailResponse getMedicationDetail(Long medicationId) {
-        return MedicationDetailResponse.from(getMedicationOrThrow(medicationId));
+        Medication medication = getMedicationOrThrow(medicationId);
+        List<MedicationDosage> dosages = medicationDosageRepository
+                .findByMedicationIdAndIsActiveTrueOrderByAmountAscIdAsc(medicationId);
+        return MedicationDetailResponse.from(medication, dosages);
     }
 
     @Transactional
     public CreateMedicationResponse createMedication(CreateMedicationRequest request) {
         User userRef = userRepository.getReferenceById(getCurrentUserId());
-        Medication medication = getMedicationOrThrow(request.medicationId());
+        Consultation consultation = request.consultationId() == null
+                ? null
+                : getOwnedConsultationOrThrow(request.consultationId());
+        MedicationDosage dosage = getMedicationDosageOrThrow(request.medicationDosageId());
 
         LocalDateTime now = LocalDateTime.now();
         UserMedication um = UserMedication.builder()
                 .user(userRef)
-                .medication(medication)
-                .hospitalId(request.hospitalId())
+                .consultation(consultation)
+                .medicationDosage(dosage)
                 .isActive(true)
-                .alarmActive(true)
                 .startedAt(request.startedAt())
                 .endAt(request.endAt())
                 .createdAt(now)
@@ -73,7 +114,6 @@ public class MedicationService {
                         .userMedication(saved)
                         .doseTime(entry.doseTime())
                         .label(entry.label())
-                        .dosage(entry.dosage())
                         .build())
                 .toList();
         scheduleRepository.saveAll(schedules);
@@ -84,7 +124,8 @@ public class MedicationService {
     @Transactional
     public UpdateMedicationResponse updateMedication(Long userMedicationId, UpdateMedicationRequest request) {
         UserMedication um = getOwnedUserMedicationOrThrow(userMedicationId);
-        um.update(request.endAt(), request.isActive(), request.alarmActive());
+        validateEndAtNotBeforeStartedAt(um.getStartedAt(), request.endAt());
+        um.update(request.endAt(), request.isActive());
         return UpdateMedicationResponse.from(um);
     }
 
@@ -130,8 +171,14 @@ public class MedicationService {
         getOwnedUserMedicationOrThrow(userMedicationId);
 
         LocalDateTime now = LocalDateTime.now();
+        if (request.action() == null) {
+            throw new InvalidQuickLogRequestException();
+        }
         if (request.action() == QuickLogAction.POSTPONE) {
             return new QuickLogResponse(null, QuickLogAction.POSTPONE, now);
+        }
+        if (request.scheduleId() == null) {
+            throw new InvalidQuickLogRequestException();
         }
 
         UserMedicationSchedule schedule = scheduleRepository.findByIdAndUserMedicationId(request.scheduleId(), userMedicationId)
@@ -159,6 +206,17 @@ public class MedicationService {
     private Medication getMedicationOrThrow(Long medicationId) {
         return medicationRepository.findById(medicationId)
                 .orElseThrow(MedicationNotFoundException::new);
+    }
+
+    private MedicationDosage getMedicationDosageOrThrow(Long dosageId) {
+        return medicationDosageRepository
+                .findByIdAndIsActiveTrue(dosageId)
+                .orElseThrow(MedicationDosageNotFoundException::new);
+    }
+
+    private Consultation getOwnedConsultationOrThrow(Long consultationId) {
+        return consultationRepository.findByIdAndUser_IdAndIsDeletedFalse(consultationId, getCurrentUserId())
+                .orElseThrow(ConsultationNotFoundException::new);
     }
 
     private UserMedication getOwnedUserMedicationOrThrow(Long userMedicationId) {
@@ -193,6 +251,15 @@ public class MedicationService {
 
     private void validateRequiredDateRange(LocalDate startDate, LocalDate endDate) {
         if (startDate.isAfter(endDate)) {
+            throw new InvalidDateRangeException();
+        }
+    }
+
+    private void validateEndAtNotBeforeStartedAt(LocalDate startedAt, LocalDate endAt) {
+        if (startedAt == null || endAt == null) {
+            return;
+        }
+        if (endAt.isBefore(startedAt)) {
             throw new InvalidDateRangeException();
         }
     }

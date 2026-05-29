@@ -5,7 +5,7 @@ import attune.medication.domain.model.UserMedication;
 import java.time.LocalDateTime;
 
 public record UpdateMedicationResponse(
-        Long medicationId,
+        Long userMedicationId,
         boolean isActive,
         LocalDateTime updatedAt
 ) {

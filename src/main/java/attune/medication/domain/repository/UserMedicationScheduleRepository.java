@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface UserMedicationScheduleRepository extends JpaRepository<UserMedicationSchedule, Long> {
     List<UserMedicationSchedule> findByUserMedicationId(Long userMedicationId);
+    List<UserMedicationSchedule> findByUserMedicationIdInOrderByUserMedicationIdAscDoseTimeAsc(List<Long> userMedicationIds);
     Optional<UserMedicationSchedule> findByIdAndUserMedicationId(Long id, Long userMedicationId);
 }

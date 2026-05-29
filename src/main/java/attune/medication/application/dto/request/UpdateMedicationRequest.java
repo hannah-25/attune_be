@@ -4,6 +4,5 @@ import java.time.LocalDate;
 
 public record UpdateMedicationRequest(
         LocalDate endAt,
-        Boolean isActive,
-        Boolean alarmActive
+        Boolean isActive
 ) {}

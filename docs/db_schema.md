@@ -109,15 +109,30 @@
 
 ---
 
+## MedicationStrength (약물 용량 마스터)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 용량 고유 식별자 |
+| medication_id | BIGINT | FK → Medication.id, NOT NULL | 약물 ID |
+| amount | DECIMAL(6,2) | NOT NULL | 용량 값 (예: 18.00) |
+| unit | VARCHAR(10) | NOT NULL | 용량 단위 (mg, mL 등) |
+| form | VARCHAR(30) | | 제형 (tablet, capsule 등) |
+| is_active | BOOLEAN | DEFAULT true | 사용 가능 여부 |
+| | | UNIQUE(medication_id, amount, unit, form) | 동일 약물 내 용량 중복 방지 |
+
+---
+
 ## UserMedicationSchedule (약물 복용 스케줄)
 
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 약물 복용 스케줄 고유 식별자 |
+| id | BIGINT | PK, NOT NULL | 스케줄 고유 식별자 |
 | user_medication_id | BIGINT | FK → UserMedication.id, NOT NULL | 사용자 약물 ID |
+| medication_strength_id | BIGINT | FK → MedicationStrength.id, NOT NULL | 약물 용량 ID |
+| quantity | DECIMAL(4,2) | NOT NULL | 1회 복용 수량 (1정, 0.5정 등) |
 | doseTime | TIME | NOT NULL | 복용 시간 |
-| label | VARCHAR(100) | | 복용 라벨 (아침, 점심, 저녁 등) |
-| dosage | VARCHAR(50) | NOT NULL | 용량 |
+| label | VARCHAR(100) | | 복용 레이블 (아침/점심/저녁 등) |
 
 ---
 
@@ -396,3 +411,4 @@
 | is_completed | BOOLEAN | DEFAULT false | 완료 여부 |
 | is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
 | created_at | TIMESTAMP | NOT NULL | 생성일시 |
+

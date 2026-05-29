@@ -10,7 +10,7 @@ public record CreateMedicationResponse(
     public static CreateMedicationResponse from(UserMedication um) {
         return new CreateMedicationResponse(
                 um.getId(),
-                um.getMedication().getName(),
+                um.getMedicationDosage().getMedication().getName(),
                 um.getIsActive()
         );
     }

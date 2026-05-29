@@ -5,5 +5,5 @@ import jakarta.validation.constraints.NotNull;
 
 public record QuickLogRequest(
         @NotNull QuickLogAction action,
-        @NotNull Long scheduleId
+        Long scheduleId
 ) {}

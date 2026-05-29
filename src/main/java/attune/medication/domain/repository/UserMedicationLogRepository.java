@@ -17,7 +17,8 @@ public interface UserMedicationLogRepository extends JpaRepository<UserMedicatio
     @Query("SELECT l FROM UserMedicationLog l " +
            "JOIN FETCH l.userMedicationSchedule s " +
            "JOIN FETCH s.userMedication um " +
-           "JOIN FETCH um.medication " +
+           "JOIN FETCH um.medicationDosage md " +
+           "JOIN FETCH md.medication " +
            "WHERE um.user.id = :userId " +
            "AND l.takenAt BETWEEN :from AND :to " +
            "ORDER BY l.takenAt")
