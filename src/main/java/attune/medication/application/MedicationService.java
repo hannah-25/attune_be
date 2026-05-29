@@ -115,7 +115,8 @@ public class MedicationService {
                 .distinct()
                 .count();
         if (uniqueDoseTimeCount < request.schedules().size()) {
-            throw new IllegalArgumentException("중복된 복용 시간은 설정할 수 없습니다.");
+            throw new DuplicateScheduleTimeException();
+        }
         }
 
         List<UserMedicationSchedule> schedules = request.schedules().stream()
