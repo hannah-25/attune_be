@@ -110,6 +110,14 @@ public class MedicationService {
                 .build();
         UserMedication saved = userMedicationRepository.save(um);
 
+        long uniqueDoseTimeCount = request.schedules().stream()
+                .map(CreateMedicationRequest.ScheduleEntry::doseTime)
+                .distinct()
+                .count();
+        if (uniqueDoseTimeCount < request.schedules().size()) {
+            throw new IllegalArgumentException("중복된 복용 시간은 설정할 수 없습니다.");
+        }
+
         List<UserMedicationSchedule> schedules = request.schedules().stream()
                 .map(entry -> UserMedicationSchedule.builder()
                         .userMedication(saved)
