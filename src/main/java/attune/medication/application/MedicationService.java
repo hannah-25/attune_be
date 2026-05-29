@@ -95,6 +95,7 @@ public class MedicationService {
                 ? null
                 : getOwnedConsultationOrThrow(request.consultationId());
         MedicationDosage dosage = getMedicationDosageOrThrow(request.medicationDosageId());
+        validateEndAtNotBeforeStartedAt(request.startedAt(), request.endAt());
 
         LocalDateTime now = LocalDateTime.now();
         UserMedication um = UserMedication.builder()
