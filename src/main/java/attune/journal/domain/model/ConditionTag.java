@@ -17,7 +17,7 @@ public class ConditionTag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column
     private UUID userId;
 
     @Column(name = "condition_name", nullable = false, length = 255)
@@ -29,6 +29,9 @@ public class ConditionTag {
 
     @Column(nullable = false)
     private boolean isActive = true;
+
+    @Column(nullable = false)
+    private boolean isDefault = false;
 
     public void deactivate() {
         this.isActive = false;
