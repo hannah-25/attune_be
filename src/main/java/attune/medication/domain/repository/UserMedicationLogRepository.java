@@ -1,6 +1,7 @@
 package attune.medication.domain.repository;
 
 import attune.medication.domain.model.UserMedicationLog;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,7 +11,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface UserMedicationLogRepository extends JpaRepository<UserMedicationLog, Long> {
+    @EntityGraph(attributePaths = {"userMedicationSchedule"})
     List<UserMedicationLog> findByUserMedicationScheduleIdIn(List<Long> scheduleIds);
+
+    @EntityGraph(attributePaths = {"userMedicationSchedule"})
     List<UserMedicationLog> findByUserMedicationScheduleIdInAndTakenAtBetween(
             List<Long> scheduleIds, LocalDateTime from, LocalDateTime to);
 
