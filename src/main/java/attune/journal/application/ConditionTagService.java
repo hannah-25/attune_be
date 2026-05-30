@@ -86,7 +86,7 @@ public class ConditionTagService {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         ConditionTag tag = conditionTagRepository.findByIdAndIsActiveTrue(tagId)
                 .orElseThrow(ConditionTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
+        if (!userId.equals(tag.getUserId())) {
             throw new ConditionTagNotFoundException();
         }
         tag.toggleVisible();
