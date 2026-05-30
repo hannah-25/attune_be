@@ -27,6 +27,7 @@ public class SideEffectTag {
     private boolean isActive = true;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean visible = false;
 
     public void deactivate() {
