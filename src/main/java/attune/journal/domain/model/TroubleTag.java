@@ -31,7 +31,7 @@ public class TroubleTag {
     private boolean isActive = true;
 
     @Column(nullable = false)
-    private boolean isDefault = false;
+    private boolean visible = false;
 
     public void deactivate() {
         this.isActive = false;

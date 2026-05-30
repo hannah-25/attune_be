@@ -154,9 +154,10 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 컨디션 태그 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| condition | VARCHAR(255) | NOT NULL | 컨디션 내용 |
-| type | VARCHAR(50) | NOT NULL | 컨디션 유형 (Enum) |
-| isActive | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
+| condition_name | VARCHAR(255) | NOT NULL | 컨디션 내용 |
+| type | ENUM | NOT NULL | 컨디션 유형 (UP, DOWN, TIGHT, FOGGY, CALM, USER_INPUT) |
+| is_active | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
+| visible | BOOLEAN | DEFAULT false | 태그 표시 여부 |
 
 ---
 
@@ -176,8 +177,9 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 부작용 태그 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| sideEffect | VARCHAR(255) | NOT NULL | 부작용 내용 |
-| isActive | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
+| side_effect | VARCHAR(255) | NOT NULL | 부작용 내용 |
+| is_active | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
+| visible | BOOLEAN | DEFAULT false | 태그 표시 여부 |
 
 ---
 
@@ -214,8 +216,9 @@
 | id | BIGINT | PK, NOT NULL | 트러블 태그 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
 | trouble | VARCHAR(255) | NOT NULL | 트러블 내용 |
-| type | VARCHAR(50) | NOT NULL | 트러블 유형 (Enum) |
-| isActive | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
+| type | ENUM | NOT NULL | 트러블 유형 (INATTENTION, HYPERACTIVITY, IMPULSIVITY, TIME_MANAGEMENT, COGNITIVE_ERROR, USER_INPUT) |
+| is_active | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
+| visible | BOOLEAN | DEFAULT false | 태그 표시 여부 |
 
 ---
 

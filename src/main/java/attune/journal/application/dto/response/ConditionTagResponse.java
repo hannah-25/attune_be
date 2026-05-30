@@ -6,9 +6,10 @@ import attune.journal.domain.model.ConditionType;
 public record ConditionTagResponse(
         Long tagId,
         String condition,
-        ConditionType conditionType
+        ConditionType conditionType,
+        boolean visible
 ) {
     public static ConditionTagResponse from(ConditionTag tag) {
-        return new ConditionTagResponse(tag.getId(), tag.getCondition(), tag.getConditionType());
+        return new ConditionTagResponse(tag.getId(), tag.getCondition(), tag.getConditionType(), tag.isVisible());
     }
 }
