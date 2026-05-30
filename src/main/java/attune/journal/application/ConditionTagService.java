@@ -82,6 +82,18 @@ public class ConditionTagService {
     }
 
     @Transactional
+    public ConditionTagResponse toggleVisible(Long tagId) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        ConditionTag tag = conditionTagRepository.findByIdAndIsActiveTrue(tagId)
+                .orElseThrow(ConditionTagNotFoundException::new);
+        if (!userId.equals(tag.getUserId())) {
+            throw new ConditionTagNotFoundException();
+        }
+        tag.toggleVisible();
+        return ConditionTagResponse.from(tag);
+    }
+
+    @Transactional
     public ConditionCheckResponse check(CheckConditionRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         ConditionTag tag = conditionTagRepository.findByIdAndIsActiveTrue(request.tagId())

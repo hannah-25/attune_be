@@ -5,5 +5,6 @@ public enum ConditionType {
     DOWN,
     TIGHT,
     FOGGY,
-    CALM
+    CALM,
+    USER_INPUT
 }

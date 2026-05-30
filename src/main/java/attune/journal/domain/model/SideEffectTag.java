@@ -27,9 +27,14 @@ public class SideEffectTag {
     private boolean isActive = true;
 
     @Column(nullable = false)
-    private boolean isDefault = false;
+    @Builder.Default
+    private boolean visible = false;
 
     public void deactivate() {
         this.isActive = false;
+    }
+
+    public void toggleVisible() {
+        this.visible = !this.visible;
     }
 }

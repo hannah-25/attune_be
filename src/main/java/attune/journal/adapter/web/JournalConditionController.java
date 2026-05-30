@@ -65,6 +65,16 @@ public class JournalConditionController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "감정/증상 태그 표시 여부 토글")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "토글 성공"),
+            @ApiResponse(responseCode = "404", description = "태그 없음")
+    })
+    @PatchMapping("/condition-tags/{tagId}/visible")
+    public ResponseEntity<ConditionTagResponse> toggleVisible(@PathVariable Long tagId) {
+        return ResponseEntity.ok(conditionTagService.toggleVisible(tagId));
+    }
+
     @Operation(summary = "감정/증상 발생 체크")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "체크 성공"),

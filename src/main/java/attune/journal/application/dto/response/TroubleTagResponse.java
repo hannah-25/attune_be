@@ -6,9 +6,10 @@ import attune.journal.domain.model.TroubleType;
 public record TroubleTagResponse(
         Long tagId,
         String trouble,
-        TroubleType type
+        TroubleType type,
+        boolean visible
 ) {
     public static TroubleTagResponse from(TroubleTag tag) {
-        return new TroubleTagResponse(tag.getId(), tag.getTrouble(), tag.getType());
+        return new TroubleTagResponse(tag.getId(), tag.getTrouble(), tag.getType(), tag.isVisible());
     }
 }

@@ -65,6 +65,16 @@ public class JournalSideEffectController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "부작용 태그 표시 여부 토글")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "토글 성공"),
+            @ApiResponse(responseCode = "404", description = "태그 없음")
+    })
+    @PatchMapping("/side-effect-tags/{tagId}/visible")
+    public ResponseEntity<SideEffectTagResponse> toggleVisible(@PathVariable Long tagId) {
+        return ResponseEntity.ok(sideEffectTagService.toggleVisible(tagId));
+    }
+
     @Operation(summary = "부작용 태그 체크")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "체크 성공"),

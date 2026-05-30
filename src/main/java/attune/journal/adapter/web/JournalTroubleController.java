@@ -65,6 +65,16 @@ public class JournalTroubleController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "업무적 실수/불편 태그 표시 여부 토글")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "토글 성공"),
+            @ApiResponse(responseCode = "404", description = "태그 없음")
+    })
+    @PatchMapping("/trouble-tags/{tagId}/visible")
+    public ResponseEntity<TroubleTagResponse> toggleVisible(@PathVariable Long tagId) {
+        return ResponseEntity.ok(troubleTagService.toggleVisible(tagId));
+    }
+
     @Operation(summary = "업무적 실수/불편 발생 체크")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "체크 성공"),
