@@ -85,7 +85,7 @@ public class SideEffectTagService {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
                 .orElseThrow(SideEffectTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
+        if (!userId.equals(tag.getUserId())) {
             throw new SideEffectTagNotFoundException();
         }
         tag.toggleVisible();
