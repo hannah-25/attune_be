@@ -86,7 +86,7 @@ public class TroubleTagService {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
                 .orElseThrow(TroubleTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
+        if (!userId.equals(tag.getUserId())) {
             throw new TroubleTagNotFoundException();
         }
         tag.toggleVisible();
