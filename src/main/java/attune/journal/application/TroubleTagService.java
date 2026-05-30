@@ -82,6 +82,18 @@ public class TroubleTagService {
     }
 
     @Transactional
+    public TroubleTagResponse toggleVisible(Long tagId) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
+                .orElseThrow(TroubleTagNotFoundException::new);
+        if (!tag.getUserId().equals(userId)) {
+            throw new TroubleTagNotFoundException();
+        }
+        tag.toggleVisible();
+        return TroubleTagResponse.from(tag);
+    }
+
+    @Transactional
     public TroubleCheckResponse check(CheckTroubleRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(request.tagId())

@@ -81,6 +81,18 @@ public class SideEffectTagService {
     }
 
     @Transactional
+    public SideEffectTagResponse toggleVisible(Long tagId) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
+                .orElseThrow(SideEffectTagNotFoundException::new);
+        if (!tag.getUserId().equals(userId)) {
+            throw new SideEffectTagNotFoundException();
+        }
+        tag.toggleVisible();
+        return SideEffectTagResponse.from(tag);
+    }
+
+    @Transactional
     public SideEffectCheckResponse check(CheckSideEffectRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(request.tagId())

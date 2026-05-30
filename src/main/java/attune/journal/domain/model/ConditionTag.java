@@ -36,4 +36,8 @@ public class ConditionTag {
     public void deactivate() {
         this.isActive = false;
     }
+
+    public void toggleVisible() {
+        this.visible = !this.visible;
+    }
 }
