@@ -68,6 +68,48 @@ class SocialAuthServiceTest {
         );
     }
 
+    @Test
+    void loginWithSameEmailAndSameProviderButDifferentProviderIdThrowsConflict() {
+        UserRepository userRepository = mock(UserRepository.class);
+        AccountService accountService = mock(AccountService.class);
+        SocialAuthService socialAuthService = new SocialAuthService(
+                List.of(new StubOAuthVerifier(
+                        OAuthProvider.GOOGLE,
+                        new OAuthUserInfo("new-google-provider-id", "user@example.com", "user")
+                )),
+                userRepository,
+                accountService,
+                mock(JwtProvider.class),
+                mock(JwtConfig.class),
+                mock(UserAuthCacheRepository.class)
+        );
+        User existingUser = User.builder()
+                .email("user@example.com")
+                .provider(OAuthProvider.GOOGLE)
+                .providerId("existing-google-provider-id")
+                .userType(UserType.USER)
+                .userStatus(UserStatus.ACTIVE)
+                .build();
+
+        when(userRepository.findByProviderAndProviderId(OAuthProvider.GOOGLE, "new-google-provider-id"))
+                .thenReturn(Optional.empty());
+        when(userRepository.findByEmail("user@example.com"))
+                .thenReturn(Optional.of(existingUser));
+
+        assertThrows(
+                ConflictException.class,
+                () -> socialAuthService.login(new SocialLoginRequest(OAuthProvider.GOOGLE, "token"))
+        );
+        assertEquals(OAuthProvider.GOOGLE, existingUser.getProvider());
+        assertEquals("existing-google-provider-id", existingUser.getProviderId());
+        verify(accountService, never()).createSocialUser(
+                "user@example.com",
+                "user",
+                OAuthProvider.GOOGLE,
+                "new-google-provider-id"
+        );
+    }
+
     private record StubOAuthVerifier(OAuthProvider provider, OAuthUserInfo userInfo) implements OAuthVerifier {
         @Override
         public OAuthUserInfo verify(String token) {

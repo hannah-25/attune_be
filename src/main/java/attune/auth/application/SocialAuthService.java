@@ -65,7 +65,7 @@ public class SocialAuthService {
             Optional<User> byEmail = userRepository.findByEmail(info.email());
             if (byEmail.isPresent()) {
                 User user = byEmail.get();
-                if (user.getProvider() != null && user.getProvider() != provider) {
+                if (user.getProvider() != null) {
                     throw new ConflictException(SOCIAL_PROVIDER_CONFLICT_MESSAGE);
                 }
                 user.linkSocialProvider(provider, info.providerId());
