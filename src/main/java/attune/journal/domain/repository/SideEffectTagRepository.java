@@ -2,6 +2,8 @@ package attune.journal.domain.repository;
 
 import attune.journal.domain.model.SideEffectTag;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +13,11 @@ public interface SideEffectTagRepository extends JpaRepository<SideEffectTag, Lo
 
     Optional<SideEffectTag> findByIdAndIsActiveTrue(Long id);
 
-    List<SideEffectTag> findAllByUserIdAndIsActiveTrue(UUID userId);
+    @Query("SELECT t FROM SideEffectTag t WHERE t.userId = :userId AND t.isActive = true")
+    List<SideEffectTag> findAllByUserIdAndIsActiveTrue(@Param("userId") UUID userId);
+
+    @Query("SELECT t FROM SideEffectTag t WHERE t.userId IS NULL")
+    List<SideEffectTag> findAllDefault();
 
     boolean existsByUserIdAndSideEffectAndIsActiveTrue(UUID userId, String sideEffect);
 }
