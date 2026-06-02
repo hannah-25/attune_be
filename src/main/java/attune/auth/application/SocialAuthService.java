@@ -11,6 +11,7 @@ import attune.common.error.ConflictException;
 import attune.common.error.UnauthorizedException;
 import attune.common.error.badrequest.InvalidAccountStatusException;
 import attune.common.error.notfound.UserNotFoundException;
+import attune.common.event.UserActivatedEvent;
 import attune.user.domain.model.UserStatus;
 import attune.common.util.JwtProvider;
 import attune.user.application.AccountService;
@@ -18,6 +19,7 @@ import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,7 @@ public class SocialAuthService {
     private final JwtProvider jwtProvider;
     private final JwtConfig jwtConfig;
     private final UserAuthCacheRepository userAuthCacheRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AuthResult login(SocialLoginRequest request) {
         OAuthVerifier verifier = verifiers.stream()
