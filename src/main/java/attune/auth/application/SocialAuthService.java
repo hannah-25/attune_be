@@ -61,9 +61,6 @@ public class SocialAuthService {
     private User findOrCreateUser(OAuthProvider provider, OAuthUserInfo info) {
         Optional<User> byProvider = userRepository.findByProviderAndProviderId(provider, info.providerId());
         if (byProvider.isPresent()) {
-            return applyStatusPolicy(byProvider.get());
-        }
-
         if (info.email() != null) {
             Optional<User> byEmail = userRepository.findByEmail(info.email());
             if (byEmail.isPresent()) {
@@ -71,7 +68,14 @@ public class SocialAuthService {
                 if (user.getProvider() != null) {
                     throw new ConflictException(SOCIAL_PROVIDER_CONFLICT_MESSAGE);
                 }
-                user.linkSocialProvider(provider, info.providerId());
+                if (user.getUserStatus() == UserStatus.PENDING) {
+                    throw new ConflictException("이메일 인증이 완료되지 않은 계정이 존재합니다.");
+                } else {
+                    user.linkSocialProvider(provider, info.providerId());
+                    return applyStatusPolicy(user);
+                }
+            }
+        }
                 return applyStatusPolicy(user);
             }
         }
