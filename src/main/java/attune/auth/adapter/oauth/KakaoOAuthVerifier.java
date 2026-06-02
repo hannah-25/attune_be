@@ -48,7 +48,9 @@ public class KakaoOAuthVerifier implements OAuthVerifier {
             }
 
             Map<String, Object> kakaoAccount = (Map<String, Object>) response.get("kakao_account");
-            String email = kakaoAccount != null ? (String) kakaoAccount.get("email") : null;
+            boolean emailVerified = kakaoAccount != null
+                    && Boolean.TRUE.equals(kakaoAccount.get("is_email_verified"));
+            String email = emailVerified ? (String) kakaoAccount.get("email") : null;
             Map<String, Object> profile = kakaoAccount != null ? (Map<String, Object>) kakaoAccount.get("profile") : null;
             String nickname = profile != null ? (String) profile.get("nickname") : null;
 
