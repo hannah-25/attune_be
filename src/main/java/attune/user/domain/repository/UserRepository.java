@@ -1,5 +1,6 @@
 package attune.user.domain.repository;
 
+import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
+    Optional<User> findByProviderAndProviderId(OAuthProvider provider, String providerId);
     boolean existsByNickname(String nickname);
     Page<User> findAllByUserStatus(UserStatus status, Pageable pageable);
 

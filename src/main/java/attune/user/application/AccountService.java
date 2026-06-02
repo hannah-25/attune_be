@@ -6,6 +6,7 @@ import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.mail.MailService;
+import attune.common.event.UserActivatedEvent;
 import attune.common.mail.event.WelcomeEmailEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import attune.user.application.dto.request.ChangePasswordRequest;
@@ -18,6 +19,7 @@ import attune.term.application.TermService;
 import attune.user.domain.model.EmailVerificationToken;
 import attune.user.domain.model.PasswordResetToken;
 import attune.user.domain.model.User;
+import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
@@ -103,6 +105,7 @@ public class AccountService {
 
         user.activate();
         emailVerificationTokenRepository.delete(verificationToken);
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
         eventPublisher.publishEvent(new WelcomeEmailEvent(user.getEmail(), user.getNickname()));
     }
 
@@ -160,6 +163,31 @@ public class AccountService {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
         user.changeProfileImageUrl(request.profileImageUrl());
+    }
+
+    @Transactional
+    public User createSocialUser(String email, String nickname, OAuthProvider provider, String providerId) {
+        String finalNickname = generateUniqueNickname(nickname);
+        User user = User.builder()
+                .email(email)
+                .provider(provider)
+                .providerId(providerId)
+                .nickname(finalNickname)
+                .userType(UserType.USER)
+                .userStatus(UserStatus.ACTIVE)
+                .build();
+        userRepository.save(user);
+        userSettingRepository.save(UserSetting.createDefault(user));
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
+        return user;
+    }
+
+    private String generateUniqueNickname(String base) {
+        String candidate = (base != null && !base.isBlank()) ? base.strip() : "사용자";
+        if (candidate.length() > 20) candidate = candidate.substring(0, 20);
+        if (!userRepository.existsByNickname(candidate)) return candidate;
+        String prefix = candidate.length() > 14 ? candidate.substring(0, 14) : candidate;
+        return prefix + "_" + UUID.randomUUID().toString().substring(0, 6);
     }
 
     @Transactional

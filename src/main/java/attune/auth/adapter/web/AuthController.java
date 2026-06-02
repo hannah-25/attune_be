@@ -4,8 +4,10 @@ import attune.common.ApiVersion;
 import attune.common.ClientType;
 import attune.common.HttpHeaders;
 import attune.auth.application.AuthService;
+import attune.auth.application.SocialAuthService;
 import attune.auth.application.dto.request.LoginRequest;
 import attune.auth.application.dto.request.RestoreRequest;
+import attune.auth.application.dto.request.SocialLoginRequest;
 import attune.auth.application.dto.response.AuthResult;
 import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.application.dto.response.RestoreResponse;
@@ -38,6 +40,7 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
+    private final SocialAuthService socialAuthService;
     private final CookieUtil cookieUtil;
     private final JwtConfig jwtConfig;
 
@@ -123,6 +126,23 @@ public class AuthController {
                 loginResponse.refreshToken(),
                 "ACTIVE"
         ));
+    }
+
+    @Operation(summary = "소셜 로그인", description = "Google / Kakao / Apple 토큰으로 로그인합니다. 첫 로그인 시 계정이 자동 생성됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "로그인 성공"),
+            @ApiResponse(responseCode = "400", description = "이메일 정보 없음 (Apple 재시도 필요)"),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰 / 정지된 계정")
+    })
+    @PostMapping("/social/login")
+    public ResponseEntity<LoginResponse> socialLogin(
+            @Valid @RequestBody SocialLoginRequest request,
+            @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
+            HttpServletResponse response
+    ) {
+        ClientType clientType = ClientType.from(clientTypeHeader);
+        AuthResult result = socialAuthService.login(request);
+        return ResponseEntity.ok(buildResponse(result, clientType, response));
     }
 
     /**
