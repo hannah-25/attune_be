@@ -18,8 +18,10 @@ import attune.user.application.AccountService;
 import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import attune.user.domain.repository.UserRepository;
+import attune.common.event.UserActivatedEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
