@@ -82,6 +82,10 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
                 throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
             }
 
+            if (!Boolean.TRUE.equals(claims.get("email_verified"))) {
+                throw new UnauthorizedException("이메일이 인증되지 않은 Google 계정입니다.");
+            }
+
             String aud = (String) claims.get("aud");
             if (allowedClientIds.stream().map(String::trim).noneMatch(id -> id.equals(aud))) {
                 throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
