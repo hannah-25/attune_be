@@ -32,9 +32,9 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
     public OAuthUserInfo verify(String token) {
         try {
             Map<String, Object> response = restClient.get()
-                    .uri("https://oauth2.googleapis.com/tokeninfo?id_token=" + token)
+                    .uri("https://oauth2.googleapis.com/tokeninfo?id_token={token}", token)
                     .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
+                    .body(new ParameterizedTypeReference<Map<String, Object>>() {});
 
             String sub = (String) response.get("sub");
             if (sub == null) {
