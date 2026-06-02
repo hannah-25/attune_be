@@ -7,6 +7,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -17,14 +18,20 @@ public class AppleJwksClient {
 
     private final RestClient restClient = RestClient.create();
 
-    @Cacheable(CacheConfig.APPLE_JWKS)
+    @Cacheable(value = CacheConfig.APPLE_JWKS, unless = "#result == null || #result.isEmpty()")
     @SuppressWarnings("unchecked")
     public List<Map<String, String>> fetchKeys() {
         Map<String, Object> jwks = restClient.get()
                 .uri(APPLE_KEYS_URL)
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
-        return (List<Map<String, String>>) jwks.get("keys");
+
+        if (jwks == null || !jwks.containsKey("keys")) {
+            return Collections.emptyList();
+        }
+
+        List<Map<String, String>> keys = (List<Map<String, String>>) jwks.get("keys");
+        return keys != null ? keys : Collections.emptyList();
     }
 
     @CacheEvict(CacheConfig.APPLE_JWKS)
