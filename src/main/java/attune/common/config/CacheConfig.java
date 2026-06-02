@@ -16,7 +16,7 @@ public class CacheConfig {
     public static final String APPLE_JWKS = "appleJwks";
     public static final String GOOGLE_JWKS = "googleJwks";
 
-    @Bean
+    @Bean(name = "caffeineCacheManager")
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager(APPLE_JWKS, GOOGLE_JWKS);
         manager.setCaffeine(Caffeine.newBuilder()
