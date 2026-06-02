@@ -39,6 +39,6 @@ public class GoogleJwksClient {
         return keys != null ? keys : Collections.emptyList();
     }
 
-    @CacheEvict(CacheConfig.GOOGLE_JWKS)
+    @CacheEvict(value = CacheConfig.GOOGLE_JWKS, cacheManager = "caffeineCacheManager")
     public void evictKeys() {}
 }

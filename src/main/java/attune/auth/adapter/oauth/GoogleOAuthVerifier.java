@@ -7,6 +7,7 @@ import attune.user.domain.model.OAuthProvider;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GoogleOAuthVerifier implements OAuthVerifier {
@@ -82,6 +84,10 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
                 throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
             }
 
+            if (!Boolean.TRUE.equals(claims.get("email_verified"))) {
+                throw new UnauthorizedException("이메일이 인증되지 않은 Google 계정입니다.");
+            }
+
             String aud = (String) claims.get("aud");
             if (allowedClientIds.stream().map(String::trim).noneMatch(id -> id.equals(aud))) {
                 throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
@@ -105,6 +111,7 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
         } catch (UnauthorizedException e) {
             throw e;
         } catch (Exception e) {
+            log.error("[GoogleOAuthVerifier] 토큰 검증 중 예외 발생: {}", e.getMessage(), e);
             throw new UnauthorizedException("Google 토큰 검증에 실패했습니다.");
         }
     }
