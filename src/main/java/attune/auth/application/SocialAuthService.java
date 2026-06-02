@@ -43,6 +43,7 @@ public class SocialAuthService {
     private final JwtConfig jwtConfig;
     private final UserAuthCacheRepository userAuthCacheRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
     public AuthResult login(SocialLoginRequest request) {
         OAuthVerifier verifier = verifiers.stream()
