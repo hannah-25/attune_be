@@ -71,7 +71,7 @@ public class SecurityConfig {
                         .requestMatchers(ApiVersion.V1 + "/health/**").permitAll()
 
                         // 인증 관련 엔드포인트
-                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", ApiVersion.V1 + "/account/signup", ApiVersion.V1 + "/account/verify-email", ApiVersion.V1 + "/auth/login", ApiVersion.V1 + "/auth/reissue", ApiVersion.V1 + "/auth/restore", ApiVersion.V1 + "/auth/social/login").permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", ApiVersion.V1 + "/account/signup", ApiVersion.V1 + "/account/verify-email", ApiVersion.V1 + "/auth/login", ApiVersion.V1 + "/auth/reissue", ApiVersion.V1 + "/auth/restore", ApiVersion.V1 + "/auth/social/login", ApiVersion.V1 + "/auth/social/restore").permitAll()
 
                         // 약관 조회 (비로그인 허용)
                         .requestMatchers(ApiVersion.V1 + "/terms/**").permitAll()
