@@ -45,6 +45,7 @@ public class AuthService {
     public AuthResult login(LoginRequest request) {
         userRepository.findByEmail(request.email()).ifPresent(user -> {
             if (user.getUserStatus() == UserStatus.WITHDRAWAL
+                    && user.getPassword() != null
                     && passwordEncoder.matches(request.password(), user.getPassword())) {
                 throw new ConflictException("탈퇴한 계정입니다. 복구 확인이 필요합니다.");
             }
