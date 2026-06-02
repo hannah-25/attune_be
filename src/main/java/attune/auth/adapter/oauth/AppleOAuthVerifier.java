@@ -77,7 +77,7 @@ public class AppleOAuthVerifier implements OAuthVerifier {
             }
 
             Object aud = claims.get("aud");
-            String audience = aud instanceof List<?> list ? list.get(0).toString() : String.valueOf(aud);
+            String audience = aud instanceof List<?> list ? (list.isEmpty() ? "" : list.get(0).toString()) : String.valueOf(aud);
             if (!appId.equals(audience)) {
                 throw new UnauthorizedException("유효하지 않은 Apple 토큰입니다.");
             }
