@@ -8,6 +8,7 @@ import attune.user.application.dto.request.ChangePasswordRequest;
 import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
 import attune.user.application.dto.request.PasswordResetRequest;
+import attune.user.application.dto.request.WithdrawRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -98,5 +99,19 @@ public class AccountController {
     public ResponseEntity<Void> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
         accountService.confirmPasswordReset(request);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "회원 탈퇴", description = "계정을 탈퇴 처리합니다. 이메일 가입 유저는 비밀번호 확인이 필요합니다. 소셜 가입 유저는 password 없이 요청합니다. 30일 후 영구 삭제됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "탈퇴 성공"),
+            @ApiResponse(responseCode = "401", description = "비밀번호 불일치")
+    })
+    @PostMapping("/withdraw")
+    public ResponseEntity<Void> withdraw(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody(required = false) WithdrawRequest request
+    ) {
+        accountService.withdraw(userDetails.getId(), request != null ? request : new WithdrawRequest(null));
+        return ResponseEntity.noContent().build();
     }
 }

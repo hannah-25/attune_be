@@ -17,6 +17,7 @@ import attune.medication.application.dto.response.MedicationDetailResponse;
 import attune.medication.application.dto.response.CreateMedicationResponse;
 import attune.medication.application.dto.response.MedicationLogResponse;
 import attune.medication.application.dto.response.MedicationPeriodLogResponse;
+import attune.medication.application.dto.response.MedicationSearchItemResponse;
 import attune.medication.application.dto.response.QuickLogResponse;
 import attune.medication.application.dto.response.UpdateMedicationResponse;
 import attune.medication.application.dto.response.UserMedicationListItemResponse;
@@ -87,6 +88,35 @@ public class MedicationService {
         List<MedicationDosage> dosages = medicationDosageRepository
                 .findByMedicationIdAndIsActiveTrueOrderByAmountAscIdAsc(medicationId);
         return MedicationDetailResponse.from(medication, dosages);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MedicationSearchItemResponse> getMedications(String q) {
+        String keyword = (q != null && !q.isBlank()) ? q.trim() : null;
+
+        List<Medication> medications = keyword == null
+                ? medicationRepository.findAllByOrderByIdAsc()
+                : medicationRepository.findByNameContainingIgnoreCaseOrGenericNameContainingIgnoreCaseOrderByIdAsc(keyword, keyword);
+
+        if (medications.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> medicationIds = medications.stream()
+                .map(Medication::getId)
+                .toList();
+
+        Map<Long, List<MedicationDosage>> dosagesByMedicationId = medicationDosageRepository
+                .findByMedicationIdInAndIsActiveTrueOrderByMedicationIdAscAmountAscIdAsc(medicationIds)
+                .stream()
+                .collect(Collectors.groupingBy(dosage -> dosage.getMedication().getId()));
+
+        return medications.stream()
+                .map(medication -> MedicationSearchItemResponse.from(
+                        medication,
+                        dosagesByMedicationId.getOrDefault(medication.getId(), List.of())
+                ))
+                .toList();
     }
 
     @Transactional

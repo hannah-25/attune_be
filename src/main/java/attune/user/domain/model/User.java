@@ -33,7 +33,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserStatus userStatus;
 
-    private String provider;
+    @Enumerated(EnumType.STRING)
+    private OAuthProvider provider;
     private String providerId;
 
     private String profileImageUrl;
@@ -80,5 +81,10 @@ public class User {
     public void restore() {
         this.userStatus = UserStatus.ACTIVE;
         this.withdrawalAt = null;
+    }
+
+    public void linkSocialProvider(OAuthProvider provider, String providerId) {
+        this.provider = provider;
+        this.providerId = providerId;
     }
 }

@@ -42,3 +42,9 @@ cors:
 
 app:
   frontend-url: http://localhost:3000
+
+oauth:
+  google:
+    client-ids: test-google-client-id
+  apple:
+    app-id: com.example.attune.test
