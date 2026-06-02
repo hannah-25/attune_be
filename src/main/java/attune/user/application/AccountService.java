@@ -1,5 +1,6 @@
 package attune.user.application;
 
+import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.error.conflict.DuplicateEmailException;
 import attune.common.error.conflict.DuplicateNicknameException;
 import attune.common.error.unauthorized.InvalidPasswordException;
@@ -14,6 +15,7 @@ import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
 import attune.user.application.dto.request.UpdateNicknameRequest;
 import attune.user.application.dto.request.UpdateProfileImageRequest;
+import attune.user.application.dto.request.WithdrawRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import attune.term.application.TermService;
 import attune.user.domain.model.EmailVerificationToken;
@@ -48,6 +50,7 @@ public class AccountService {
     private final MailService mailService;
     private final TermService termService;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserAuthCacheRepository userAuthCacheRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -188,6 +191,24 @@ public class AccountService {
         if (!userRepository.existsByNickname(candidate)) return candidate;
         String prefix = candidate.length() > 13 ? candidate.substring(0, 13) : candidate;
         return prefix + "_" + UUID.randomUUID().toString().substring(0, 6);
+    }
+
+    @Transactional
+    public void withdraw(UUID userId, WithdrawRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getPassword() != null) {
+            if (request.password() == null || request.password().isBlank()) {
+                throw new InvalidPasswordException();
+            }
+            if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+                throw new InvalidPasswordException();
+            }
+        }
+
+        user.withdraw();
+        userAuthCacheRepository.delete(userId);
     }
 
     @Transactional
