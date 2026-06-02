@@ -61,6 +61,9 @@ public class SocialAuthService {
     private User findOrCreateUser(OAuthProvider provider, OAuthUserInfo info) {
         Optional<User> byProvider = userRepository.findByProviderAndProviderId(provider, info.providerId());
         if (byProvider.isPresent()) {
+            return applyStatusPolicy(byProvider.get());
+        }
+
         if (info.email() != null) {
             Optional<User> byEmail = userRepository.findByEmail(info.email());
             if (byEmail.isPresent()) {
@@ -70,12 +73,8 @@ public class SocialAuthService {
                 }
                 if (user.getUserStatus() == UserStatus.PENDING) {
                     throw new ConflictException("이메일 인증이 완료되지 않은 계정이 존재합니다.");
-                } else {
-                    user.linkSocialProvider(provider, info.providerId());
-                    return applyStatusPolicy(user);
                 }
-            }
-        }
+                user.linkSocialProvider(provider, info.providerId());
                 return applyStatusPolicy(user);
             }
         }
@@ -103,6 +102,7 @@ public class SocialAuthService {
         }
 
         user.restore();
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);
         String refreshToken = jwtProvider.generateRefreshToken();
@@ -118,7 +118,10 @@ public class SocialAuthService {
         switch (user.getUserStatus()) {
             case SUSPENDED -> throw new UnauthorizedException("정지된 계정입니다.");
             case WITHDRAWAL -> throw new ConflictException("탈퇴한 계정입니다. 복구 확인이 필요합니다.");
-            case PENDING -> user.activate();
+            case PENDING -> {
+                user.activate();
+                eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
+            }
             case ACTIVE -> {}
         }
         return user;
