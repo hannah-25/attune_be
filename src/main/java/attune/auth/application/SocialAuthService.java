@@ -7,6 +7,7 @@ import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
 import attune.common.error.BadRequestException;
+import attune.common.error.ConflictException;
 import attune.common.error.UnauthorizedException;
 import attune.common.util.JwtProvider;
 import attune.user.application.AccountService;
@@ -24,6 +25,9 @@ import java.util.Optional;
 @Transactional
 @RequiredArgsConstructor
 public class SocialAuthService {
+
+    private static final String SOCIAL_PROVIDER_CONFLICT_MESSAGE =
+            "\uC774\uBBF8 \uB2E4\uB978 \uC18C\uC15C \uACC4\uC815\uC73C\uB85C \uAC00\uC785\uB41C \uC774\uBA54\uC77C\uC785\uB2C8\uB2E4.";
 
     private final List<OAuthVerifier> verifiers;
     private final UserRepository userRepository;
@@ -61,6 +65,9 @@ public class SocialAuthService {
             Optional<User> byEmail = userRepository.findByEmail(info.email());
             if (byEmail.isPresent()) {
                 User user = byEmail.get();
+                if (user.getProvider() != null && user.getProvider() != provider) {
+                    throw new ConflictException(SOCIAL_PROVIDER_CONFLICT_MESSAGE);
+                }
                 user.linkSocialProvider(provider, info.providerId());
                 return applyStatusPolicy(user);
             }
