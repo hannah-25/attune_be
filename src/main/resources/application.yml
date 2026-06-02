@@ -76,6 +76,15 @@ management:
 
 
 
+# OAuth 소셜 로그인
+oauth:
+  google:
+    client-ids: ${GOOGLE_CLIENT_IDS:placeholder}
+  apple:
+    app-id: ${APPLE_APP_ID:com.example.attune}
+
+
+
 # 앱 공통 설정
 
 

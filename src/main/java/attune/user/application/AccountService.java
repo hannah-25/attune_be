@@ -1,11 +1,13 @@
 package attune.user.application;
 
+import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.error.conflict.DuplicateEmailException;
 import attune.common.error.conflict.DuplicateNicknameException;
 import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.mail.MailService;
+import attune.common.event.UserActivatedEvent;
 import attune.common.mail.event.WelcomeEmailEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import attune.user.application.dto.request.ChangePasswordRequest;
@@ -13,11 +15,13 @@ import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
 import attune.user.application.dto.request.UpdateNicknameRequest;
 import attune.user.application.dto.request.UpdateProfileImageRequest;
+import attune.user.application.dto.request.WithdrawRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import attune.term.application.TermService;
 import attune.user.domain.model.EmailVerificationToken;
 import attune.user.domain.model.PasswordResetToken;
 import attune.user.domain.model.User;
+import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
@@ -46,6 +50,7 @@ public class AccountService {
     private final MailService mailService;
     private final TermService termService;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserAuthCacheRepository userAuthCacheRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -103,6 +108,7 @@ public class AccountService {
 
         user.activate();
         emailVerificationTokenRepository.delete(verificationToken);
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
         eventPublisher.publishEvent(new WelcomeEmailEvent(user.getEmail(), user.getNickname()));
     }
 
@@ -160,6 +166,49 @@ public class AccountService {
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
         user.changeProfileImageUrl(request.profileImageUrl());
+    }
+
+    @Transactional
+    public User createSocialUser(String email, String nickname, OAuthProvider provider, String providerId) {
+        String finalNickname = generateUniqueNickname(nickname);
+        User user = User.builder()
+                .email(email)
+                .provider(provider)
+                .providerId(providerId)
+                .nickname(finalNickname)
+                .userType(UserType.USER)
+                .userStatus(UserStatus.ACTIVE)
+                .build();
+        userRepository.save(user);
+        userSettingRepository.save(UserSetting.createDefault(user));
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
+        return user;
+    }
+
+    private String generateUniqueNickname(String base) {
+        String candidate = (base != null && !base.isBlank()) ? base.strip() : "사용자";
+        if (candidate.length() > 20) candidate = candidate.substring(0, 20);
+        if (!userRepository.existsByNickname(candidate)) return candidate;
+        String prefix = candidate.length() > 13 ? candidate.substring(0, 13) : candidate;
+        return prefix + "_" + UUID.randomUUID().toString().substring(0, 6);
+    }
+
+    @Transactional
+    public void withdraw(UUID userId, WithdrawRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getPassword() != null) {
+            if (request.password() == null || request.password().isBlank()) {
+                throw new InvalidPasswordException();
+            }
+            if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+                throw new InvalidPasswordException();
+            }
+        }
+
+        user.withdraw();
+        userAuthCacheRepository.delete(userId);
     }
 
     @Transactional
