@@ -88,7 +88,8 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
             }
 
             long exp = ((Number) claims.get("exp")).longValue();
-            if (exp < System.currentTimeMillis() / 1000) {
+            long leeway = 60;
+            if (exp + leeway < System.currentTimeMillis() / 1000) {
                 throw new UnauthorizedException("만료된 Google 토큰입니다.");
             }
 
