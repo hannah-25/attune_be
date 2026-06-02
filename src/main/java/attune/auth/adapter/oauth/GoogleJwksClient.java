@@ -18,7 +18,7 @@ public class GoogleJwksClient {
 
     private final RestClient restClient = RestClient.create();
 
-    @Cacheable(value = CacheConfig.GOOGLE_JWKS, unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = CacheConfig.GOOGLE_JWKS, cacheManager = "caffeineCacheManager", unless = "#result == null || #result.isEmpty()")
     @SuppressWarnings("unchecked")
     public List<Map<String, String>> fetchKeys() {
         Map<String, Object> jwks = restClient.get()
