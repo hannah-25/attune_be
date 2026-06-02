@@ -47,6 +47,8 @@ public class SecurityConfig {
         http
                 // REST API에서는 일반적으로 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
 
                 // CORS 필터 활성화 (명시적으로 CorsConfigurationSource 빈 지정)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
