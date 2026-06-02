@@ -7,6 +7,7 @@ import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
+import attune.common.error.ConflictException;
 import attune.common.error.badrequest.InvalidAccountStatusException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.error.unauthorized.InvalidPasswordException;
@@ -42,6 +43,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public AuthResult login(LoginRequest request) {
+        userRepository.findByEmail(request.email()).ifPresent(user -> {
+            if (user.getUserStatus() == UserStatus.WITHDRAWAL
+                    && passwordEncoder.matches(request.password(), user.getPassword())) {
+                throw new ConflictException("탈퇴한 계정입니다. 복구 확인이 필요합니다.");
+            }
+        });
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())

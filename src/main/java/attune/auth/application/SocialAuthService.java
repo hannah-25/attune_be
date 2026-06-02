@@ -9,6 +9,9 @@ import attune.common.config.JwtConfig;
 import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.common.error.UnauthorizedException;
+import attune.common.error.badrequest.InvalidAccountStatusException;
+import attune.common.error.notfound.UserNotFoundException;
+import attune.user.domain.model.UserStatus;
 import attune.common.util.JwtProvider;
 import attune.user.application.AccountService;
 import attune.user.domain.model.OAuthProvider;
@@ -80,10 +83,37 @@ public class SocialAuthService {
         return accountService.createSocialUser(info.email(), info.nickname(), provider, info.providerId());
     }
 
+    public AuthResult restore(SocialLoginRequest request) {
+        OAuthVerifier verifier = verifiers.stream()
+                .filter(v -> v.provider() == request.provider())
+                .findFirst()
+                .orElseThrow(() -> new BadRequestException("지원하지 않는 소셜 로그인입니다."));
+
+        OAuthUserInfo info = verifier.verify(request.token());
+
+        User user = userRepository.findByProviderAndProviderId(request.provider(), info.providerId())
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getUserStatus() != UserStatus.WITHDRAWAL) {
+            throw new InvalidAccountStatusException("탈퇴 상태의 계정만 복구할 수 있습니다.");
+        }
+
+        user.restore();
+
+        String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);
+        String refreshToken = jwtProvider.generateRefreshToken();
+        userAuthCacheRepository.save(user.getId(), refreshToken, UserStatus.ACTIVE, jwtConfig.getRefreshTokenExpiration());
+
+        return new AuthResult(
+                new LoginResponse(accessToken, jwtConfig.getAccessTokenExpiration()),
+                refreshToken
+        );
+    }
+
     private User applyStatusPolicy(User user) {
         switch (user.getUserStatus()) {
             case SUSPENDED -> throw new UnauthorizedException("정지된 계정입니다.");
-            case WITHDRAWAL -> user.restore();
+            case WITHDRAWAL -> throw new ConflictException("탈퇴한 계정입니다. 복구 확인이 필요합니다.");
             case PENDING -> user.activate();
             case ACTIVE -> {}
         }

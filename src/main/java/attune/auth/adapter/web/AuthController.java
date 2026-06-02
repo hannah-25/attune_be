@@ -128,11 +128,36 @@ public class AuthController {
         ));
     }
 
+    @Operation(summary = "소셜 계정 복구", description = "탈퇴 상태의 소셜 계정을 provider 토큰으로 인증 후 복구합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "복구 성공"),
+            @ApiResponse(responseCode = "400", description = "탈퇴 상태가 아닌 계정 / 지원하지 않는 provider"),
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰"),
+            @ApiResponse(responseCode = "404", description = "등록된 소셜 계정 없음")
+    })
+    @PostMapping("/social/restore")
+    public ResponseEntity<RestoreResponse> socialRestore(
+            @Valid @RequestBody SocialLoginRequest request,
+            @RequestHeader(value = HttpHeaders.CLIENT_TYPE, defaultValue = "web") String clientTypeHeader,
+            HttpServletResponse response
+    ) {
+        ClientType clientType = ClientType.from(clientTypeHeader);
+        AuthResult result = socialAuthService.restore(request);
+        LoginResponse loginResponse = buildResponse(result, clientType, response);
+        return ResponseEntity.ok(new RestoreResponse(
+                loginResponse.accessToken(),
+                loginResponse.expiresIn(),
+                loginResponse.refreshToken(),
+                "ACTIVE"
+        ));
+    }
+
     @Operation(summary = "소셜 로그인", description = "Google / Kakao / Apple 토큰으로 로그인합니다. 첫 로그인 시 계정이 자동 생성됩니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "로그인 성공"),
             @ApiResponse(responseCode = "400", description = "이메일 정보 없음 (Apple 재시도 필요)"),
-            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰 / 정지된 계정")
+            @ApiResponse(responseCode = "401", description = "유효하지 않은 토큰 / 정지된 계정"),
+            @ApiResponse(responseCode = "409", description = "탈퇴한 계정 (복구 확인 필요)")
     })
     @PostMapping("/social/login")
     public ResponseEntity<LoginResponse> socialLogin(
