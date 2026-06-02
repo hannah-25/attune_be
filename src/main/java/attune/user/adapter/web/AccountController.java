@@ -106,7 +106,7 @@ public class AccountController {
             @ApiResponse(responseCode = "204", description = "탈퇴 성공"),
             @ApiResponse(responseCode = "401", description = "비밀번호 불일치")
     })
-    @DeleteMapping
+    @PostMapping("/withdraw")
     public ResponseEntity<Void> withdraw(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody(required = false) WithdrawRequest request

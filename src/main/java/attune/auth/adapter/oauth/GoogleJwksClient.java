@@ -1,6 +1,7 @@
 package attune.auth.adapter.oauth;
 
 import attune.common.config.CacheConfig;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.ParameterizedTypeReference;
@@ -16,7 +17,11 @@ public class GoogleJwksClient {
 
     private static final String GOOGLE_KEYS_URL = "https://www.googleapis.com/oauth2/v3/certs";
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
+
+    public GoogleJwksClient(@Qualifier("oauthRestClient") RestClient restClient) {
+        this.restClient = restClient;
+    }
 
     @Cacheable(value = CacheConfig.GOOGLE_JWKS, cacheManager = "caffeineCacheManager", unless = "#result == null || #result.isEmpty()")
     @SuppressWarnings("unchecked")

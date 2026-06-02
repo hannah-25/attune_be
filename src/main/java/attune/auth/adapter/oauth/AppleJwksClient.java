@@ -4,6 +4,7 @@ import attune.common.config.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -16,7 +17,11 @@ public class AppleJwksClient {
 
     private static final String APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys";
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
+
+    public AppleJwksClient(@Qualifier("oauthRestClient") RestClient restClient) {
+        this.restClient = restClient;
+    }
 
     @Cacheable(value = CacheConfig.APPLE_JWKS, cacheManager = "caffeineCacheManager", unless = "#result == null || #result.isEmpty()")
     @SuppressWarnings("unchecked")

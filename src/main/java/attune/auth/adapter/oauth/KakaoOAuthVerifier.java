@@ -4,6 +4,7 @@ import attune.auth.application.OAuthVerifier;
 import attune.auth.application.dto.OAuthUserInfo;
 import attune.common.error.UnauthorizedException;
 import attune.user.domain.model.OAuthProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -16,7 +17,11 @@ public class KakaoOAuthVerifier implements OAuthVerifier {
 
     private static final String INVALID_KAKAO_TOKEN_MESSAGE = "\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 Kakao \uD1A0\uD070\uC785\uB2C8\uB2E4.";
 
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient;
+
+    public KakaoOAuthVerifier(@Qualifier("oauthRestClient") RestClient restClient) {
+        this.restClient = restClient;
+    }
 
     @Override
     public OAuthProvider provider() {
