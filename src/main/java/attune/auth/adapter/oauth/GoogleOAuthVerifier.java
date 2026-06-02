@@ -48,6 +48,9 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
 
             Map<String, Object> header = objectMapper.readValue(
                     Base64.getUrlDecoder().decode(parts[0]), MAP_TYPE);
+            if (header == null) {
+                throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
+            }
             String kid = (String) header.get("kid");
 
             Map<String, String> matchingKey = findKey(kid)
@@ -70,6 +73,9 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
 
             Map<String, Object> claims = objectMapper.readValue(
                     Base64.getUrlDecoder().decode(parts[1]), MAP_TYPE);
+            if (claims == null) {
+                throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
+            }
 
             String iss = (String) claims.get("iss");
             if (!ISSUER_1.equals(iss) && !ISSUER_2.equals(iss)) {
@@ -87,6 +93,9 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
             }
 
             String providerId = (String) claims.get("sub");
+            if (providerId == null) {
+                throw new UnauthorizedException("유효하지 않은 Google 토큰입니다.");
+            }
             String email = (String) claims.get("email");
             String name = (String) claims.get("name");
 
