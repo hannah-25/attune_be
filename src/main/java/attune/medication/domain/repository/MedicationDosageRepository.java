@@ -9,5 +9,7 @@ import java.util.Optional;
 public interface MedicationDosageRepository extends JpaRepository<MedicationDosage, Long> {
     List<MedicationDosage> findByMedicationIdAndIsActiveTrueOrderByAmountAscIdAsc(Long medicationId);
 
+    List<MedicationDosage> findByMedicationIdInAndIsActiveTrueOrderByMedicationIdAscAmountAscIdAsc(List<Long> medicationIds);
+
     Optional<MedicationDosage> findByIdAndIsActiveTrue(Long id);
 }

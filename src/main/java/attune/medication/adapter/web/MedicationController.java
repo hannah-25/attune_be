@@ -9,6 +9,7 @@ import attune.medication.application.dto.response.CreateMedicationResponse;
 import attune.medication.application.dto.response.MedicationDetailResponse;
 import attune.medication.application.dto.response.MedicationLogResponse;
 import attune.medication.application.dto.response.MedicationPeriodLogResponse;
+import attune.medication.application.dto.response.MedicationSearchItemResponse;
 import attune.medication.application.dto.response.QuickLogResponse;
 import attune.medication.application.dto.response.UpdateMedicationResponse;
 import attune.medication.application.dto.response.UserMedicationListItemResponse;
@@ -56,6 +57,15 @@ public class MedicationController {
     @GetMapping("/medications/standards/{medicationId}")
     public ResponseEntity<MedicationDetailResponse> getMedicationDetail(@PathVariable Long medicationId) {
         return ResponseEntity.ok(medicationService.getMedicationDetail(medicationId));
+    }
+
+    @Operation(summary = "Search medications by name or ingredient")
+    @ApiResponse(responseCode = "200", description = "Success")
+    @GetMapping("/medications")
+    public ResponseEntity<List<MedicationSearchItemResponse>> getMedications(
+            @RequestParam(required = false) String q
+    ) {
+        return ResponseEntity.ok(medicationService.getMedications(q));
     }
 
     @Operation(summary = "Create user medication")
