@@ -186,7 +186,7 @@ public class AccountService {
         String candidate = (base != null && !base.isBlank()) ? base.strip() : "사용자";
         if (candidate.length() > 20) candidate = candidate.substring(0, 20);
         if (!userRepository.existsByNickname(candidate)) return candidate;
-        String prefix = candidate.length() > 14 ? candidate.substring(0, 14) : candidate;
+        String prefix = candidate.length() > 13 ? candidate.substring(0, 13) : candidate;
         return prefix + "_" + UUID.randomUUID().toString().substring(0, 6);
     }
 
