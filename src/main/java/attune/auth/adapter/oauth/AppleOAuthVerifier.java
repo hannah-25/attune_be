@@ -6,10 +6,9 @@ import attune.common.error.UnauthorizedException;
 import attune.user.domain.model.OAuthProvider;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -20,19 +19,20 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class AppleOAuthVerifier implements OAuthVerifier {
 
-    private static final String APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys";
     private static final String APPLE_ISSUER = "https://appleid.apple.com";
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
     @Value("${oauth.apple.app-id}")
     private String appId;
 
-    private final RestClient restClient = RestClient.create();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final AppleJwksClient jwksClient;
+    private final ObjectMapper objectMapper;
 
     @Override
     public OAuthProvider provider() {
@@ -46,29 +46,20 @@ public class AppleOAuthVerifier implements OAuthVerifier {
             String[] parts = token.split("\\.");
             if (parts.length != 3) throw new UnauthorizedException("유효하지 않은 Apple 토큰입니다.");
 
-            // 1. JWT 헤더에서 kid 추출
             Map<String, Object> header = objectMapper.readValue(
                     Base64.getUrlDecoder().decode(parts[0]), MAP_TYPE);
             String kid = (String) header.get("kid");
 
-            // 2. Apple JWKS 조회 후 kid 매칭
-            Map<String, Object> jwks = restClient.get()
-                    .uri(APPLE_KEYS_URL)
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
-            List<Map<String, String>> keys = (List<Map<String, String>>) jwks.get("keys");
-            Map<String, String> matchingKey = keys.stream()
-                    .filter(k -> kid.equals(k.get("kid")))
-                    .findFirst()
-                    .orElseThrow(() -> new UnauthorizedException("Apple 공개키를 찾을 수 없습니다."));
+            Map<String, String> matchingKey = findKey(kid)
+                    .orElseGet(() -> {
+                        // 캐시 히트했으나 kid 없음 → Apple 키 로테이션 가능성, evict 후 재시도
+                        jwksClient.evictKeys();
+                        return findKey(kid)
+                                .orElseThrow(() -> new UnauthorizedException("Apple 공개키를 찾을 수 없습니다."));
+                    });
 
-            // 3. RSA 공개키 생성
-            BigInteger modulus = new BigInteger(1, Base64.getUrlDecoder().decode(matchingKey.get("n")));
-            BigInteger exponent = new BigInteger(1, Base64.getUrlDecoder().decode(matchingKey.get("e")));
-            PublicKey publicKey = KeyFactory.getInstance("RSA")
-                    .generatePublic(new RSAPublicKeySpec(modulus, exponent));
+            PublicKey publicKey = buildPublicKey(matchingKey);
 
-            // 4. 서명 검증
             String signedData = parts[0] + "." + parts[1];
             byte[] signatureBytes = Base64.getUrlDecoder().decode(parts[2]);
             Signature sig = Signature.getInstance("SHA256withRSA");
@@ -78,7 +69,6 @@ public class AppleOAuthVerifier implements OAuthVerifier {
                 throw new UnauthorizedException("Apple 서명 검증에 실패했습니다.");
             }
 
-            // 5. 클레임 검증
             Map<String, Object> claims = objectMapper.readValue(
                     Base64.getUrlDecoder().decode(parts[1]), MAP_TYPE);
 
@@ -86,7 +76,6 @@ public class AppleOAuthVerifier implements OAuthVerifier {
                 throw new UnauthorizedException("유효하지 않은 Apple 토큰입니다.");
             }
 
-            // aud는 String 또는 List<String> 가능
             Object aud = claims.get("aud");
             String audience = aud instanceof List<?> list ? list.get(0).toString() : String.valueOf(aud);
             if (!appId.equals(audience)) {
@@ -108,5 +97,15 @@ public class AppleOAuthVerifier implements OAuthVerifier {
         } catch (Exception e) {
             throw new UnauthorizedException("Apple 토큰 검증에 실패했습니다.");
         }
+    }
+
+    private Optional<Map<String, String>> findKey(String kid) {
+        return jwksClient.fetchKeys().stream().filter(k -> kid.equals(k.get("kid"))).findFirst();
+    }
+
+    private PublicKey buildPublicKey(Map<String, String> key) throws Exception {
+        BigInteger modulus = new BigInteger(1, Base64.getUrlDecoder().decode(key.get("n")));
+        BigInteger exponent = new BigInteger(1, Base64.getUrlDecoder().decode(key.get("e")));
+        return KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, exponent));
     }
 }
