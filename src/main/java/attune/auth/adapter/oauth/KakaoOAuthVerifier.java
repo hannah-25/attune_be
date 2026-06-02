@@ -14,6 +14,8 @@ import java.util.Map;
 @Component
 public class KakaoOAuthVerifier implements OAuthVerifier {
 
+    private static final String INVALID_KAKAO_TOKEN_MESSAGE = "\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 Kakao \uD1A0\uD070\uC785\uB2C8\uB2E4.";
+
     private final RestClient restClient = RestClient.create();
 
     @Override
@@ -31,7 +33,20 @@ public class KakaoOAuthVerifier implements OAuthVerifier {
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
 
-            String providerId = String.valueOf(response.get("id"));
+            if (response == null) {
+                throw new UnauthorizedException(INVALID_KAKAO_TOKEN_MESSAGE);
+            }
+
+            Object id = response.get("id");
+            if (id == null) {
+                throw new UnauthorizedException(INVALID_KAKAO_TOKEN_MESSAGE);
+            }
+
+            String providerId = id.toString();
+            if (providerId.isBlank()) {
+                throw new UnauthorizedException(INVALID_KAKAO_TOKEN_MESSAGE);
+            }
+
             Map<String, Object> kakaoAccount = (Map<String, Object>) response.get("kakao_account");
             String email = kakaoAccount != null ? (String) kakaoAccount.get("email") : null;
             Map<String, Object> profile = kakaoAccount != null ? (Map<String, Object>) kakaoAccount.get("profile") : null;
