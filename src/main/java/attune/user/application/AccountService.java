@@ -6,6 +6,7 @@ import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.mail.MailService;
+import attune.common.event.UserActivatedEvent;
 import attune.common.mail.event.WelcomeEmailEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import attune.user.application.dto.request.ChangePasswordRequest;
@@ -104,6 +105,7 @@ public class AccountService {
         user.activate();
         emailVerificationTokenRepository.delete(verificationToken);
         eventPublisher.publishEvent(new WelcomeEmailEvent(user.getEmail(), user.getNickname()));
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
     }
 
 
