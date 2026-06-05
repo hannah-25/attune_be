@@ -13,8 +13,8 @@ public class RestClientConfig {
     @Bean
     public RestClient oauthRestClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(2));
-        factory.setReadTimeout(Duration.ofSeconds(2));
+        factory.setConnectTimeout(Duration.ofSeconds(5));
+        factory.setReadTimeout(Duration.ofSeconds(10));
         return RestClient.builder()
                 .requestFactory(factory)
                 .build();
