@@ -133,13 +133,13 @@ public class GoogleCalendarClient {
                 uriBuilder.queryParam("pageToken", pageToken);
             }
 
-            String uri = uriBuilder.buildAndExpand(calendarId).toUriString();
+            String uri = uriBuilder.build().toUriString();
             log.debug("Google Calendar listEvents URI: {}", uri);
 
             Map<String, Object> response;
             try {
                 response = oauthRestClient.get()
-                        .uri(uri)
+                        .uri(uri, calendarId)
                         .header("Authorization", "Bearer " + connection.getAccessToken())
                         .retrieve()
                         .body(new ParameterizedTypeReference<>() {});
