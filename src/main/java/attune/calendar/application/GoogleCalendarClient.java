@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -268,7 +269,14 @@ public class GoogleCalendarClient {
             return calendarClientId.trim();
         }
         if (loginClientIds != null && !loginClientIds.isBlank()) {
-            return loginClientIds.split(",")[0].trim();
+            String first = Arrays.stream(loginClientIds.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
+                    .findFirst()
+                    .orElse(null);
+            if (first != null) {
+                return first;
+            }
         }
         throw new InternalServerException("Google Calendar client id is not configured");
     }
