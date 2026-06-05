@@ -166,7 +166,7 @@ public class MedicationService {
     @Transactional
     public UpdateMedicationResponse updateMedication(Long userMedicationId, UpdateMedicationRequest request) {
         UserMedication um = getOwnedUserMedicationOrThrow(userMedicationId);
-        boolean active = Boolean.TRUE.equals(request.isActive());
+        boolean active = request.isActive() != null ? request.isActive() : um.getIsActive();
         boolean updateEndAt = request.endAt().isPresent();
         LocalDate endAt = !active && updateEndAt ? request.endAt().get() : null;
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
