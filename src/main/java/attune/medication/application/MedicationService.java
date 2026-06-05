@@ -1,5 +1,6 @@
 package attune.medication.application;
 
+import attune.common.error.BadRequestException;
 import attune.common.error.badrequest.DuplicateScheduleTimeException;
 import attune.common.error.conflict.DuplicateMedicationLogException;
 import attune.common.error.badrequest.InvalidDateRangeException;
@@ -168,7 +169,10 @@ public class MedicationService {
         UserMedication um = getOwnedUserMedicationOrThrow(userMedicationId);
         boolean active = request.isActive() != null ? request.isActive() : um.getIsActive();
         boolean updateEndAt = request.endAt().isPresent();
-        LocalDate endAt = !active && updateEndAt ? request.endAt().get() : null;
+        LocalDate endAt = updateEndAt ? request.endAt().get() : null;
+        if (active && endAt != null) {
+            throw new BadRequestException("활성화된 복약 정보는 종료일을 가질 수 없습니다.");
+        }
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
         um.update(endAt, updateEndAt, request.isActive());
         return UpdateMedicationResponse.from(um);
