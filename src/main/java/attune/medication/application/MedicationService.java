@@ -1,11 +1,13 @@
 package attune.medication.application;
 
 import attune.common.error.badrequest.DuplicateScheduleTimeException;
+import attune.common.error.conflict.DuplicateMedicationLogException;
 import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.error.badrequest.InvalidQuickLogRequestException;
 import attune.common.error.notfound.ConsultationNotFoundException;
 import attune.common.error.notfound.MedicationDosageNotFoundException;
 import attune.common.error.notfound.MedicationNotFoundException;
+import attune.common.error.notfound.MedicationLogNotFoundException;
 import attune.common.error.notfound.MedicationScheduleNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.consultation.domain.model.Consultation;
@@ -226,6 +228,22 @@ public class MedicationService {
 
         UserMedicationSchedule schedule = scheduleRepository.findByIdAndUserMedicationId(request.scheduleId(), userMedicationId)
                 .orElseThrow(MedicationScheduleNotFoundException::new);
+
+        LocalDate today = now.toLocalDate();
+        LocalDateTime startOfToday = toStartOfDay(today);
+        LocalDateTime endOfToday = toExclusiveEndOfDay(today);
+
+        if (request.action() == QuickLogAction.CANCEL) {
+            UserMedicationLog existing = logRepository
+                    .findByUserMedicationScheduleIdAndTakenAtBetween(schedule.getId(), startOfToday, endOfToday)
+                    .orElseThrow(MedicationLogNotFoundException::new);
+            logRepository.delete(existing);
+            return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
+        }
+
+        if (logRepository.existsByUserMedicationScheduleIdAndTakenAtBetween(schedule.getId(), startOfToday, endOfToday)) {
+            throw new DuplicateMedicationLogException();
+        }
 
         UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN
                 ? UserMedicationLogStatus.TAKEN

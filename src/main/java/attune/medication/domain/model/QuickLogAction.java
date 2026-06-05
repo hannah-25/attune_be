@@ -1,5 +1,5 @@
 package attune.medication.domain.model;
 
 public enum QuickLogAction {
-    TAKEN, POSTPONE, SKIPPED
+    TAKEN, POSTPONE, SKIPPED, CANCEL
 }

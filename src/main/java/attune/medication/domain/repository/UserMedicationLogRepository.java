@@ -8,9 +8,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface UserMedicationLogRepository extends JpaRepository<UserMedicationLog, Long> {
+    boolean existsByUserMedicationScheduleIdAndTakenAtBetween(Long scheduleId, LocalDateTime from, LocalDateTime to);
+
+    Optional<UserMedicationLog> findByUserMedicationScheduleIdAndTakenAtBetween(Long scheduleId, LocalDateTime from, LocalDateTime to);
+
     @EntityGraph(attributePaths = {"userMedicationSchedule"})
     List<UserMedicationLog> findByUserMedicationScheduleIdIn(List<Long> scheduleIds);
 
