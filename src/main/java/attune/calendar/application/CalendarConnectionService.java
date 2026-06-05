@@ -142,7 +142,7 @@ public class CalendarConnectionService {
     }
 
     private void refreshTokenIfNeeded(CalendarConnection connection) {
-        if (connection.getTokenExpiresAt() != null && connection.getTokenExpiresAt().isAfter(LocalDateTime.now().plusMinutes(5))) {
+        if (connection.getTokenExpiresAt() != null && connection.getTokenExpiresAt().isAfter(LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).plusMinutes(5))) {
             return;
         }
         if (connection.getRefreshToken() == null || connection.getRefreshToken().isBlank()) {
