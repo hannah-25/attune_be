@@ -115,49 +115,56 @@ public class GoogleCalendarClient {
                                                           String calendarId,
                                                           LocalDateTime startAt,
                                                           LocalDateTime endAt) {
-        String uri = UriComponentsBuilder
-                .fromUriString(EVENTS_URL)
-                .queryParam("timeMin", toGoogleDateTime(startAt))
-                .queryParam("timeMax", toGoogleDateTime(endAt))
-                .queryParam("singleEvents", "true")
-                .queryParam("showDeleted", "true")
-                .queryParam("orderBy", "startTime")
-                .buildAndExpand(calendarId)
-                .toUriString();
-
-        log.debug("Google Calendar listEvents URI: {}", uri);
-
-        Map<String, Object> response;
-        try {
-            response = oauthRestClient.get()
-                    .uri(uri)
-                    .header("Authorization", "Bearer " + connection.getAccessToken())
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
-        } catch (RestClientResponseException e) {
-            log.error("Google Calendar API error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new InternalServerException(
-                    "Google Calendar API 오류 (" + e.getStatusCode() + "): " + e.getResponseBodyAsString(), e);
-        }
-
-        log.debug("Google Calendar listEvents response keys: {}", response == null ? null : response.keySet());
-
-        Object items = response == null ? null : response.get("items");
-        if (!(items instanceof List<?> list)) {
-            log.warn("Google Calendar listEvents: items field missing or not a list. response={}", response);
-            return List.of();
-        }
-
-        log.debug("Google Calendar listEvents: {} raw items returned for calendarId={}", list.size(), calendarId);
-
         List<ExternalCalendarEventSnapshot> snapshots = new ArrayList<>();
-        for (Object item : list) {
-            if (item instanceof Map<?, ?> event) {
-                toSnapshot(calendarId, event).ifPresent(snapshots::add);
-            }
-        }
+        String pageToken = null;
 
-        log.debug("Google Calendar listEvents: {} snapshots parsed (after filtering)", snapshots.size());
+        do {
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                    .fromUriString(EVENTS_URL)
+                    .queryParam("timeMin", toGoogleDateTime(startAt))
+                    .queryParam("timeMax", toGoogleDateTime(endAt))
+                    .queryParam("singleEvents", "true")
+                    .queryParam("showDeleted", "true")
+                    .queryParam("orderBy", "startTime");
+
+            if (pageToken != null) {
+                uriBuilder.queryParam("pageToken", pageToken);
+            }
+
+            String uri = uriBuilder.buildAndExpand(calendarId).toUriString();
+            log.debug("Google Calendar listEvents URI: {}", uri);
+
+            Map<String, Object> response;
+            try {
+                response = oauthRestClient.get()
+                        .uri(uri)
+                        .header("Authorization", "Bearer " + connection.getAccessToken())
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<>() {});
+            } catch (RestClientResponseException e) {
+                log.error("Google Calendar API error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new InternalServerException(
+                        "Google Calendar API 오류 (" + e.getStatusCode() + "): " + e.getResponseBodyAsString(), e);
+            }
+
+            if (response == null) {
+                break;
+            }
+
+            Object items = response.get("items");
+            if (items instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> event) {
+                        toSnapshot(calendarId, event).ifPresent(snapshots::add);
+                    }
+                }
+                log.debug("Google Calendar listEvents: page {} items, calendarId={}", list.size(), calendarId);
+            }
+
+            pageToken = response.get("nextPageToken") instanceof String token ? token : null;
+        } while (pageToken != null);
+
+        log.debug("Google Calendar listEvents: {} total snapshots for calendarId={}", snapshots.size(), calendarId);
         return snapshots;
     }
 
