@@ -3,6 +3,7 @@ package attune.calendar.application;
 import attune.calendar.application.dto.response.CalendarEventListResponse;
 import attune.calendar.application.dto.response.CalendarEventResponse;
 import attune.calendar.domain.repository.ExternalCalendarEventRepository;
+import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.util.SecurityUtils;
 import attune.schedule.domain.model.Schedule;
 import attune.schedule.domain.model.ScheduleCategory;
@@ -31,6 +32,10 @@ public class CalendarEventService {
 
     @Transactional(readOnly = true)
     public CalendarEventListResponse getEvents(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new InvalidDateRangeException();
+        }
+
         UUID userId = SecurityUtils.getCurrentUserUuid();
         LocalDateTime startAt = startDate.atStartOfDay();
         LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
