@@ -1,11 +1,14 @@
 package attune.medication.application;
 
+import attune.common.error.BadRequestException;
 import attune.common.error.badrequest.DuplicateScheduleTimeException;
+import attune.common.error.conflict.DuplicateMedicationLogException;
 import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.error.badrequest.InvalidQuickLogRequestException;
 import attune.common.error.notfound.ConsultationNotFoundException;
 import attune.common.error.notfound.MedicationDosageNotFoundException;
 import attune.common.error.notfound.MedicationNotFoundException;
+import attune.common.error.notfound.MedicationLogNotFoundException;
 import attune.common.error.notfound.MedicationScheduleNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.consultation.domain.model.Consultation;
@@ -164,8 +167,14 @@ public class MedicationService {
     @Transactional
     public UpdateMedicationResponse updateMedication(Long userMedicationId, UpdateMedicationRequest request) {
         UserMedication um = getOwnedUserMedicationOrThrow(userMedicationId);
-        validateEndAtNotBeforeStartedAt(um.getStartedAt(), request.endAt());
-        um.update(request.endAt(), request.isActive());
+        boolean active = request.isActive() != null ? request.isActive() : um.getIsActive();
+        boolean updateEndAt = request.endAt().isPresent();
+        LocalDate endAt = updateEndAt ? request.endAt().get() : null;
+        if (active && endAt != null) {
+            throw new BadRequestException("활성화된 복약 정보는 종료일을 가질 수 없습니다.");
+        }
+        validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
+        um.update(endAt, updateEndAt, request.isActive());
         return UpdateMedicationResponse.from(um);
     }
 
@@ -223,6 +232,22 @@ public class MedicationService {
 
         UserMedicationSchedule schedule = scheduleRepository.findByIdAndUserMedicationId(request.scheduleId(), userMedicationId)
                 .orElseThrow(MedicationScheduleNotFoundException::new);
+
+        LocalDate today = now.toLocalDate();
+        LocalDateTime startOfToday = toStartOfDay(today);
+        LocalDateTime endOfToday = toExclusiveEndOfDay(today);
+
+        if (request.action() == QuickLogAction.CANCEL) {
+            UserMedicationLog existing = logRepository
+                    .findByUserMedicationScheduleIdAndTakenAtBetween(schedule.getId(), startOfToday, endOfToday)
+                    .orElseThrow(MedicationLogNotFoundException::new);
+            logRepository.delete(existing);
+            return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
+        }
+
+        if (logRepository.existsByUserMedicationScheduleIdAndTakenAtBetween(schedule.getId(), startOfToday, endOfToday)) {
+            throw new DuplicateMedicationLogException();
+        }
 
         UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN
                 ? UserMedicationLogStatus.TAKEN

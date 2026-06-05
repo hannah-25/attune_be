@@ -76,14 +76,6 @@ management:
 
 
 
-# OAuth 소셜 로그인
-oauth:
-  google:
-    client-ids: ${GOOGLE_CLIENT_IDS:placeholder}
-  apple:
-    app-id: ${APPLE_APP_ID:com.example.attune}
-
-
 
 # 앱 공통 설정
 
@@ -92,3 +84,5 @@ oauth:
 logging:
   pattern:
     console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+  level:
+    attune.calendar: DEBUG

@@ -47,8 +47,12 @@ public class UserMedication {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void update(LocalDate endAt, Boolean isActive) {
-        if (endAt != null) this.endAt = endAt;
+    public void update(LocalDate endAt, boolean updateEndAt, Boolean isActive) {
+        if (Boolean.TRUE.equals(isActive)) {
+            this.endAt = null;
+        } else if (updateEndAt) {
+            this.endAt = endAt;
+        }
         if (isActive != null) this.isActive = isActive;
         this.updatedAt = LocalDateTime.now();
     }
