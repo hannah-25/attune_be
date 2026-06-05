@@ -12,4 +12,5 @@ public interface CalendarConnectionRepository extends JpaRepository<CalendarConn
     List<CalendarConnection> findAllByUserIdAndIsActiveTrue(UUID userId);
     Optional<CalendarConnection> findByIdAndUserIdAndIsActiveTrue(Long id, UUID userId);
     Optional<CalendarConnection> findByUserIdAndProviderAndIsActiveTrue(UUID userId, CalendarProvider provider);
+    Optional<CalendarConnection> findByUserIdAndProvider(UUID userId, CalendarProvider provider);
 }
