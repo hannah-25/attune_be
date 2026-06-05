@@ -12,6 +12,9 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "calendar_connections",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_calendar_connections_user_provider", columnNames = {"user_id", "provider"})
+        },
         indexes = {
                 @Index(name = "idx_calendar_connections_user_provider", columnList = "user_id, provider")
         }
