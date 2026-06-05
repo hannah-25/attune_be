@@ -51,7 +51,7 @@ public class CalendarConnectionService {
         String accountEmail = googleCalendarClient.fetchAccountEmail(token.accessToken());
 
         CalendarConnection connection = calendarConnectionRepository
-                .findByUserIdAndProviderAndIsActiveTrue(userId, CalendarProvider.GOOGLE)
+                .findByUserIdAndProvider(userId, CalendarProvider.GOOGLE)
                 .orElse(null);
 
         if (connection == null) {
