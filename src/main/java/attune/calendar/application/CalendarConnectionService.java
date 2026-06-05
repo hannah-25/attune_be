@@ -88,9 +88,10 @@ public class CalendarConnectionService {
         List<String> calendarIds = googleCalendarClient.listCalendarIds(connection);
         connection.updateSelectedCalendarIds(calendarIds);
 
-        LocalDateTime startAt = LocalDate.now().minusMonths(1).atStartOfDay();
-        LocalDateTime endAt = LocalDate.now().plusMonths(3).plusDays(1).atStartOfDay();
-        LocalDateTime syncedAt = LocalDateTime.now();
+        java.time.ZoneId serviceZone = java.time.ZoneId.of("Asia/Seoul");
+        LocalDateTime startAt = LocalDate.now(serviceZone).minusMonths(1).atStartOfDay();
+        LocalDateTime endAt = LocalDate.now(serviceZone).plusMonths(3).plusDays(1).atStartOfDay();
+        LocalDateTime syncedAt = LocalDateTime.now(serviceZone);
 
         // Google에서 전체 스냅샷 수집
         List<ExternalCalendarEventSnapshot> allSnapshots = new ArrayList<>();
