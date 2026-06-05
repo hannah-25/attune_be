@@ -189,7 +189,7 @@ public class GoogleCalendarClient {
 
         String refreshToken = response.get("refresh_token") instanceof String value ? value : null;
         long expiresIn = response.get("expires_in") instanceof Number value ? value.longValue() : 3600L;
-        return new GoogleToken(accessToken, refreshToken, LocalDateTime.now().plusSeconds(expiresIn));
+        return new GoogleToken(accessToken, refreshToken, LocalDateTime.now(SERVICE_ZONE).plusSeconds(expiresIn));
     }
 
     private java.util.Optional<ExternalCalendarEventSnapshot> toSnapshot(String calendarId, Map<?, ?> event) {
