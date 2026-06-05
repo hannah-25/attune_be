@@ -67,7 +67,7 @@ public class CalendarConnection {
                                             String accessToken,
                                             String refreshToken,
                                             LocalDateTime tokenExpiresAt) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"));
         return CalendarConnection.builder()
                 .userId(userId)
                 .provider(CalendarProvider.GOOGLE)
