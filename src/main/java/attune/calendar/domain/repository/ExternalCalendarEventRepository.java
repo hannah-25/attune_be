@@ -12,10 +12,16 @@ import java.util.UUID;
 
 public interface ExternalCalendarEventRepository extends JpaRepository<ExternalCalendarEvent, Long> {
 
-    Optional<ExternalCalendarEvent> findByConnectionIdAndProviderCalendarIdAndProviderEventId(
-            Long connectionId,
-            String providerCalendarId,
-            String providerEventId
+    @Query("""
+            SELECT e FROM ExternalCalendarEvent e
+            WHERE e.connection.id = :connectionId
+              AND e.startTime < :endAt
+              AND e.endTime >= :startAt
+            """)
+    List<ExternalCalendarEvent> findAllByConnectionIdInRange(
+            @Param("connectionId") Long connectionId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
     );
 
     @Query("""

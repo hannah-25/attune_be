@@ -19,8 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -89,15 +92,41 @@ public class CalendarConnectionService {
         LocalDateTime endAt = LocalDate.now().plusMonths(3).plusDays(1).atStartOfDay();
         LocalDateTime syncedAt = LocalDateTime.now();
 
-        int syncedCount = 0;
+        // Google에서 전체 스냅샷 수집
+        List<ExternalCalendarEventSnapshot> allSnapshots = new ArrayList<>();
         for (String calendarId : calendarIds) {
-            List<ExternalCalendarEventSnapshot> snapshots = googleCalendarClient.listEvents(connection, calendarId, startAt, endAt);
-            for (ExternalCalendarEventSnapshot snapshot : snapshots) {
-                if (upsertExternalEvent(connection, snapshot, syncedAt)) {
+            allSnapshots.addAll(googleCalendarClient.listEvents(connection, calendarId, startAt, endAt));
+        }
+
+        // DB에서 해당 범위 기존 이벤트를 한 번에 조회 → Map 인덱싱
+        Map<String, ExternalCalendarEvent> existingByKey = externalCalendarEventRepository
+                .findAllByConnectionIdInRange(connection.getId(), startAt, endAt)
+                .stream()
+                .collect(Collectors.toMap(
+                        e -> e.getProviderCalendarId() + "|" + e.getProviderEventId(),
+                        e -> e
+                ));
+
+        // 메모리에서 upsert 판단, 신규만 배치 저장
+        List<ExternalCalendarEvent> toCreate = new ArrayList<>();
+        int syncedCount = 0;
+
+        for (ExternalCalendarEventSnapshot snapshot : allSnapshots) {
+            String key = snapshot.providerCalendarId() + "|" + snapshot.providerEventId();
+            ExternalCalendarEvent existing = existingByKey.get(key);
+
+            if (existing == null) {
+                if (!snapshot.deleted()) {
+                    toCreate.add(ExternalCalendarEvent.create(connection, snapshot, syncedAt));
                     syncedCount++;
                 }
+            } else {
+                existing.updateFrom(snapshot, syncedAt);
+                syncedCount++;
             }
         }
+
+        externalCalendarEventRepository.saveAll(toCreate);
 
         connection.markSynced(syncedAt);
         return new CalendarSyncResponse(connection.getId(), syncedAt, syncedCount);
@@ -121,26 +150,5 @@ public class CalendarConnectionService {
 
         GoogleCalendarClient.GoogleToken token = googleCalendarClient.refresh(connection);
         connection.updateAccessToken(token.accessToken(), token.expiresAt());
-    }
-
-    private boolean upsertExternalEvent(CalendarConnection connection, ExternalCalendarEventSnapshot snapshot, LocalDateTime syncedAt) {
-        ExternalCalendarEvent event = externalCalendarEventRepository
-                .findByConnectionIdAndProviderCalendarIdAndProviderEventId(
-                        connection.getId(),
-                        snapshot.providerCalendarId(),
-                        snapshot.providerEventId()
-                )
-                .orElse(null);
-
-        if (event == null) {
-            if (snapshot.deleted()) {
-                return false;
-            }
-            externalCalendarEventRepository.save(ExternalCalendarEvent.create(connection, snapshot, syncedAt));
-            return true;
-        }
-
-        event.updateFrom(snapshot, syncedAt);
-        return true;
     }
 }
