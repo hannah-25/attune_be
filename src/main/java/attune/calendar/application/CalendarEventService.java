@@ -38,7 +38,8 @@ public class CalendarEventService {
         Map<Long, String> colorByCategory = scheduleCategoryRepository
                 .findAllByUserIdAndIsActiveTrue(userId)
                 .stream()
-                .collect(Collectors.toMap(ScheduleCategory::getId, ScheduleCategory::getColor));
+                .collect(Collectors.toMap(ScheduleCategory::getId,
+                        category -> category.getColor() != null ? category.getColor() : "#FFFFFF"));
 
         Stream<CalendarEventResponse> schedules = scheduleRepository
                 .findAllInRange(userId, startAt, endAt, null)
