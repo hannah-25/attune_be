@@ -44,7 +44,7 @@ public class CalendarEventService {
         Stream<CalendarEventResponse> schedules = scheduleRepository
                 .findAllInRange(userId, startAt, endAt, null)
                 .stream()
-                .map((Schedule schedule) -> CalendarEventResponse.fromSchedule(schedule, colorByCategory.get(schedule.getScheduleCategoryId())));
+                .map((Schedule schedule) -> CalendarEventResponse.fromSchedule(schedule, colorByCategory.getOrDefault(schedule.getScheduleCategoryId(), "#FFFFFF")));
 
         Stream<CalendarEventResponse> externalEvents = externalCalendarEventRepository
                 .findAllInRange(userId, startAt, endAt)
