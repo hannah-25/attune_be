@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -99,8 +100,7 @@ public class CalendarConnection {
         if (selectedCalendarIds == null || selectedCalendarIds.isBlank()) {
             return List.of("primary");
         }
-        return List.of(selectedCalendarIds.split(","))
-                .stream()
+        return Arrays.stream(selectedCalendarIds.split(","))
                 .map(String::trim)
                 .filter(value -> !value.isBlank())
                 .toList();
