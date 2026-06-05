@@ -57,6 +57,10 @@ public class CalendarConnectionService {
                 .findByUserIdAndProvider(userId, CalendarProvider.GOOGLE)
                 .orElse(null);
 
+        if (connection == null && (token.refreshToken() == null || token.refreshToken().isBlank())) {
+            throw new BadRequestException("Google Calendar 연동을 위해 오프라인 액세스 권한이 필요합니다. access_type=offline으로 재인증해 주세요.");
+        }
+
         if (connection == null) {
             connection = CalendarConnection.google(
                     userId,
