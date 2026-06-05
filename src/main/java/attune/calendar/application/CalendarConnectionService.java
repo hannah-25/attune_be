@@ -105,7 +105,8 @@ public class CalendarConnectionService {
                 .stream()
                 .collect(Collectors.toMap(
                         e -> e.getProviderCalendarId() + "|" + e.getProviderEventId(),
-                        e -> e
+                        e -> e,
+                        (existing, replacement) -> existing
                 ));
 
         // 메모리에서 upsert 판단, 신규만 배치 저장
