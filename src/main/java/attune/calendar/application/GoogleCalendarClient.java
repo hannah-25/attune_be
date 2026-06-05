@@ -74,6 +74,7 @@ public class GoogleCalendarClient {
             Object email = response == null ? null : response.get("email");
             return email instanceof String value && !value.isBlank() ? value : null;
         } catch (RuntimeException e) {
+            log.warn("Failed to fetch Google account email", e);
             return null;
         }
     }
