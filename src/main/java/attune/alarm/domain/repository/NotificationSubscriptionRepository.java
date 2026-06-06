@@ -16,4 +16,6 @@ public interface NotificationSubscriptionRepository extends JpaRepository<Notifi
     Optional<NotificationSubscription> findByUserIdAndToken(UUID userId, String token);
 
     List<NotificationSubscription> findAllByTokenAndUserIdNotAndEnabledTrue(String token, UUID userId);
+
+    List<NotificationSubscription> findAllByEndpointAndUserIdNotAndEnabledTrue(String endpoint, UUID userId);
 }
