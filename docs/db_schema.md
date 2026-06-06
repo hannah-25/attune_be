@@ -27,6 +27,8 @@
 | medication_notification | BOOLEAN | DEFAULT true | 복약 알림 여부 |
 | report_notification | BOOLEAN | DEFAULT true | 리포트 알림 여부 |
 | marketing_notification | BOOLEAN | DEFAULT false | 마케팅 알림 여부 |
+| community_notification | BOOLEAN | DEFAULT true | 커뮤니티 댓글 알림 여부 |
+| todo_notification | BOOLEAN | DEFAULT true | Todo 마감 알림 여부 |
 | take_medication_on_holiday | BOOLEAN | DEFAULT false | 휴일 복약 여부 |
 | theme | VARCHAR(50) | DEFAULT SYSTEM (DARK, LIGHT, SYSTEM) | 테마 설정 |
 
@@ -414,4 +416,41 @@
 | is_completed | BOOLEAN | DEFAULT false | 완료 여부 |
 | is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
 | created_at | TIMESTAMP | NOT NULL | 생성일시 |
+
+---
+
+## NotificationSubscription (푸시 알람 구독 정보)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 구독 고유 식별자 |
+| user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
+| platform | VARCHAR(20) | NOT NULL | 플랫폼 Enum (WEB, ANDROID, IOS) |
+| provider | VARCHAR(20) | NOT NULL | 발송 채널 Enum (WEB_PUSH, FCM, APNS) |
+| endpoint | TEXT | | Web Push endpoint URL |
+| p256dh | TEXT | | Web Push 공개키 |
+| auth | TEXT | | Web Push 인증 시크릿 |
+| token | TEXT | | FCM / APNs 토큰 |
+| enabled | BOOLEAN | NOT NULL | 활성화 여부 |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |
+| updated_at | TIMESTAMP | NOT NULL | 수정일시 |
+| | | UNIQUE(user_id, endpoint) | Web Push 중복 방지 |
+| | | UNIQUE(user_id, token) | FCM/APNs 중복 방지 |
+
+---
+
+## NotificationHistory (알람 발송 이력)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 이력 고유 식별자 |
+| user_id | UUID | FK → User.id, NOT NULL | 수신 사용자 ID |
+| alarm_type | VARCHAR(50) | NOT NULL | 알람 유형 Enum (MEDICATION, SCHEDULE, TODO, REPORT, COMMUNITY, MARKETING) |
+| reference_id | BIGINT | | 연관 엔티티 ID (schedule_id, todo_id 등) |
+| alarm_scheduled_at | TIMESTAMP | NOT NULL | 예정 발송 시각 (중복 방지 기준) |
+| title | VARCHAR(255) | NOT NULL | 알람 제목 |
+| body | TEXT | | 알람 본문 |
+| status | VARCHAR(20) | NOT NULL | 발송 상태 Enum (SENT, FAILED, SKIPPED) |
+| sent_at | TIMESTAMP | NOT NULL | 실제 발송 시각 |
+| | | UNIQUE(user_id, alarm_type, reference_id, alarm_scheduled_at) | 중복 발송 방지 |
 

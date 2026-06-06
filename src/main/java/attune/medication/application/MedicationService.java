@@ -174,7 +174,7 @@ public class MedicationService {
             throw new BadRequestException("활성화된 복약 정보는 종료일을 가질 수 없습니다.");
         }
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
-        um.update(endAt, updateEndAt, request.isActive());
+        um.update(endAt, updateEndAt, request.isActive(), request.alarmActive());
         return UpdateMedicationResponse.from(um);
     }
 

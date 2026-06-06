@@ -33,4 +33,16 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     );
 
     boolean existsByScheduleCategoryIdAndIsDeletedFalse(Long scheduleCategoryId);
+
+    @Query("""
+            SELECT s FROM Schedule s
+            WHERE s.isDeleted = false
+              AND s.alarmEnabled = true
+              AND s.startTime >= :from
+              AND s.startTime <= :to
+            """)
+    List<Schedule> findAlarmEnabledInRange(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 }

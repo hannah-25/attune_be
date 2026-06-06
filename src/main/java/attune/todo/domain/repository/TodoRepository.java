@@ -27,4 +27,17 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+    @Query("""
+            SELECT t FROM Todo t
+            WHERE t.isDeleted = false
+              AND t.isCompleted = false
+              AND t.isAllDay = false
+              AND t.dueAt >= :from
+              AND t.dueAt < :to
+            """)
+    List<Todo> findAlarmCandidates(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 }

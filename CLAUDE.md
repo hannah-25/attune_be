@@ -47,6 +47,7 @@ attune/<domain>/
 | `medication` | 약물 마스터, 사용자 복약 정보, 스케줄, 복약 로그 |
 | `consultation` | 진료 일정·기록 관리 |
 | `notice` | 공지사항 |
+| `alarm` | 푸시 알람 구독 관리, 발송 이력, 스케줄러(복약·일정·Todo·리포트), 이벤트 리스너(댓글), 어드민 마케팅 발송 |
 | `communityBoard` | 커뮤니티 게시글·댓글 (`feat/board` 브랜치에서 개발 중) |
 | `common` | `SecurityConfig`, `JwtAuthenticationFilter`, `JwtProvider`, `GlobalExceptionHandler`, 공유 유틸 |
 

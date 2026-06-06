@@ -16,6 +16,7 @@ public record UserMedicationListItemResponse(
         BigDecimal dosageAmount,
         Long consultationId,
         boolean isActive,
+        boolean alarmActive,
         LocalDate startedAt,
         LocalDate endAt,
         List<ScheduleEntry> schedules
@@ -44,6 +45,7 @@ public record UserMedicationListItemResponse(
                 userMedication.getMedicationDosage().getAmount(),
                 userMedication.getConsultation() == null ? null : userMedication.getConsultation().getId(),
                 Boolean.TRUE.equals(userMedication.getIsActive()),
+                Boolean.TRUE.equals(userMedication.getAlarmActive()),
                 userMedication.getStartedAt(),
                 userMedication.getEndAt(),
                 schedules.stream().map(ScheduleEntry::from).toList()
