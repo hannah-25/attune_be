@@ -1,16 +1,15 @@
 package attune.alarm.application;
 
 import attune.alarm.domain.model.NotificationAlarmType;
-import attune.alarm.domain.model.NotificationHistory;
 import attune.alarm.domain.model.NotificationStatus;
-import attune.alarm.domain.repository.NotificationHistoryRepository;
-import attune.alarm.domain.repository.NotificationSubscriptionRepository;
+import attune.alarm.domain.model.NotificationSubscription;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -18,58 +17,60 @@ import java.util.UUID;
 @Service
 public class NotificationService {
 
-    private final NotificationSubscriptionRepository subscriptionRepository;
-    private final NotificationHistoryRepository historyRepository;
+    private final NotificationTxOperations txOps;
     private final PushSender pushSender;
 
-    @Transactional
+    /**
+     * 사용자에게 푸시 알람을 발송한다.
+     *
+     * DB 커넥션 점유를 최소화하기 위해 트랜잭션 범위를 분리한다:
+     *   TX1(readOnly) → 중복 확인 + 구독 조회 → TX1 종료
+     *   외부 API 호출 (DB 커넥션 없음)
+     *   TX2(write) → 발송 이력 저장 → TX2 종료
+     */
     public void sendToUser(UUID userId,
                            NotificationAlarmType alarmType,
                            Long referenceId,
                            LocalDateTime scheduledAt,
                            PushMessage message) {
 
-        if (historyRepository.existsByUserIdAndAlarmTypeAndReferenceIdAndAlarmScheduledAt(
-                userId, alarmType, referenceId, scheduledAt)) {
-            log.debug("[ALARM SKIP] already sent userId={} type={} refId={} at={}", userId, alarmType, referenceId, scheduledAt);
+        // TX1: 중복 확인 + 구독 조회 (readOnly, 즉시 종료)
+        Optional<List<NotificationSubscription>> precheckResult =
+                txOps.precheck(userId, alarmType, referenceId, scheduledAt);
+
+        if (precheckResult.isEmpty()) {
+            log.debug("[ALARM SKIP] already sent userId={} type={} refId={} at={}",
+                    userId, alarmType, referenceId, scheduledAt);
             return;
         }
 
-        var subscriptions = subscriptionRepository.findAllByUserIdAndEnabledTrue(userId);
+        List<NotificationSubscription> subscriptions = precheckResult.get();
 
         if (subscriptions.isEmpty()) {
-            saveHistory(userId, alarmType, referenceId, scheduledAt, message, NotificationStatus.SKIPPED);
+            txOps.saveHistory(userId, alarmType, referenceId, scheduledAt, message, NotificationStatus.SKIPPED);
             return;
         }
 
-        NotificationStatus finalStatus = NotificationStatus.SENT;
-        for (var subscription : subscriptions) {
+        // 외부 API 호출 — DB 커넥션 없음
+        NotificationStatus status = sendAll(subscriptions, message, userId);
+
+        // TX2: 이력 저장 (write, 즉시 종료)
+        txOps.saveHistory(userId, alarmType, referenceId, scheduledAt, message, status);
+    }
+
+    private NotificationStatus sendAll(List<NotificationSubscription> subscriptions,
+                                       PushMessage message,
+                                       UUID userId) {
+        NotificationStatus status = NotificationStatus.SENT;
+        for (NotificationSubscription subscription : subscriptions) {
             try {
                 pushSender.send(subscription, message);
             } catch (Exception e) {
-                log.warn("[ALARM FAIL] userId={} subscriptionId={} error={}", userId, subscription.getId(), e.getMessage());
-                finalStatus = NotificationStatus.FAILED;
+                log.warn("[ALARM FAIL] userId={} subscriptionId={} error={}",
+                        userId, subscription.getId(), e.getMessage());
+                status = NotificationStatus.FAILED;
             }
         }
-
-        saveHistory(userId, alarmType, referenceId, scheduledAt, message, finalStatus);
-    }
-
-    private void saveHistory(UUID userId,
-                             NotificationAlarmType alarmType,
-                             Long referenceId,
-                             LocalDateTime scheduledAt,
-                             PushMessage message,
-                             NotificationStatus status) {
-        historyRepository.save(NotificationHistory.builder()
-                .userId(userId)
-                .alarmType(alarmType)
-                .referenceId(referenceId)
-                .alarmScheduledAt(scheduledAt)
-                .title(message.title())
-                .body(message.body())
-                .status(status)
-                .sentAt(LocalDateTime.now())
-                .build());
+        return status;
     }
 }
