@@ -35,7 +35,7 @@ public class NotificationSubscription {
     @Column(nullable = false, length = 20)
     private NotificationProvider provider;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 2048)
     private String endpoint;
 
     @Column(columnDefinition = "TEXT")
@@ -44,7 +44,7 @@ public class NotificationSubscription {
     @Column(columnDefinition = "TEXT")
     private String auth;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 500)
     private String token;
 
     @Column(nullable = false)
