@@ -6,6 +6,7 @@ import attune.user.domain.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +50,6 @@ public class AdminNotificationSender {
     }
 
     private List<UserSetting> loadBatch(int page) {
-        return userSettingRepository.findAllByMarketingNotificationTrue(PageRequest.of(page, BATCH_SIZE));
+        return userSettingRepository.findAllByMarketingNotificationTrue(PageRequest.of(page, BATCH_SIZE, Sort.by("id").ascending()));
     }
 }

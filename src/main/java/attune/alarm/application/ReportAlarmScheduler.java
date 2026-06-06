@@ -6,6 +6,7 @@ import attune.user.domain.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +50,6 @@ public class ReportAlarmScheduler {
 
     @Transactional(readOnly = true)
     public List<UserSetting> loadBatch(int page) {
-        return userSettingRepository.findAllByReportNotificationTrue(PageRequest.of(page, BATCH_SIZE));
+        return userSettingRepository.findAllByReportNotificationTrue(PageRequest.of(page, BATCH_SIZE, Sort.by("id").ascending()));
     }
 }

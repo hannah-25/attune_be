@@ -59,11 +59,13 @@ public class NotificationSubscription {
     public void updateKeys(String p256dh, String auth) {
         this.p256dh = p256dh;
         this.auth = auth;
+        this.enabled = true;
         this.updatedAt = LocalDateTime.now();
     }
 
     public void updateToken(String token) {
         this.token = token;
+        this.enabled = true;
         this.updatedAt = LocalDateTime.now();
     }
 

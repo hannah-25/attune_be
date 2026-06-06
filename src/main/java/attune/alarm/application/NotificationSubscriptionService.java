@@ -51,6 +51,9 @@ public class NotificationSubscriptionService {
     }
 
     private SubscriptionResponse registerTokenBased(UUID userId, RegisterSubscriptionRequest request) {
+        subscriptionRepository.findAllByTokenAndUserIdNotAndEnabledTrue(request.token(), userId)
+                .forEach(NotificationSubscription::disable);
+
         NotificationSubscription subscription = subscriptionRepository
                 .findByUserIdAndToken(userId, request.token())
                 .map(existing -> {
