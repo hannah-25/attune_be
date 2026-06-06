@@ -5,6 +5,7 @@ import attune.notice.domain.model.Notice;
 import attune.notice.domain.repository.NoticeRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,16 +35,18 @@ class AdminNotificationServiceTest {
         AdminNotificationSender adminNotificationSender = mock(AdminNotificationSender.class);
         AdminNotificationService service = new AdminNotificationService(noticeRepository, adminNotificationSender);
         Long noticeId = 1L;
+        LocalDateTime createdAt = LocalDateTime.of(2025, 6, 1, 10, 0);
         Notice notice = Notice.builder()
                 .id(noticeId)
                 .title("title")
                 .content("content")
+                .createdAt(createdAt)
                 .build();
 
         when(noticeRepository.findByIdAndIsDeletedFalse(noticeId)).thenReturn(Optional.of(notice));
 
         service.sendNoticeToAll(noticeId);
 
-        verify(adminNotificationSender).sendNoticeToAll(noticeId, "title", "content");
+        verify(adminNotificationSender).sendNoticeToAll(noticeId, "title", "content", createdAt);
     }
 }

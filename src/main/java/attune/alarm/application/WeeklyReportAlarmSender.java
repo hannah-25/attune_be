@@ -10,9 +10,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Slf4j
@@ -28,7 +28,7 @@ public class WeeklyReportAlarmSender {
     @Async("weeklyReportAlarmExecutor")
     public void send() {
         long weekId = LocalDate.now().toEpochDay() / 7;
-        LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime scheduledAt = LocalDate.now().with(DayOfWeek.MONDAY).atTime(9, 0);
         PushMessage message = new PushMessage(
                 "\uC8FC\uAC04 \uB9AC\uD3EC\uD2B8",
                 "\uC9C0\uB09C \uC8FC \uBCF5\uC57D \uB9AC\uD3EC\uD2B8\uAC00 \uC900\uBE44\uB410\uC5B4\uC694.",

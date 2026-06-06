@@ -113,6 +113,41 @@ class NotificationServiceTest {
         verify(txOps).disableSubscriptions(List.of(99L));
     }
 
+    @Test
+    void returnsSentWhenAtLeastOneSubscriptionSucceedsAndOtherIsInvalid() {
+        NotificationSubscription validSub = mock(NotificationSubscription.class);
+        NotificationSubscription invalidSub = mock(NotificationSubscription.class);
+        when(invalidSub.getId()).thenReturn(77L);
+        NotificationTxOperations.ClaimResult claim = new NotificationTxOperations.ClaimResult(
+                historyWithId(5L), List.of(validSub, invalidSub)
+        );
+        when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
+        when(txOps.updateHistoryStatus(eq(5L), any(), eq(NotificationStatus.SENT))).thenReturn(true);
+        doThrow(new InvalidSubscriptionException("expired")).when(pushSender).send(invalidSub, MESSAGE);
+
+        NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
+
+        assertThat(result).isEqualTo(NotificationStatus.SENT);
+        verify(txOps).disableSubscriptions(List.of(77L));
+    }
+
+    @Test
+    void returnsFailedWhenAllSubscriptionsFail() {
+        NotificationSubscription sub1 = mock(NotificationSubscription.class);
+        NotificationSubscription sub2 = mock(NotificationSubscription.class);
+        NotificationTxOperations.ClaimResult claim = new NotificationTxOperations.ClaimResult(
+                historyWithId(6L), List.of(sub1, sub2)
+        );
+        when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
+        when(txOps.updateHistoryStatus(eq(6L), any(), eq(NotificationStatus.FAILED))).thenReturn(true);
+        doThrow(new RuntimeException("network error")).when(pushSender).send(sub1, MESSAGE);
+        doThrow(new RuntimeException("network error")).when(pushSender).send(sub2, MESSAGE);
+
+        NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
+
+        assertThat(result).isEqualTo(NotificationStatus.FAILED);
+    }
+
     private attune.alarm.domain.model.NotificationHistory historyWithId(Long id) {
         return attune.alarm.domain.model.NotificationHistory.builder()
                 .id(id)

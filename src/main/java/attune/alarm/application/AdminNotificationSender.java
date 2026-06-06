@@ -11,7 +11,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Slf4j
@@ -25,8 +24,7 @@ public class AdminNotificationSender {
     private final NotificationService notificationService;
 
     @Async
-    public void sendNoticeToAll(Long noticeId, String title, String content) {
-        LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+    public void sendNoticeToAll(Long noticeId, String title, String content, LocalDateTime scheduledAt) {
         PushMessage message = new PushMessage(title, content, null);
 
         log.info("[MARKETING PUSH] noticeId={} title=\"{}\"", noticeId, title);

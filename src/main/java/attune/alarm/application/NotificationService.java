@@ -91,23 +91,23 @@ public class NotificationService {
     private SendResult sendAll(List<NotificationSubscription> subscriptions,
                                PushMessage message,
                                UUID userId) {
-        NotificationStatus status = NotificationStatus.SENT;
+        boolean anySuccess = false;
         List<Long> invalidIds = new ArrayList<>();
 
         for (NotificationSubscription subscription : subscriptions) {
             try {
                 pushSender.send(subscription, message);
+                anySuccess = true;
             } catch (InvalidSubscriptionException e) {
                 log.warn("[ALARM INVALID SUBSCRIPTION] userId={} subscriptionId={} error={}",
                         userId, subscription.getId(), e.getMessage());
                 invalidIds.add(subscription.getId());
-                status = NotificationStatus.FAILED;
             } catch (Exception e) {
                 log.warn("[ALARM FAIL] userId={} subscriptionId={} error={}",
                         userId, subscription.getId(), e.getMessage());
-                status = NotificationStatus.FAILED;
             }
         }
+        NotificationStatus status = anySuccess ? NotificationStatus.SENT : NotificationStatus.FAILED;
         return new SendResult(status, invalidIds);
     }
 }

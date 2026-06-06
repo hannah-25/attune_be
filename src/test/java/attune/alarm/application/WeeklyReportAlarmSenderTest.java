@@ -9,13 +9,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -45,14 +46,17 @@ class WeeklyReportAlarmSenderTest {
 
         sender.send();
 
+        ArgumentCaptor<LocalDateTime> scheduledAtCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<PushMessage> messageCaptor = ArgumentCaptor.forClass(PushMessage.class);
         verify(notificationService).sendToUser(
                 eq(userId),
                 eq(NotificationAlarmType.REPORT),
                 anyLong(),
-                any(LocalDateTime.class),
+                scheduledAtCaptor.capture(),
                 messageCaptor.capture()
         );
+        LocalDateTime expectedScheduledAt = LocalDate.now().with(DayOfWeek.MONDAY).atTime(9, 0);
+        assertEquals(expectedScheduledAt, scheduledAtCaptor.getValue());
         assertEquals("\uC8FC\uAC04 \uB9AC\uD3EC\uD2B8", messageCaptor.getValue().title());
     }
 }

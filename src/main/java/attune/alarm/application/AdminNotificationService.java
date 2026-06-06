@@ -17,7 +17,7 @@ public class AdminNotificationService {
     @Transactional(readOnly = true)
     public void sendNoticeToAll(Long noticeId) {
         Notice notice = loadNotice(noticeId);
-        adminNotificationSender.sendNoticeToAll(noticeId, notice.getTitle(), notice.getContent());
+        adminNotificationSender.sendNoticeToAll(noticeId, notice.getTitle(), notice.getContent(), notice.getCreatedAt());
     }
 
     private Notice loadNotice(Long noticeId) {
