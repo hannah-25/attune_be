@@ -9,7 +9,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "schedule_alarms",
-        indexes = @Index(name = "idx_schedule_alarm_at", columnList = "alarm_at")
+        indexes = {
+                @Index(name = "idx_schedule_alarm_at", columnList = "alarm_at"),
+                @Index(name = "idx_schedule_alarm_schedule_id", columnList = "schedule_id")
+        }
 )
 @Builder
 @AllArgsConstructor
