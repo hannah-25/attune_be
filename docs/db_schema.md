@@ -359,9 +359,20 @@
 | isAllDay | BOOLEAN | DEFAULT false | 종일 일정 여부 |
 | startTime | TIMESTAMP | NOT NULL | 시작일시 |
 | endTime | TIMESTAMP | NOT NULL | 종료일시 |
-| alarmEnabled | BOOLEAN | DEFAULT false | 알림 여부 |
-| alarmedAt | TIMESTAMP | | 알림 발송일시 |
+| alarmEnabled | BOOLEAN | DEFAULT false | 알림 사용 여부 |
 | isActive | BOOLEAN | DEFAULT true | 일정 활성화 여부 |
+
+---
+
+## ScheduleAlarm (일정 알람 시각)
+
+알림 시각을 별도 테이블로 분리하여 인덱스 기반 조회 지원.
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 알람 고유 식별자 |
+| schedule_id | BIGINT | FK → Schedule.id, NOT NULL | 일정 ID |
+| alarm_at | TIMESTAMP | NOT NULL, INDEX(idx_schedule_alarm_at) | 알람 발송 예정 시각 |
 
 ---
 

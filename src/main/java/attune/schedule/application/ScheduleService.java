@@ -8,8 +8,10 @@ import attune.schedule.application.dto.request.UpdateAlarmsRequest;
 import attune.schedule.application.dto.request.UpdateScheduleRequest;
 import attune.schedule.application.dto.response.*;
 import attune.schedule.domain.model.Schedule;
+import attune.schedule.domain.model.ScheduleAlarm;
 import attune.schedule.domain.model.ScheduleCategory;
 import attune.schedule.domain.model.ScheduleSource;
+import attune.schedule.domain.repository.ScheduleAlarmRepository;
 import attune.schedule.domain.repository.ScheduleCategoryRepository;
 import attune.schedule.domain.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final ScheduleCategoryRepository scheduleCategoryRepository;
+    private final ScheduleAlarmRepository scheduleAlarmRepository;
 
     @Transactional
     public CreateScheduleResponse createSchedule(CreateScheduleRequest request) {
@@ -52,13 +55,16 @@ public class ScheduleService {
                 .startTime(range.start())
                 .endTime(range.end())
                 .alarmEnabled(request.alarmEnabled())
-                .alarmedAt(request.alarmEnabled() && request.alarmedAt() != null
-                        ? request.alarmedAt()
-                        : Collections.emptyList())
                 .isDeleted(false)
                 .build();
 
-        return CreateScheduleResponse.from(scheduleRepository.save(schedule));
+        Schedule saved = scheduleRepository.save(schedule);
+
+        if (request.alarmEnabled() && request.alarmedAt() != null && !request.alarmedAt().isEmpty()) {
+            saveAlarms(saved, request.alarmedAt());
+        }
+
+        return CreateScheduleResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +75,9 @@ public class ScheduleService {
         if (!schedule.getUserId().equals(userId)) {
             throw new ScheduleNotFoundException();
         }
-        return ScheduleDetailResponse.from(schedule);
+        List<LocalDateTime> alarms = scheduleAlarmRepository.findAllByScheduleId(scheduleId)
+                .stream().map(ScheduleAlarm::getAlarmAt).toList();
+        return ScheduleDetailResponse.of(schedule, alarms);
     }
 
     @Transactional(readOnly = true)
@@ -123,22 +131,20 @@ public class ScheduleService {
                 effectiveAllDay,
                 range.start(),
                 range.end(),
-                request.alarmEnabled(),
-                request.alarmedAt()
+                request.alarmEnabled()
         );
+
+        if (request.alarmedAt() != null) {
+            scheduleAlarmRepository.deleteAllByScheduleId(scheduleId);
+            if (schedule.isAlarmEnabled() && !request.alarmedAt().isEmpty()) {
+                saveAlarms(schedule, request.alarmedAt());
+            }
+        } else if (Boolean.FALSE.equals(request.alarmEnabled())) {
+            scheduleAlarmRepository.deleteAllByScheduleId(scheduleId);
+        }
 
         return UpdateScheduleResponse.from(schedule);
     }
-
-    private TimeRange normalizeIfAllDay(boolean isAllDay, LocalDateTime start, LocalDateTime end) {
-        if (!isAllDay) return new TimeRange(start, end);
-        return new TimeRange(
-                start.toLocalDate().atStartOfDay(),
-                end.toLocalDate().plusDays(1).atStartOfDay()
-        );
-    }
-
-    private record TimeRange(LocalDateTime start, LocalDateTime end) {}
 
     @Transactional
     public void deleteSchedule(Long scheduleId) {
@@ -148,6 +154,7 @@ public class ScheduleService {
         if (!schedule.getUserId().equals(userId)) {
             throw new ScheduleNotFoundException();
         }
+        scheduleAlarmRepository.deleteAllByScheduleId(scheduleId);
         schedule.delete();
     }
 
@@ -160,9 +167,35 @@ public class ScheduleService {
             throw new ScheduleNotFoundException();
         }
 
-        List<LocalDateTime> alarmedAt = request.alarmedAt() != null ? request.alarmedAt() : Collections.emptyList();
-        schedule.updateAlarms(request.alarmEnabled(), alarmedAt);
+        schedule.updateAlarmEnabled(request.alarmEnabled());
+        scheduleAlarmRepository.deleteAllByScheduleId(scheduleId);
 
-        return UpdateAlarmsResponse.from(schedule);
+        List<LocalDateTime> alarmedAt = Collections.emptyList();
+        if (request.alarmEnabled() && request.alarmedAt() != null && !request.alarmedAt().isEmpty()) {
+            alarmedAt = request.alarmedAt();
+            saveAlarms(schedule, alarmedAt);
+        }
+
+        return new UpdateAlarmsResponse(scheduleId, alarmedAt);
     }
+
+    private void saveAlarms(Schedule schedule, List<LocalDateTime> alarmTimes) {
+        List<ScheduleAlarm> alarms = alarmTimes.stream()
+                .map(t -> ScheduleAlarm.builder()
+                        .schedule(schedule)
+                        .alarmAt(t)
+                        .build())
+                .toList();
+        scheduleAlarmRepository.saveAll(alarms);
+    }
+
+    private TimeRange normalizeIfAllDay(boolean isAllDay, LocalDateTime start, LocalDateTime end) {
+        if (!isAllDay) return new TimeRange(start, end);
+        return new TimeRange(
+                start.toLocalDate().atStartOfDay(),
+                end.toLocalDate().plusDays(1).atStartOfDay()
+        );
+    }
+
+    private record TimeRange(LocalDateTime start, LocalDateTime end) {}
 }
