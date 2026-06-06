@@ -3,6 +3,7 @@ package attune.alarm.application;
 import attune.alarm.application.dto.request.RegisterSubscriptionRequest;
 import attune.alarm.application.dto.response.SubscriptionResponse;
 import attune.alarm.domain.model.NotificationSubscription;
+import attune.alarm.domain.model.NotificationProvider;
 import attune.alarm.domain.repository.NotificationSubscriptionRepository;
 import attune.common.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ public class NotificationSubscriptionService {
     public SubscriptionResponse register(RegisterSubscriptionRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
 
-        if (request.endpoint() != null) {
+        if (request.provider() == NotificationProvider.WEB_PUSH) {
             return registerWebPush(userId, request);
         }
         return registerTokenBased(userId, request);

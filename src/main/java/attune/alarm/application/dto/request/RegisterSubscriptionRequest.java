@@ -4,6 +4,7 @@ import attune.alarm.domain.model.NotificationPlatform;
 import attune.alarm.domain.model.NotificationProvider;
 import jakarta.validation.constraints.NotNull;
 
+@ValidSubscriptionCredentials
 public record RegisterSubscriptionRequest(
         @NotNull NotificationPlatform platform,
         @NotNull NotificationProvider provider,
