@@ -32,7 +32,7 @@ public class ScheduleAlarmScheduler {
 
         // alarmedAt이 JSON TEXT이므로 Java에서 필터링
         candidates.stream()
-                .filter(s -> s.getAlarmedAt() != null && s.getAlarmedAt().contains(now))
+                .filter(s -> s.getAlarmedAt() != null && s.getAlarmedAt().contains(now.toString()))
                 .forEach(schedule -> notificationService.sendToUser(
                         schedule.getUserId(),
                         NotificationAlarmType.SCHEDULE,
