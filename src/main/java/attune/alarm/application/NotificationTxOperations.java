@@ -40,7 +40,7 @@ public class NotificationTxOperations {
                                                   Long referenceId,
                                                   LocalDateTime scheduledAt,
                                                   PushMessage message) {
-        LocalDateTime claimedAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        LocalDateTime claimedAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         NotificationHistory history = historyRepository.saveAndFlush(
                 NotificationHistory.builder()
                         .userId(userId)
