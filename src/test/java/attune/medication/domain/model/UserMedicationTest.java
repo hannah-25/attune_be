@@ -19,7 +19,7 @@ class UserMedicationTest {
                 .updatedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build();
 
-        userMedication.update(null, true, true);
+        userMedication.update(null, true, true, null);
 
         assertNull(userMedication.getEndAt());
         assertEquals(true, userMedication.getIsActive());
@@ -34,7 +34,7 @@ class UserMedicationTest {
                 .updatedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build();
 
-        userMedication.update(null, false, true);
+        userMedication.update(null, false, true, null);
 
         assertNull(userMedication.getEndAt());
         assertEquals(true, userMedication.getIsActive());
@@ -50,7 +50,7 @@ class UserMedicationTest {
                 .updatedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build();
 
-        userMedication.update(null, false, null);
+        userMedication.update(null, false, null, null);
 
         assertEquals(existingEndAt, userMedication.getEndAt());
         assertEquals(false, userMedication.getIsActive());
