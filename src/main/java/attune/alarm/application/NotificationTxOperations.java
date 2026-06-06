@@ -7,6 +7,7 @@ import attune.alarm.domain.model.NotificationSubscription;
 import attune.alarm.domain.repository.NotificationHistoryRepository;
 import attune.alarm.domain.repository.NotificationSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.util.UUID;
  * NotificationService의 DB 트랜잭션 경계를 분리하기 위한 헬퍼 빈.
  * 외부 API 호출(pushSender.send)은 이 클래스 밖에서 수행하여 커넥션 점유를 최소화한다.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class NotificationTxOperations {
@@ -40,6 +42,13 @@ public class NotificationTxOperations {
             return Optional.empty();
         }
         return Optional.of(subscriptionRepository.findAllByUserIdAndEnabledTrue(userId));
+    }
+
+    @Transactional
+    public void disableSubscriptions(List<Long> subscriptionIds) {
+        List<NotificationSubscription> targets = subscriptionRepository.findAllById(subscriptionIds);
+        targets.forEach(NotificationSubscription::disable);
+        log.info("[ALARM SUBSCRIPTION DISABLED] ids={}", subscriptionIds);
     }
 
     @Transactional

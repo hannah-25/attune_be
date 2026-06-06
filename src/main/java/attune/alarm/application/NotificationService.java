@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,25 +53,39 @@ public class NotificationService {
         }
 
         // 외부 API 호출 — DB 커넥션 없음
-        NotificationStatus status = sendAll(subscriptions, message, userId);
+        SendResult result = sendAll(subscriptions, message, userId);
 
-        // TX2: 이력 저장 (write, 즉시 종료)
-        txOps.saveHistory(userId, alarmType, referenceId, scheduledAt, message, status);
+        // TX2: 무효 구독 비활성화 (invalidIds가 있을 때만)
+        if (!result.invalidSubscriptionIds().isEmpty()) {
+            txOps.disableSubscriptions(result.invalidSubscriptionIds());
+        }
+
+        // TX3: 이력 저장 (write, 즉시 종료)
+        txOps.saveHistory(userId, alarmType, referenceId, scheduledAt, message, result.status());
     }
 
-    private NotificationStatus sendAll(List<NotificationSubscription> subscriptions,
-                                       PushMessage message,
-                                       UUID userId) {
+    private record SendResult(NotificationStatus status, List<Long> invalidSubscriptionIds) {}
+
+    private SendResult sendAll(List<NotificationSubscription> subscriptions,
+                               PushMessage message,
+                               UUID userId) {
         NotificationStatus status = NotificationStatus.SENT;
+        List<Long> invalidIds = new ArrayList<>();
+
         for (NotificationSubscription subscription : subscriptions) {
             try {
                 pushSender.send(subscription, message);
+            } catch (InvalidSubscriptionException e) {
+                log.warn("[ALARM INVALID SUBSCRIPTION] userId={} subscriptionId={} error={}",
+                        userId, subscription.getId(), e.getMessage());
+                invalidIds.add(subscription.getId());
+                status = NotificationStatus.FAILED;
             } catch (Exception e) {
                 log.warn("[ALARM FAIL] userId={} subscriptionId={} error={}",
                         userId, subscription.getId(), e.getMessage());
                 status = NotificationStatus.FAILED;
             }
         }
-        return status;
+        return new SendResult(status, invalidIds);
     }
 }

@@ -6,9 +6,10 @@ import attune.user.domain.model.UserSetting;
 import attune.user.domain.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -22,7 +23,7 @@ public class CommunityAlarmEventListener {
     private final NotificationService notificationService;
 
     @Async
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleCommentCreated(CommentCreatedEvent event) {
         UserSetting setting = userSettingRepository.findById(event.postAuthorId()).orElse(null);
         if (setting == null || !setting.isCommunityNotification()) return;
