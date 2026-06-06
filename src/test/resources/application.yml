@@ -43,6 +43,11 @@ cors:
 app:
   frontend-url: http://localhost:3000
 
+ai:
+  gemini:
+    api-key: test-gemini-api-key
+    model: gemini-2.5-flash
+
 oauth:
   google:
     client-ids: test-google-client-id

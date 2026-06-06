@@ -372,7 +372,8 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 알람 고유 식별자 |
 | schedule_id | BIGINT | FK → Schedule.id, NOT NULL | 일정 ID |
-| alarm_at | TIMESTAMP | NOT NULL, INDEX(idx_schedule_alarm_at) | 알람 발송 예정 시각 |
+| alarm_at | TIMESTAMP | NOT NULL, INDEX(idx_schedule_alarm_sent_at with is_sent) | 알람 발송 예정 시각 |
+| is_sent | BOOLEAN | NOT NULL, DEFAULT false, INDEX(idx_schedule_alarm_sent_at with alarm_at) | 알람 발송 완료 여부 |
 
 ---
 
@@ -461,7 +462,7 @@
 | alarm_scheduled_at | TIMESTAMP | NOT NULL | 예정 발송 시각 (중복 방지 기준) |
 | title | VARCHAR(255) | NOT NULL | 알람 제목 |
 | body | TEXT | | 알람 본문 |
-| status | VARCHAR(20) | NOT NULL | 발송 상태 Enum (SENT, FAILED, SKIPPED) |
-| sent_at | TIMESTAMP | NOT NULL | 실제 발송 시각 |
+| status | VARCHAR(20) | NOT NULL | 발송 상태 Enum (SENDING, SENT, FAILED, SKIPPED) |
+| sent_at | TIMESTAMP | NOT NULL | 최근 발송 선점/시도 시각 |
 | | | UNIQUE(user_id, alarm_type, reference_id, alarm_scheduled_at) | 중복 발송 방지 |
 

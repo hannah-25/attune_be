@@ -30,11 +30,24 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
 
     @Query("""
             SELECT t FROM Todo t
+            JOIN User u ON u.id = t.userId
             WHERE t.isDeleted = false
               AND t.isCompleted = false
               AND t.isAllDay = false
               AND t.dueAt >= :from
               AND t.dueAt < :to
+              AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
+              AND NOT EXISTS (
+                  SELECT 1 FROM NotificationHistory nh
+                  WHERE nh.userId = t.userId
+                    AND nh.alarmType = attune.alarm.domain.model.NotificationAlarmType.TODO
+                    AND nh.referenceId = t.id
+                    AND nh.alarmScheduledAt = t.dueAt
+                    AND nh.status IN (
+                        attune.alarm.domain.model.NotificationStatus.SENT,
+                        attune.alarm.domain.model.NotificationStatus.SKIPPED
+                    )
+              )
             """)
     List<Todo> findAlarmCandidates(
             @Param("from") LocalDateTime from,

@@ -30,6 +30,9 @@ public class NotificationSubscriptionService {
     }
 
     private SubscriptionResponse registerWebPush(UUID userId, RegisterSubscriptionRequest request) {
+        subscriptionRepository.findAllByEndpointAndUserIdNotAndEnabledTrue(request.endpoint(), userId)
+                .forEach(NotificationSubscription::disable);
+
         NotificationSubscription subscription = subscriptionRepository
                 .findByUserIdAndEndpoint(userId, request.endpoint())
                 .map(existing -> {

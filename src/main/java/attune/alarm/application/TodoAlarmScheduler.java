@@ -44,7 +44,7 @@ public class TodoAlarmScheduler {
                     todo.getUserId(),
                     NotificationAlarmType.TODO,
                     todo.getId(),
-                    now,
+                    todo.getDueAt(),
                     new PushMessage(todo.getText(), "할 일 마감 시간이에요.", null)
             );
         }
@@ -52,7 +52,7 @@ public class TodoAlarmScheduler {
 
     @Transactional(readOnly = true)
     public List<Todo> loadCandidates(LocalDateTime now) {
-        return todoRepository.findAlarmCandidates(now, now.plusMinutes(1));
+        return todoRepository.findAlarmCandidates(now.minusHours(1), now.plusMinutes(1));
     }
 
     @Transactional(readOnly = true)

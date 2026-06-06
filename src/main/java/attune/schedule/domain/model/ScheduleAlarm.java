@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(
         name = "schedule_alarms",
         indexes = {
-                @Index(name = "idx_schedule_alarm_at", columnList = "alarm_at"),
+                @Index(name = "idx_schedule_alarm_sent_at", columnList = "is_sent, alarm_at"),
                 @Index(name = "idx_schedule_alarm_schedule_id", columnList = "schedule_id")
         }
 )
@@ -29,4 +29,8 @@ public class ScheduleAlarm {
 
     @Column(name = "alarm_at", nullable = false)
     private LocalDateTime alarmAt;
+
+    @Builder.Default
+    @Column(name = "is_sent", nullable = false)
+    private boolean isSent = false;
 }

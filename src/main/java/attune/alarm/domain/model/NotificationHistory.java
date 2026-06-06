@@ -48,4 +48,8 @@ public class NotificationHistory {
 
     @Column(nullable = false)
     private LocalDateTime sentAt;
+
+    public void updateStatus(NotificationStatus status) {
+        this.status = status;
+    }
 }

@@ -1,17 +1,16 @@
 package attune.alarm.application;
 
-import attune.alarm.domain.model.NotificationAlarmType;
-import attune.alarm.domain.model.NotificationHistory;
-import attune.alarm.domain.model.NotificationStatus;
-import attune.alarm.domain.model.NotificationSubscription;
+import attune.alarm.domain.model.*;
 import attune.alarm.domain.repository.NotificationHistoryRepository;
 import attune.alarm.domain.repository.NotificationSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,20 +27,79 @@ public class NotificationTxOperations {
     private final NotificationHistoryRepository historyRepository;
     private final NotificationSubscriptionRepository subscriptionRepository;
 
+    record ClaimResult(NotificationHistory history, List<NotificationSubscription> subscriptions) {}
+
     /**
-     * 중복 발송 여부를 확인하고, 발송 대상 구독 목록을 반환한다.
-     * @return 이미 발송됐으면 empty, 아니면 활성 구독 목록 (빈 리스트 포함)
+     * SENDING 상태로 발송 이력을 선점 INSERT하고 활성 구독 목록을 함께 반환한다.
+     * REQUIRES_NEW로 즉시 커밋하므로, 동일 요청이 경쟁하면 한쪽에서 DataIntegrityViolationException이 발생한다.
+     * saveAndFlush로 UNIQUE 제약 위반을 커밋 전에 강제 감지한다.
      */
-    @Transactional(readOnly = true)
-    public Optional<List<NotificationSubscription>> precheck(UUID userId,
-                                                              NotificationAlarmType alarmType,
-                                                              Long referenceId,
-                                                              LocalDateTime alarmScheduledAt) {
-        if (historyRepository.existsByUserIdAndAlarmTypeAndReferenceIdAndAlarmScheduledAt(
-                userId, alarmType, referenceId, alarmScheduledAt)) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public ClaimResult claimAndLoadSubscriptions(UUID userId,
+                                                  NotificationAlarmType alarmType,
+                                                  Long referenceId,
+                                                  LocalDateTime scheduledAt,
+                                                  PushMessage message) {
+        LocalDateTime claimedAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        NotificationHistory history = historyRepository.saveAndFlush(
+                NotificationHistory.builder()
+                        .userId(userId)
+                        .alarmType(alarmType)
+                        .referenceId(referenceId)
+                        .alarmScheduledAt(scheduledAt)
+                        .title(message.title())
+                        .body(message.body())
+                        .status(NotificationStatus.SENDING)
+                        .sentAt(claimedAt)
+                        .build()
+        );
+        List<NotificationSubscription> subscriptions = subscriptionRepository.findAllByUserIdAndEnabledTrue(userId);
+        return new ClaimResult(history, subscriptions);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Optional<ClaimResult> reclaimAndLoadSubscriptions(UUID userId,
+                                                             NotificationAlarmType alarmType,
+                                                             Long referenceId,
+                                                             LocalDateTime scheduledAt,
+                                                             LocalDateTime staleBefore) {
+        LocalDateTime claimedAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        int reclaimed = historyRepository.reclaimForRetry(
+                userId,
+                alarmType,
+                referenceId,
+                scheduledAt,
+                NotificationStatus.FAILED,
+                NotificationStatus.SENDING,
+                claimedAt,
+                staleBefore
+        );
+        if (reclaimed == 0) {
             return Optional.empty();
         }
-        return Optional.of(subscriptionRepository.findAllByUserIdAndEnabledTrue(userId));
+        NotificationHistory history = historyRepository.findHistory(userId, alarmType, referenceId, scheduledAt)
+                .orElseThrow();
+        List<NotificationSubscription> subscriptions = subscriptionRepository.findAllByUserIdAndEnabledTrue(userId);
+        return Optional.of(new ClaimResult(history, subscriptions));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<NotificationStatus> findHistoryStatus(UUID userId,
+                                                           NotificationAlarmType alarmType,
+                                                           Long referenceId,
+                                                           LocalDateTime scheduledAt) {
+        return historyRepository.findHistory(userId, alarmType, referenceId, scheduledAt)
+                .map(NotificationHistory::getStatus);
+    }
+
+    @Transactional
+    public boolean updateHistoryStatus(Long historyId, LocalDateTime claimedAt, NotificationStatus status) {
+        return historyRepository.updateStatus(
+                historyId,
+                claimedAt,
+                NotificationStatus.SENDING,
+                status
+        ) == 1;
     }
 
     @Transactional
@@ -49,24 +107,5 @@ public class NotificationTxOperations {
         List<NotificationSubscription> targets = subscriptionRepository.findAllById(subscriptionIds);
         targets.forEach(NotificationSubscription::disable);
         log.info("[ALARM SUBSCRIPTION DISABLED] ids={}", subscriptionIds);
-    }
-
-    @Transactional
-    public void saveHistory(UUID userId,
-                            NotificationAlarmType alarmType,
-                            Long referenceId,
-                            LocalDateTime alarmScheduledAt,
-                            PushMessage message,
-                            NotificationStatus status) {
-        historyRepository.save(NotificationHistory.builder()
-                .userId(userId)
-                .alarmType(alarmType)
-                .referenceId(referenceId)
-                .alarmScheduledAt(alarmScheduledAt)
-                .title(message.title())
-                .body(message.body())
-                .status(status)
-                .sentAt(LocalDateTime.now())
-                .build());
     }
 }

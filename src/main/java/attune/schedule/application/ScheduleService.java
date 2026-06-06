@@ -1,5 +1,6 @@
 package attune.schedule.application;
 
+import attune.common.error.badrequest.TooManyScheduleAlarmsException;
 import attune.common.error.notfound.ScheduleCategoryNotFoundException;
 import attune.common.error.notfound.ScheduleNotFoundException;
 import attune.common.util.SecurityUtils;
@@ -29,6 +30,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 public class ScheduleService {
+
+    private static final int MAX_ALARMS_PER_SCHEDULE = 10;
 
     private final ScheduleRepository scheduleRepository;
     private final ScheduleCategoryRepository scheduleCategoryRepository;
@@ -180,7 +183,14 @@ public class ScheduleService {
     }
 
     private void saveAlarms(Schedule schedule, List<LocalDateTime> alarmTimes) {
-        List<ScheduleAlarm> alarms = alarmTimes.stream()
+        List<LocalDateTime> distinctAlarmTimes = alarmTimes.stream()
+                .distinct()
+                .toList();
+        if (distinctAlarmTimes.size() > MAX_ALARMS_PER_SCHEDULE) {
+            throw new TooManyScheduleAlarmsException(MAX_ALARMS_PER_SCHEDULE);
+        }
+
+        List<ScheduleAlarm> alarms = distinctAlarmTimes.stream()
                 .map(t -> ScheduleAlarm.builder()
                         .schedule(schedule)
                         .alarmAt(t)

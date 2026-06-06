@@ -86,3 +86,9 @@ logging:
     console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
   level:
     attune.calendar: DEBUG
+
+ai:
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
