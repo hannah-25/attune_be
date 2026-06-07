@@ -2,6 +2,7 @@ package attune.alarm.config;
 
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Utils;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -19,12 +20,19 @@ public class WebPushConfig {
 
     private static final int MAX_CONN_PER_ROUTE = 50;
     private static final int MAX_CONN_TOTAL = 200;
+    private static final int TIMEOUT_MS = 5_000;
 
     @Bean
     CloseableHttpClient webPushHttpClient() {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(TIMEOUT_MS)
+                .setSocketTimeout(TIMEOUT_MS)
+                .setConnectionRequestTimeout(TIMEOUT_MS)
+                .build();
         return HttpClients.custom()
                 .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
                 .setMaxConnTotal(MAX_CONN_TOTAL)
+                .setDefaultRequestConfig(requestConfig)
                 .build();
     }
 
