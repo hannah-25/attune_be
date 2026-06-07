@@ -79,7 +79,8 @@ public interface UserMedicationLogRepository extends JpaRepository<UserMedicatio
             JOIN FETCH um.medicationDosage md
             JOIN FETCH md.medication
             WHERE um.user.id = :userId
-              AND l.takenAt BETWEEN :from AND :to
+              AND l.takenAt >= :from
+              AND l.takenAt < :to
               AND l.isActive = true
             ORDER BY l.takenAt
             """)
