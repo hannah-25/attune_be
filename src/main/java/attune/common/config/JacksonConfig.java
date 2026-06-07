@@ -35,7 +35,7 @@ public class JacksonConfig {
         public JsonNullable<?> deserialize(JsonParser p, DeserializationContext ctxt) {
             Object value = (containedType != null)
                     ? ctxt.readValue(p, containedType)
-                    : p.readValueAs(Object.class);
+                    : ctxt.readValue(p, Object.class);
             return JsonNullable.of(value);
         }
 
