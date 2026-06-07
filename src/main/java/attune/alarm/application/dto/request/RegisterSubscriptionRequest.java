@@ -10,7 +10,7 @@ public record RegisterSubscriptionRequest(
         @NotNull NotificationPlatform platform,
         @NotNull NotificationProvider provider,
         @Size(max = 2048) String endpoint,
-        String p256dh,
-        String auth,
+        @Size(max = 500) String p256dh,
+        @Size(max = 255) String auth,
         @Size(max = 500) String token
 ) {}
