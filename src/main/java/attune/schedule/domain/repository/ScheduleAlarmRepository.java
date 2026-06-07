@@ -41,6 +41,11 @@ public interface ScheduleAlarmRepository extends JpaRepository<ScheduleAlarm, Lo
 
     @Transactional
     @Modifying
+    @Query("UPDATE ScheduleAlarm sa SET sa.isSent = true WHERE sa.isSent = false AND sa.alarmAt < :cutoff")
+    int markExpiredAsSentBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    @Transactional
+    @Modifying
     @Query("UPDATE ScheduleAlarm sa SET sa.isSent = true WHERE sa.id = :id AND sa.isSent = false")
     int markAsSent(@Param("id") Long id);
 

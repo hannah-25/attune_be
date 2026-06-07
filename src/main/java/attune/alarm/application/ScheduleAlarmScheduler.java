@@ -43,10 +43,16 @@ public class ScheduleAlarmScheduler {
     }
 
     void sendScheduleAlarms(LocalDateTime now) {
+        LocalDateTime recoveryCutoff = now.minusHours(RECOVERY_WINDOW_HOURS);
+        int expired = scheduleAlarmRepository.markExpiredAsSentBefore(recoveryCutoff);
+        if (expired > 0) {
+            log.info("[SCHEDULE ALARM EXPIRED] count={} cutoff={}", expired, recoveryCutoff);
+        }
+
         long afterId = 0L;
         while (true) {
             List<ScheduleAlarm> targets = scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
-                    now.minusHours(RECOVERY_WINDOW_HOURS),
+                    recoveryCutoff,
                     now,
                     afterId,
                     PageRequest.of(0, BATCH_SIZE)

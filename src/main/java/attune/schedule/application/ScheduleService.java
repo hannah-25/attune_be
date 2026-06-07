@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class ScheduleService {
 
-    private static final int MAX_ALARMS_PER_SCHEDULE = 10;
+    private static final int MAX_ALARMS_PER_SCHEDULE = 3;
 
     private final ScheduleRepository scheduleRepository;
     private final ScheduleCategoryRepository scheduleCategoryRepository;

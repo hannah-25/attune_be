@@ -82,10 +82,10 @@ class ScheduleServiceTest {
     }
 
     @Test
-    void updateAlarmsRejectsMoreThanTenDistinctAlarmTimes() {
+    void updateAlarmsRejectsMoreThanThreeDistinctAlarmTimes() {
         Schedule schedule = ownedSchedule();
         LocalDateTime first = LocalDateTime.of(2026, 6, 6, 9, 0);
-        List<LocalDateTime> alarmTimes = IntStream.range(0, 11)
+        List<LocalDateTime> alarmTimes = IntStream.range(0, 4)
                 .mapToObj(first::plusMinutes)
                 .toList();
         authenticate(schedule.getUserId());

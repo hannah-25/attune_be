@@ -44,6 +44,7 @@ class ScheduleAlarmSchedulerTest {
 
         scheduler.sendScheduleAlarms(now);
 
+        verify(scheduleAlarmRepository).markExpiredAsSentBefore(now.minusHours(1));
         verify(notificationService).sendToUser(
                 alarm.getSchedule().getUserId(),
                 NotificationAlarmType.SCHEDULE,
@@ -52,6 +53,26 @@ class ScheduleAlarmSchedulerTest {
                 message
         );
         verify(scheduleAlarmRepository).markAsSent(alarm.getId());
+    }
+
+    @Test
+    void marksAlarmsOutsideRecoveryWindowAsExpired() {
+        LocalDateTime now = LocalDateTime.of(2026, 6, 6, 10, 0);
+        when(scheduleAlarmRepository.markExpiredAsSentBefore(now.minusHours(1))).thenReturn(3);
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
+                .thenReturn(List.of());
+
+        scheduler.sendScheduleAlarms(now);
+
+        verify(scheduleAlarmRepository).markExpiredAsSentBefore(now.minusHours(1));
+        verify(notificationService, never()).sendToUser(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
     }
 
     @Test
