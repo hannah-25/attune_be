@@ -32,6 +32,8 @@ public class WebPushConfig {
         return HttpClients.custom()
                 .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
                 .setMaxConnTotal(MAX_CONN_TOTAL)
+                .evictIdleConnections(30, java.util.concurrent.TimeUnit.SECONDS)
+                .evictExpiredConnections()
                 .setDefaultRequestConfig(requestConfig)
                 .build();
     }
