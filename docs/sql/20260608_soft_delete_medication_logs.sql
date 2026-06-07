@@ -10,3 +10,6 @@ ALTER TABLE user_medication_logs
     is_active,
     taken_at
   );
+
+ALTER TABLE user_medication_logs
+  DROP INDEX idx_user_medication_logs_schedule_id;
