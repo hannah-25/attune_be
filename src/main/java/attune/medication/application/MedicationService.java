@@ -249,7 +249,14 @@ public class MedicationService {
             return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
         }
 
-        if (logRepository.existsByUserMedicationScheduleIdAndTakenAtBetween(schedule.getId(), startOfToday, endOfToday)) {
+        if (request.action() == QuickLogAction.TAKEN) {
+            int deletedCount = logRepository.deleteByScheduleIdAndTakenAtRange(
+                    schedule.getId(), startOfToday, endOfToday);
+            if (deletedCount > 0) {
+                return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
+            }
+        } else if (logRepository.existsByUserMedicationScheduleIdAndTakenAtBetween(
+                schedule.getId(), startOfToday, endOfToday)) {
             throw new DuplicateMedicationLogException();
         }
 

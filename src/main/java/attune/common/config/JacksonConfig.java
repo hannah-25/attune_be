@@ -45,6 +45,11 @@ public class JacksonConfig {
         }
 
         @Override
+        public JsonNullable<?> getAbsentValue(DeserializationContext ctxt) {
+            return JsonNullable.undefined();
+        }
+
+        @Override
         public ValueDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
             if (property != null) {
                 JavaType propType = property.getType();
