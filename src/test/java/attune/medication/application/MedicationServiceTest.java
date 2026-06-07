@@ -81,7 +81,7 @@ class MedicationServiceTest {
                 .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
         when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
                 .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
-        when(logRepository.deleteByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(0);
+        when(logRepository.deactivateByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(0);
 
         assertThrows(
                 MedicationLogNotFoundException.class,
