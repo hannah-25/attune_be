@@ -12,5 +12,5 @@ public record RegisterSubscriptionRequest(
         @Size(max = 2048) String endpoint,
         @Size(max = 500) String p256dh,
         @Size(max = 255) String auth,
-        @Size(max = 500) String token
+        @Size(max = 2048) String token
 ) {}
