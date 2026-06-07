@@ -68,7 +68,7 @@ class MedicationServiceTest {
                 .userMedicationSchedule(UserMedicationSchedule.builder().id(11L).build())
                 .status(UserMedicationLogStatus.SKIPPED)
                 .build();
-        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+        when(logRepository.findActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
                 .thenReturn(Optional.of(existingLog));
 
         QuickLogResponse response = medicationService.quickLog(
