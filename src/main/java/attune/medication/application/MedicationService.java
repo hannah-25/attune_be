@@ -237,7 +237,7 @@ public class MedicationService {
         LocalDateTime startOfToday = toStartOfDay(today);
         LocalDateTime endOfToday = toExclusiveEndOfDay(today);
 
-        Optional<UserMedicationLog> existing = logRepository.findFirstActiveByScheduleIdAndTakenAtRange(
+        Optional<UserMedicationLog> existing = logRepository.findActiveByScheduleIdAndTakenAtRange(
                 schedule.getId(), startOfToday, endOfToday);
 
         if (request.action() == QuickLogAction.CANCEL) {
