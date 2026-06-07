@@ -3,6 +3,7 @@ package attune.common.config;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.core.JacksonException;
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.BeanProperty;
 import tools.jackson.databind.DeserializationContext;
@@ -32,7 +33,7 @@ public class JacksonConfig {
         }
 
         @Override
-        public JsonNullable<?> deserialize(JsonParser p, DeserializationContext ctxt) {
+        public JsonNullable<?> deserialize(JsonParser p, DeserializationContext ctxt) throws JacksonException {
             Object value = (containedType != null)
                     ? ctxt.readValue(p, containedType)
                     : ctxt.readValue(p, Object.class);
@@ -51,13 +52,16 @@ public class JacksonConfig {
 
         @Override
         public ValueDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property) {
-            if (property != null) {
-                JavaType propType = property.getType();
-                if (propType != null && propType.hasGenericTypes()) {
-                    return new JsonNullableDeserializer(propType.containedType(0));
-                }
+            JavaType propType = property != null ? property.getType() : ctxt.getContextualType();
+            JavaType containedType = resolveContainedType(propType);
+            return containedType != null ? new JsonNullableDeserializer(containedType) : this;
+        }
+
+        private JavaType resolveContainedType(JavaType propType) {
+            if (propType != null && propType.containedTypeCount() > 0) {
+                return propType.containedTypeOrUnknown(0);
             }
-            return this;
+            return null;
         }
     }
 }
