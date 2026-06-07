@@ -4,6 +4,7 @@ import attune.medication.domain.repository.UserMedicationScheduleRepository;
 import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -25,21 +26,25 @@ class MedicationAlarmSchedulerTest {
     void loadsRecoveryWindowWithoutMidnightWrap() {
         LocalTime from = LocalTime.of(9, 50);
         LocalTime to = LocalTime.of(10, 0);
-        when(scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, false)).thenReturn(List.of());
+        LocalDateTime windowStart = LocalDateTime.of(2024, 1, 1, 9, 50);
+        LocalDateTime windowEnd = LocalDateTime.of(2024, 1, 1, 10, 0);
+        when(scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, false, windowStart, windowEnd)).thenReturn(List.of());
 
-        assertThat(scheduler.loadCandidates(from, to)).isEmpty();
+        assertThat(scheduler.loadCandidates(from, to, windowStart, windowEnd)).isEmpty();
 
-        verify(scheduleRepository).findAlarmCandidatesByDoseTimeBetween(from, to, false);
+        verify(scheduleRepository).findAlarmCandidatesByDoseTimeBetween(from, to, false, windowStart, windowEnd);
     }
 
     @Test
     void loadsRecoveryWindowAcrossMidnight() {
         LocalTime from = LocalTime.of(23, 55);
         LocalTime to = LocalTime.of(0, 5);
-        when(scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, true)).thenReturn(List.of());
+        LocalDateTime windowStart = LocalDateTime.of(2024, 1, 1, 23, 55);
+        LocalDateTime windowEnd = LocalDateTime.of(2024, 1, 2, 0, 5);
+        when(scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, true, windowStart, windowEnd)).thenReturn(List.of());
 
-        assertThat(scheduler.loadCandidates(from, to)).isEmpty();
+        assertThat(scheduler.loadCandidates(from, to, windowStart, windowEnd)).isEmpty();
 
-        verify(scheduleRepository).findAlarmCandidatesByDoseTimeBetween(from, to, true);
+        verify(scheduleRepository).findAlarmCandidatesByDoseTimeBetween(from, to, true, windowStart, windowEnd);
     }
 }

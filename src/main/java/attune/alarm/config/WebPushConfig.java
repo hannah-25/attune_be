@@ -1,5 +1,7 @@
 package attune.alarm.config;
 
+import attune.alarm.application.WebPushSender;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Utils;
 import org.apache.http.client.config.RequestConfig;
@@ -53,6 +55,11 @@ public class WebPushConfig {
         pushService.setPrivateKey(Utils.loadPrivateKey(properties.privateKey()));
         pushService.setSubject(properties.subject());
         return pushService;
+    }
+
+    @Bean
+    WebPushSender webPushSender(PushService webPushService, CloseableHttpClient webPushHttpClient, ObjectMapper objectMapper) {
+        return new WebPushSender(webPushService, webPushHttpClient, objectMapper);
     }
 
     private void requireValue(String value, String propertyName) {

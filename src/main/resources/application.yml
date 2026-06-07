@@ -95,8 +95,9 @@ ai:
 
 notification:
   push:
-    provider: ${PUSH_PROVIDER:stub}
+    # 기본값 stub: 키가 없어도 부팅됨. 환경별 활성화(provider=web-push)와 VAPID 키는
+    # application-secret.yml의 해당 프로파일 문서에서 주입한다.
+    provider: stub
     web-push:
-      public-key: ${VAPID_PUBLIC_KEY:}
-      private-key: ${VAPID_PRIVATE_KEY:}
-      subject: ${VAPID_SUBJECT:mailto:support@attune-me.com}
+      # subject는 비밀이 아니므로 공통 기본값으로 둔다 (public/private key만 secret에서 주입)
+      subject: mailto:support@attune-me.com

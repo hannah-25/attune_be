@@ -11,14 +11,10 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 
-@Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "notification.push.provider", havingValue = "web-push")
 public class WebPushSender implements PushSender {
 
     private final PushService pushService;
@@ -26,11 +22,12 @@ public class WebPushSender implements PushSender {
     private final ObjectMapper objectMapper;
 
     @Override
-    public void send(NotificationSubscription subscription, PushMessage message) {
-        if (subscription.getProvider() != NotificationProvider.WEB_PUSH) {
-            throw new IllegalArgumentException("Unsupported push provider: " + subscription.getProvider());
-        }
+    public boolean supports(NotificationProvider provider) {
+        return provider == NotificationProvider.WEB_PUSH;
+    }
 
+    @Override
+    public void send(NotificationSubscription subscription, PushMessage message) {
         try {
             LinkedHashMap<String, String> pushPayload = new LinkedHashMap<>();
             pushPayload.put("title", message.title());

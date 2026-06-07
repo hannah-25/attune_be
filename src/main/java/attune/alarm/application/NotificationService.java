@@ -21,7 +21,7 @@ public class NotificationService {
     private static final long STALE_SENDING_MINUTES = 5;
 
     private final NotificationTxOperations txOps;
-    private final PushSender pushSender;
+    private final PushSenderRouter pushSenderRouter;
 
     /**
      * 사용자에게 푸시 알람을 발송한다.
@@ -96,7 +96,7 @@ public class NotificationService {
 
         for (NotificationSubscription subscription : subscriptions) {
             try {
-                pushSender.send(subscription, message);
+                pushSenderRouter.send(subscription, message);
                 anySuccess = true;
             } catch (InvalidSubscriptionException e) {
                 log.warn("[ALARM INVALID SUBSCRIPTION] userId={} subscriptionId={} error={}",

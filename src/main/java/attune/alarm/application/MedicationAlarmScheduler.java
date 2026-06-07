@@ -35,12 +35,14 @@ public class MedicationAlarmScheduler {
         LocalDateTime scheduledAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).truncatedTo(ChronoUnit.MINUTES);
         LocalTime now = scheduledAt.toLocalTime();
 
-        List<UserMedicationSchedule> candidates = loadCandidates(now.minusMinutes(RECOVERY_WINDOW_MINUTES), now);
-        if (candidates.isEmpty()) return;
+        LocalDateTime windowStart = scheduledAt.minusMinutes(RECOVERY_WINDOW_MINUTES);
 
-        Map<UUID, UserSetting> settingsByUser = loadSettings(candidates);
+        List<UserMedicationSchedule> pending = loadCandidates(now.minusMinutes(RECOVERY_WINDOW_MINUTES), now, windowStart, scheduledAt);
+        if (pending.isEmpty()) return;
 
-        for (UserMedicationSchedule schedule : candidates) {
+        Map<UUID, UserSetting> settingsByUser = loadSettings(pending);
+
+        for (UserMedicationSchedule schedule : pending) {
             try {
                 UUID userId = schedule.getUserMedication().getUser().getId();
                 UserSetting setting = settingsByUser.get(userId);
@@ -70,8 +72,8 @@ public class MedicationAlarmScheduler {
     }
 
     @Transactional(readOnly = true)
-    public List<UserMedicationSchedule> loadCandidates(LocalTime from, LocalTime to) {
-        return scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, from.isAfter(to));
+    public List<UserMedicationSchedule> loadCandidates(LocalTime from, LocalTime to, LocalDateTime windowStart, LocalDateTime windowEnd) {
+        return scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, from.isAfter(to), windowStart, windowEnd);
     }
 
     @Transactional(readOnly = true)
