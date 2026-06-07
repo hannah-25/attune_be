@@ -237,12 +237,12 @@ public class MedicationService {
         LocalDateTime startOfToday = toStartOfDay(today);
         LocalDateTime endOfToday = toExclusiveEndOfDay(today);
 
+        Optional<UserMedicationLog> existing = logRepository.findFirstActiveByScheduleIdAndTakenAtRange(
+                schedule.getId(), startOfToday, endOfToday);
+
         if (request.action() == QuickLogAction.CANCEL) {
-            int deactivatedCount = logRepository.deactivateByScheduleIdAndTakenAtRange(
-                    schedule.getId(), startOfToday, endOfToday);
-            if (deactivatedCount == 0) {
-                throw new MedicationLogNotFoundException();
-            }
+            UserMedicationLog existingLog = existing.orElseThrow(MedicationLogNotFoundException::new);
+            existingLog.deactivate();
             return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
         }
 
@@ -250,19 +250,16 @@ public class MedicationService {
                 ? UserMedicationLogStatus.TAKEN
                 : UserMedicationLogStatus.SKIPPED;
 
-        if (request.action() == QuickLogAction.TAKEN) {
-            int deactivatedCount = logRepository.deactivateByScheduleIdAndTakenAtRange(
-                    schedule.getId(), startOfToday, endOfToday);
-            if (deactivatedCount > 0) {
+        if (existing.isPresent()) {
+            UserMedicationLog existingLog = existing.get();
+            if (request.action() == QuickLogAction.TAKEN
+                    && existingLog.getStatus() == UserMedicationLogStatus.TAKEN) {
+                existingLog.deactivate();
                 return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
             }
-        } else {
-            Optional<UserMedicationLog> existing = logRepository.findFirstActiveByScheduleIdAndTakenAtRange(
-                    schedule.getId(), startOfToday, endOfToday);
-            if (existing.isPresent()) {
-                existing.get().update(now, status);
-                return new QuickLogResponse(existing.get().getId(), request.action(), now);
-            }
+
+            existingLog.update(now, status);
+            return new QuickLogResponse(existingLog.getId(), request.action(), now);
         }
 
         UserMedicationLog saved = logRepository.save(

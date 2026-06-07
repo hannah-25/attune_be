@@ -2,7 +2,6 @@ package attune.medication.domain.repository;
 
 import attune.medication.domain.model.UserMedicationLog;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,18 +13,6 @@ import java.util.UUID;
 public interface UserMedicationLogRepository extends JpaRepository<UserMedicationLog, Long> {
 
     @Query("""
-            SELECT COUNT(l) > 0 FROM UserMedicationLog l
-            WHERE l.userMedicationSchedule.id = :scheduleId
-              AND l.takenAt >= :from
-              AND l.takenAt < :to
-              AND l.isActive = true
-            """)
-    boolean existsActiveByScheduleIdAndTakenAtRange(
-            @Param("scheduleId") Long scheduleId,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
-
-    @Query("""
             SELECT l FROM UserMedicationLog l
             WHERE l.userMedicationSchedule.id = :scheduleId
               AND l.takenAt >= :from
@@ -33,19 +20,6 @@ public interface UserMedicationLogRepository extends JpaRepository<UserMedicatio
               AND l.isActive = true
             """)
     Optional<UserMedicationLog> findFirstActiveByScheduleIdAndTakenAtRange(
-            @Param("scheduleId") Long scheduleId,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
-
-    @Modifying
-    @Query("""
-            UPDATE UserMedicationLog l SET l.isActive = false
-            WHERE l.userMedicationSchedule.id = :scheduleId
-              AND l.takenAt >= :from
-              AND l.takenAt < :to
-              AND l.isActive = true
-            """)
-    int deactivateByScheduleIdAndTakenAtRange(
             @Param("scheduleId") Long scheduleId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);

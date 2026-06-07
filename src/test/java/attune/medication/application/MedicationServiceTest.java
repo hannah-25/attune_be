@@ -63,7 +63,13 @@ class MedicationServiceTest {
                 .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
         when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
                 .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
-        when(logRepository.deactivateByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(1);
+        UserMedicationLog existingLog = UserMedicationLog.builder()
+                .id(3L)
+                .userMedicationSchedule(UserMedicationSchedule.builder().id(11L).build())
+                .status(UserMedicationLogStatus.SKIPPED)
+                .build();
+        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+                .thenReturn(Optional.of(existingLog));
 
         QuickLogResponse response = medicationService.quickLog(
                 7L,
@@ -72,7 +78,8 @@ class MedicationServiceTest {
 
         assertThat(response.action()).isEqualTo(QuickLogAction.CANCEL);
         assertThat(response.logId()).isNull();
-        verify(logRepository, never()).existsActiveByScheduleIdAndTakenAtRange(any(), any(), any());
+        assertThat(existingLog.isActive()).isFalse();
+        verify(logRepository, never()).save(any());
     }
 
     @Test
@@ -83,7 +90,8 @@ class MedicationServiceTest {
                 .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
         when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
                 .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
-        when(logRepository.deactivateByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(0);
+        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+                .thenReturn(Optional.empty());
 
         assertThrows(
                 MedicationLogNotFoundException.class,
@@ -116,6 +124,62 @@ class MedicationServiceTest {
         assertThat(response.action()).isEqualTo(QuickLogAction.SKIPPED);
         assertThat(existingLog.getStatus()).isEqualTo(UserMedicationLogStatus.SKIPPED);
         assertThat(existingLog.getTakenAt()).isEqualTo(response.recordedAt());
+        verify(logRepository, never()).save(any());
+    }
+
+    @Test
+    void quickLogTakenUpdatesExistingSkippedLogStatus() {
+        UUID userId = UUID.randomUUID();
+        authenticate(userId);
+        UserMedicationLog existingLog = UserMedicationLog.builder()
+                .id(3L)
+                .userMedicationSchedule(UserMedicationSchedule.builder().id(11L).build())
+                .status(UserMedicationLogStatus.SKIPPED)
+                .build();
+        when(userMedicationRepository.findByIdAndUserId(7L, userId))
+                .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
+        when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
+                .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
+        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+                .thenReturn(Optional.of(existingLog));
+
+        QuickLogResponse response = medicationService.quickLog(
+                7L,
+                new QuickLogRequest(QuickLogAction.TAKEN, 11L)
+        );
+
+        assertThat(response.logId()).isEqualTo(3L);
+        assertThat(response.action()).isEqualTo(QuickLogAction.TAKEN);
+        assertThat(existingLog.getStatus()).isEqualTo(UserMedicationLogStatus.TAKEN);
+        assertThat(existingLog.getTakenAt()).isEqualTo(response.recordedAt());
+        assertThat(existingLog.isActive()).isTrue();
+        verify(logRepository, never()).save(any());
+    }
+
+    @Test
+    void quickLogTakenTogglesOnlyExistingTakenLog() {
+        UUID userId = UUID.randomUUID();
+        authenticate(userId);
+        UserMedicationLog existingLog = UserMedicationLog.builder()
+                .id(3L)
+                .userMedicationSchedule(UserMedicationSchedule.builder().id(11L).build())
+                .status(UserMedicationLogStatus.TAKEN)
+                .build();
+        when(userMedicationRepository.findByIdAndUserId(7L, userId))
+                .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
+        when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
+                .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
+        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+                .thenReturn(Optional.of(existingLog));
+
+        QuickLogResponse response = medicationService.quickLog(
+                7L,
+                new QuickLogRequest(QuickLogAction.TAKEN, 11L)
+        );
+
+        assertThat(response.logId()).isNull();
+        assertThat(response.action()).isEqualTo(QuickLogAction.CANCEL);
+        assertThat(existingLog.isActive()).isFalse();
         verify(logRepository, never()).save(any());
     }
 

@@ -39,4 +39,8 @@ public class UserMedicationLog {
         this.takenAt = takenAt;
         this.status = status;
     }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
 }
