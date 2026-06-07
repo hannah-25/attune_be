@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when;
 class NotificationServiceTest {
 
     private final NotificationTxOperations txOps = mock(NotificationTxOperations.class);
-    private final PushSender pushSender = mock(PushSender.class);
-    private final NotificationService service = new NotificationService(txOps, pushSender);
+    private final PushSenderRouter pushSenderRouter = mock(PushSenderRouter.class);
+    private final NotificationService service = new NotificationService(txOps, pushSenderRouter);
 
     private static final UUID USER_ID = UUID.randomUUID();
     private static final NotificationAlarmType TYPE = NotificationAlarmType.SCHEDULE;
@@ -44,7 +44,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENT);
-        verify(pushSender).send(sub, MESSAGE);
+        verify(pushSenderRouter).send(sub, MESSAGE);
     }
 
     @Test
@@ -58,7 +58,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SKIPPED);
-        verify(pushSender, never()).send(any(), any());
+        verify(pushSenderRouter, never()).send(any(), any());
     }
 
     @Test
@@ -74,7 +74,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENDING);
-        verify(pushSender, never()).send(any(), any());
+        verify(pushSenderRouter, never()).send(any(), any());
     }
 
     @Test
@@ -93,7 +93,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENT);
-        verify(pushSender).send(sub, MESSAGE);
+        verify(pushSenderRouter).send(sub, MESSAGE);
     }
 
     @Test
@@ -105,7 +105,7 @@ class NotificationServiceTest {
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(4L), any(), eq(NotificationStatus.FAILED))).thenReturn(true);
-        doThrow(new InvalidSubscriptionException("expired")).when(pushSender).send(sub, MESSAGE);
+        doThrow(new InvalidSubscriptionException("expired")).when(pushSenderRouter).send(sub, MESSAGE);
 
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
@@ -123,7 +123,7 @@ class NotificationServiceTest {
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(5L), any(), eq(NotificationStatus.SENT))).thenReturn(true);
-        doThrow(new InvalidSubscriptionException("expired")).when(pushSender).send(invalidSub, MESSAGE);
+        doThrow(new InvalidSubscriptionException("expired")).when(pushSenderRouter).send(invalidSub, MESSAGE);
 
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
@@ -140,8 +140,8 @@ class NotificationServiceTest {
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(6L), any(), eq(NotificationStatus.FAILED))).thenReturn(true);
-        doThrow(new RuntimeException("network error")).when(pushSender).send(sub1, MESSAGE);
-        doThrow(new RuntimeException("network error")).when(pushSender).send(sub2, MESSAGE);
+        doThrow(new RuntimeException("network error")).when(pushSenderRouter).send(sub1, MESSAGE);
+        doThrow(new RuntimeException("network error")).when(pushSenderRouter).send(sub2, MESSAGE);
 
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
