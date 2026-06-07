@@ -169,7 +169,7 @@ class MedicationServiceTest {
                 .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
         when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
                 .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
-        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+        when(logRepository.findActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
                 .thenReturn(Optional.of(existingLog));
 
         QuickLogResponse response = medicationService.quickLog(
