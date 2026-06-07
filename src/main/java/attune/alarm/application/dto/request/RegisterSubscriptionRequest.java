@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 public record RegisterSubscriptionRequest(
         @NotNull NotificationPlatform platform,
         @NotNull NotificationProvider provider,
-        @Size(max = 700) String endpoint,
+        @Size(max = 2048) String endpoint,
         String p256dh,
         String auth,
         @Size(max = 500) String token
