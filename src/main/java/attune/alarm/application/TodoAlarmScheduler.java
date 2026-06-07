@@ -37,16 +37,20 @@ public class TodoAlarmScheduler {
         Map<UUID, UserSetting> settingsByUser = loadSettings(candidates);
 
         for (Todo todo : candidates) {
-            UserSetting setting = settingsByUser.get(todo.getUserId());
-            if (setting == null || !setting.isTodoNotification()) continue;
+            try {
+                UserSetting setting = settingsByUser.get(todo.getUserId());
+                if (setting == null || !setting.isTodoNotification()) continue;
 
-            notificationService.sendToUser(
-                    todo.getUserId(),
-                    NotificationAlarmType.TODO,
-                    todo.getId(),
-                    todo.getDueAt(),
-                    new PushMessage(todo.getText(), "할 일 마감 시간이에요.", "/calendar")
-            );
+                notificationService.sendToUser(
+                        todo.getUserId(),
+                        NotificationAlarmType.TODO,
+                        todo.getId(),
+                        todo.getDueAt(),
+                        new PushMessage(todo.getText(), "할 일 마감 시간이에요.", "/calendar")
+                );
+            } catch (Exception e) {
+                log.error("Todo 알림 발송 실패 - todoId={}", todo.getId(), e);
+            }
         }
     }
 

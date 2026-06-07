@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS notification_subscriptions (
   user_id BINARY(16) NOT NULL,
   platform VARCHAR(20) NOT NULL,
   provider VARCHAR(20) NOT NULL,
-  endpoint VARCHAR(700) NULL,
+  endpoint VARCHAR(2048) CHARACTER SET ascii NULL,
   p256dh TEXT NULL,
   auth TEXT NULL,
   token VARCHAR(500) NULL,

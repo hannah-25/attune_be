@@ -11,6 +11,8 @@ import org.apache.http.util.EntityUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 
 @Component
@@ -27,6 +29,7 @@ public class WebPushSender implements PushSender {
             throw new IllegalArgumentException("Unsupported push provider: " + subscription.getProvider());
         }
 
+        HttpResponse response = null;
         try {
             LinkedHashMap<String, String> pushPayload = new LinkedHashMap<>();
             pushPayload.put("title", message.title());
@@ -40,7 +43,7 @@ public class WebPushSender implements PushSender {
                     subscription.getAuth(),
                     payload
             );
-            HttpResponse response = pushService.send(notification);
+            response = pushService.send(notification);
             int statusCode = response.getStatusLine().getStatusCode();
             EntityUtils.consumeQuietly(response.getEntity());
 
@@ -54,6 +57,18 @@ public class WebPushSender implements PushSender {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Web Push delivery failed", e);
+        } finally {
+            closeQuietly(response);
+        }
+    }
+
+    private void closeQuietly(HttpResponse response) {
+        if (response instanceof Closeable closeable) {
+            try {
+                closeable.close();
+            } catch (IOException ignored) {
+                // Preserve the original delivery result or exception.
+            }
         }
     }
 }

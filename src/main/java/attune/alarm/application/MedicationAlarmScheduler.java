@@ -41,22 +41,26 @@ public class MedicationAlarmScheduler {
         Map<UUID, UserSetting> settingsByUser = loadSettings(candidates);
 
         for (UserMedicationSchedule schedule : candidates) {
-            UUID userId = schedule.getUserMedication().getUser().getId();
-            UserSetting setting = settingsByUser.get(userId);
-            if (setting == null || !setting.isMedicationNotification()) continue;
+            try {
+                UUID userId = schedule.getUserMedication().getUser().getId();
+                UserSetting setting = settingsByUser.get(userId);
+                if (setting == null || !setting.isMedicationNotification()) continue;
 
-            String label = schedule.getLabel() != null ? schedule.getLabel() : "복약";
-            LocalDateTime alarmScheduledAt = scheduledAt.with(schedule.getDoseTime());
-            if (alarmScheduledAt.isAfter(scheduledAt)) {
-                alarmScheduledAt = alarmScheduledAt.minusDays(1);
+                String label = schedule.getLabel() != null ? schedule.getLabel() : "복약";
+                LocalDateTime alarmScheduledAt = scheduledAt.with(schedule.getDoseTime());
+                if (alarmScheduledAt.isAfter(scheduledAt)) {
+                    alarmScheduledAt = alarmScheduledAt.minusDays(1);
+                }
+                notificationService.sendToUser(
+                        userId,
+                        NotificationAlarmType.MEDICATION,
+                        schedule.getId(),
+                        alarmScheduledAt,
+                        new PushMessage(label + " 복약 시간", "복약 시간이 됐어요.", "/medication")
+                );
+            } catch (Exception e) {
+                log.error("복약 알림 발송 실패 - scheduleId={}", schedule.getId(), e);
             }
-            notificationService.sendToUser(
-                    userId,
-                    NotificationAlarmType.MEDICATION,
-                    schedule.getId(),
-                    alarmScheduledAt,
-                    new PushMessage(label + " 복약 시간", "복약 시간이 됐어요.", "/medication")
-            );
         }
     }
 
