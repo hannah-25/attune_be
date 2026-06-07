@@ -19,7 +19,7 @@ public interface UserMedicationLogRepository extends JpaRepository<UserMedicatio
               AND l.takenAt < :to
               AND l.isActive = true
             """)
-    Optional<UserMedicationLog> findFirstActiveByScheduleIdAndTakenAtRange(
+    Optional<UserMedicationLog> findActiveByScheduleIdAndTakenAtRange(
             @Param("scheduleId") Long scheduleId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
