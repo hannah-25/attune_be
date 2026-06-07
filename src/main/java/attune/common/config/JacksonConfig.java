@@ -32,7 +32,7 @@ public class JacksonConfig {
         }
 
         @Override
-        public JsonNullable<?> deserialize(JsonParser p, DeserializationContext ctxt) {
+        public JsonNullable<?> deserialize(JsonParser p, DeserializationContext ctxt) throws java.io.IOException {
             Object value = (containedType != null)
                     ? ctxt.readValue(p, containedType)
                     : ctxt.readValue(p, Object.class);
