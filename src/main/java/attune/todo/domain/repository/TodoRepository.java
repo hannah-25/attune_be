@@ -2,8 +2,10 @@ package attune.todo.domain.repository;
 
 import attune.todo.domain.model.Todo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,23 +36,18 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
             WHERE t.isDeleted = false
               AND t.isCompleted = false
               AND t.isAllDay = false
+              AND t.isAlarmSent = false
               AND t.dueAt >= :from
               AND t.dueAt < :to
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
-              AND NOT EXISTS (
-                  SELECT 1 FROM NotificationHistory nh
-                  WHERE nh.userId = t.userId
-                    AND nh.alarmType = attune.alarm.domain.model.NotificationAlarmType.TODO
-                    AND nh.referenceId = t.id
-                    AND nh.alarmScheduledAt = t.dueAt
-                    AND nh.status IN (
-                        attune.alarm.domain.model.NotificationStatus.SENT,
-                        attune.alarm.domain.model.NotificationStatus.SKIPPED
-                    )
-              )
             """)
     List<Todo> findAlarmCandidates(
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Todo t SET t.isAlarmSent = true WHERE t.id = :id")
+    void markAlarmSentById(@Param("id") Long id);
 }

@@ -33,4 +33,8 @@ public class ScheduleAlarm {
     @Builder.Default
     @Column(name = "is_sent", nullable = false)
     private boolean isSent = false;
+
+    @Builder.Default
+    @Column(name = "fail_count", nullable = false)
+    private int failCount = 0;
 }

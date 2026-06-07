@@ -20,20 +20,39 @@ import java.util.List;
 public class ScheduleAlarmScheduler {
 
     private static final int BATCH_SIZE = 500;
+    private static final int MAX_RETRY = 3;
+    private static final int RECOVERY_WINDOW_HOURS = 1;
 
     private final ScheduleAlarmRepository scheduleAlarmRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendScheduleAlarms() {
-        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).truncatedTo(ChronoUnit.MINUTES);
         sendScheduleAlarms(now);
     }
 
+    private void handleFailure(ScheduleAlarm alarm) {
+        int nextFailCount = alarm.getFailCount() + 1;
+        if (nextFailCount >= MAX_RETRY) {
+            log.error("[SCHEDULE ALARM ABANDONED] alarmId={} failCount={}", alarm.getId(), nextFailCount);
+            scheduleAlarmRepository.markAsSent(alarm.getId());
+        } else {
+            scheduleAlarmRepository.incrementFailCount(alarm.getId());
+        }
+    }
+
     void sendScheduleAlarms(LocalDateTime now) {
+        LocalDateTime recoveryCutoff = now.minusHours(RECOVERY_WINDOW_HOURS);
+        int expired = scheduleAlarmRepository.markExpiredAsSentBefore(recoveryCutoff);
+        if (expired > 0) {
+            log.info("[SCHEDULE ALARM EXPIRED] count={} cutoff={}", expired, recoveryCutoff);
+        }
+
         long afterId = 0L;
         while (true) {
             List<ScheduleAlarm> targets = scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                    recoveryCutoff,
                     now,
                     afterId,
                     PageRequest.of(0, BATCH_SIZE)
@@ -45,13 +64,16 @@ public class ScheduleAlarmScheduler {
                             NotificationAlarmType.SCHEDULE,
                             alarm.getSchedule().getId(),
                             alarm.getAlarmAt(),
-                            new PushMessage(alarm.getSchedule().getTitle(), "일정 알림이에요.", null)
+                            new PushMessage(alarm.getSchedule().getTitle(), "일정 알림이에요.", "/calendar")
                     );
-                    if (status == NotificationStatus.SENT || status == NotificationStatus.SKIPPED) {
-                        scheduleAlarmRepository.markAsSent(alarm.getId());
+                    switch (status) {
+                        case SENT, SKIPPED -> scheduleAlarmRepository.markAsSent(alarm.getId());
+                        case FAILED -> handleFailure(alarm);
+                        case SENDING -> log.debug("[SCHEDULE ALARM IN PROGRESS] alarmId={}", alarm.getId());
                     }
                 } catch (Exception e) {
                     log.warn("[SCHEDULE ALARM FAIL] alarmId={} error={}", alarm.getId(), e.getMessage());
+                    handleFailure(alarm);
                 }
             }
             if (targets.size() < BATCH_SIZE) return;

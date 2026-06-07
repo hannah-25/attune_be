@@ -4,6 +4,7 @@ import attune.ai.application.AiTextGenerator;
 import attune.ai.config.GeminiProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -29,7 +30,7 @@ public class GeminiTextGenerator implements AiTextGenerator {
 
     @Override
     public String generate(String prompt) {
-        if (properties.apiKey().isBlank()) {
+        if (!StringUtils.hasText(properties.apiKey())) {
             throw new GeminiGenerationException("GEMINI_API_KEY is not configured.");
         }
 

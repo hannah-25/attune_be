@@ -19,6 +19,7 @@ class ReportAlarmSchedulerTest {
 
         assertNotNull(scheduled);
         assertEquals("0 0 9 * * MON", scheduled.cron());
+        assertEquals("Asia/Seoul", scheduled.zone());
     }
 
     @Test

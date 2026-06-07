@@ -8,7 +8,12 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "todos")
+@Table(
+        name = "todos",
+        indexes = {
+                @Index(name = "idx_todos_alarm_lookup", columnList = "is_alarm_sent, is_deleted, is_completed, is_all_day, due_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -36,8 +41,15 @@ public class Todo {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
+    @Column(nullable = false)
+    private boolean isAlarmSent = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void markAlarmSent() {
+        this.isAlarmSent = true;
+    }
 
     public void update(String text, LocalDateTime dueAt, Boolean isAllDay, Boolean isCompleted) {
         if (text != null) this.text = text;

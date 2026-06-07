@@ -1,6 +1,7 @@
 package attune.alarm.application;
 
 import attune.alarm.domain.model.NotificationAlarmType;
+import attune.alarm.domain.model.NotificationStatus;
 import attune.todo.domain.model.Todo;
 import attune.todo.domain.repository.TodoRepository;
 import attune.user.domain.model.UserSetting;
@@ -27,9 +28,9 @@ public class TodoAlarmScheduler {
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendTodoAlarms() {
-        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).truncatedTo(ChronoUnit.MINUTES);
 
         List<Todo> candidates = loadCandidates(now);
         if (candidates.isEmpty()) return;
@@ -37,16 +38,23 @@ public class TodoAlarmScheduler {
         Map<UUID, UserSetting> settingsByUser = loadSettings(candidates);
 
         for (Todo todo : candidates) {
-            UserSetting setting = settingsByUser.get(todo.getUserId());
-            if (setting == null || !setting.isTodoNotification()) continue;
+            try {
+                UserSetting setting = settingsByUser.get(todo.getUserId());
+                if (setting == null || !setting.isTodoNotification()) continue;
 
-            notificationService.sendToUser(
-                    todo.getUserId(),
-                    NotificationAlarmType.TODO,
-                    todo.getId(),
-                    todo.getDueAt(),
-                    new PushMessage(todo.getText(), "할 일 마감 시간이에요.", null)
-            );
+                NotificationStatus status = notificationService.sendToUser(
+                        todo.getUserId(),
+                        NotificationAlarmType.TODO,
+                        todo.getId(),
+                        todo.getDueAt(),
+                        new PushMessage(todo.getText(), "할 일 마감 시간이에요.", "/calendar")
+                );
+                if (status == NotificationStatus.SENT || status == NotificationStatus.SKIPPED) {
+                    todoRepository.markAlarmSentById(todo.getId());
+                }
+            } catch (Exception e) {
+                log.error("Todo 알림 발송 실패 - todoId={}", todo.getId(), e);
+            }
         }
     }
 

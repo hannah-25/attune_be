@@ -25,6 +25,7 @@ public interface ScheduleAlarmRepository extends JpaRepository<ScheduleAlarm, Lo
             JOIN FETCH sa.schedule s
             JOIN User u ON u.id = s.userId
             WHERE sa.id > :afterId
+              AND sa.alarmAt >= :from
               AND sa.alarmAt <= :now
               AND sa.isSent = false
               AND s.isDeleted = false
@@ -32,6 +33,7 @@ public interface ScheduleAlarmRepository extends JpaRepository<ScheduleAlarm, Lo
             ORDER BY sa.id ASC
             """)
     List<ScheduleAlarm> findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+            @Param("from") LocalDateTime from,
             @Param("now") LocalDateTime now,
             @Param("afterId") Long afterId,
             Pageable pageable
@@ -39,6 +41,16 @@ public interface ScheduleAlarmRepository extends JpaRepository<ScheduleAlarm, Lo
 
     @Transactional
     @Modifying
+    @Query("UPDATE ScheduleAlarm sa SET sa.isSent = true WHERE sa.isSent = false AND sa.alarmAt < :cutoff")
+    int markExpiredAsSentBefore(@Param("cutoff") LocalDateTime cutoff);
+
+    @Transactional
+    @Modifying
     @Query("UPDATE ScheduleAlarm sa SET sa.isSent = true WHERE sa.id = :id AND sa.isSent = false")
     int markAsSent(@Param("id") Long id);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE ScheduleAlarm sa SET sa.failCount = sa.failCount + 1 WHERE sa.id = :id")
+    void incrementFailCount(@Param("id") Long id);
 }

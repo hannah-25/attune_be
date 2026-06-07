@@ -73,7 +73,7 @@ public class CommentService {
 
         UUID postAuthorId = post.getUser().getId();
         if (!userId.equals(postAuthorId)) {
-            eventPublisher.publishEvent(new CommentCreatedEvent(postId, post.getTitle(), postAuthorId, userId));
+            eventPublisher.publishEvent(new CommentCreatedEvent(saved.getId(), postId, post.getTitle(), postAuthorId, userId));
         }
 
         return CreateCommentResponse.from(saved, postAuthorId);

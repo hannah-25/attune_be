@@ -372,8 +372,9 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 알람 고유 식별자 |
 | schedule_id | BIGINT | FK → Schedule.id, NOT NULL | 일정 ID |
-| alarm_at | TIMESTAMP | NOT NULL, INDEX(idx_schedule_alarm_sent_at with is_sent) | 알람 발송 예정 시각 |
+| alarm_at | DATETIME(6) | NOT NULL, INDEX(idx_schedule_alarm_sent_at with is_sent) | 알람 발송 예정 시각 |
 | is_sent | BOOLEAN | NOT NULL, DEFAULT false, INDEX(idx_schedule_alarm_sent_at with alarm_at) | 알람 발송 완료 여부 |
+| fail_count | TINYINT | NOT NULL, DEFAULT 0 | 발송 실패 횟수 (3회 이상 시 isSent=true로 포기 처리) |
 
 ---
 
@@ -427,6 +428,7 @@
 | is_all_day | BOOLEAN | DEFAULT false | 종일 여부 |
 | is_completed | BOOLEAN | DEFAULT false | 완료 여부 |
 | is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| is_alarm_sent | BOOLEAN | DEFAULT false | 알람 발송 완료 여부 (SENT/SKIPPED 시 true로 갱신) |
 | created_at | TIMESTAMP | NOT NULL | 생성일시 |
 
 ---
@@ -439,10 +441,10 @@
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
 | platform | VARCHAR(20) | NOT NULL | 플랫폼 Enum (WEB, ANDROID, IOS) |
 | provider | VARCHAR(20) | NOT NULL | 발송 채널 Enum (WEB_PUSH, FCM, APNS) |
-| endpoint | TEXT | | Web Push endpoint URL |
-| p256dh | TEXT | | Web Push 공개키 |
-| auth | TEXT | | Web Push 인증 시크릿 |
-| token | TEXT | | FCM / APNs 토큰 |
+| endpoint | VARCHAR(2048) CHARACTER SET ascii | | Web Push endpoint URL |
+| p256dh | VARCHAR(500) | | Web Push 공개키 |
+| auth | VARCHAR(255) | | Web Push 인증 시크릿 |
+| token | VARCHAR(2048) CHARACTER SET ascii | | FCM / APNs 토큰 |
 | enabled | BOOLEAN | NOT NULL | 활성화 여부 |
 | created_at | TIMESTAMP | NOT NULL | 생성일시 |
 | updated_at | TIMESTAMP | NOT NULL | 수정일시 |
@@ -458,7 +460,7 @@
 | id | BIGINT | PK, NOT NULL | 이력 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 수신 사용자 ID |
 | alarm_type | VARCHAR(50) | NOT NULL | 알람 유형 Enum (MEDICATION, SCHEDULE, TODO, REPORT, COMMUNITY, MARKETING) |
-| reference_id | BIGINT | | 연관 엔티티 ID (schedule_id, todo_id 등) |
+| reference_id | BIGINT | NOT NULL, DEFAULT 0 | 연관 엔티티 ID (schedule_id, todo_id 등). reference 없는 알림(마케팅 등)은 0 사용 |
 | alarm_scheduled_at | TIMESTAMP | NOT NULL | 예정 발송 시각 (중복 방지 기준) |
 | title | VARCHAR(255) | NOT NULL | 알람 제목 |
 | body | TEXT | | 알람 본문 |

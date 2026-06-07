@@ -1,12 +1,20 @@
 package attune.alarm.application;
 
+import attune.alarm.domain.model.NotificationProvider;
 import attune.alarm.domain.model.NotificationSubscription;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@Order
 public class StubPushSender implements PushSender {
+
+    @Override
+    public boolean supports(NotificationProvider provider) {
+        return true;
+    }
 
     @Override
     public void send(NotificationSubscription subscription, PushMessage message) {

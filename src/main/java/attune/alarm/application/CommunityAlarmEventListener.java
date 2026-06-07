@@ -33,9 +33,13 @@ public class CommunityAlarmEventListener {
         notificationService.sendToUser(
                 event.postAuthorId(),
                 NotificationAlarmType.COMMUNITY,
-                event.postId(),
+                event.commentId(),
                 scheduledAt,
-                new PushMessage("새 댓글", "\"" + event.postTitle() + "\" 게시글에 댓글이 달렸어요.", null)
+                new PushMessage(
+                        "새 댓글",
+                        "\"" + event.postTitle() + "\" 게시글에 댓글이 달렸어요.",
+                        "/community/post/" + event.postId()
+                )
         );
     }
 }

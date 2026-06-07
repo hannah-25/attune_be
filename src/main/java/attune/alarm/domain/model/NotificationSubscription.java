@@ -38,13 +38,13 @@ public class NotificationSubscription {
     @Column(length = 2048)
     private String endpoint;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 500)
     private String p256dh;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 255)
     private String auth;
 
-    @Column(length = 500)
+    @Column(length = 2048, columnDefinition = "VARCHAR(2048) CHARACTER SET ascii")
     private String token;
 
     @Column(nullable = false)

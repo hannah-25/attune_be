@@ -17,6 +17,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,10 +63,29 @@ class ScheduleServiceTest {
     }
 
     @Test
-    void updateAlarmsRejectsMoreThanTenDistinctAlarmTimes() {
+    void updateAlarmsIgnoresNullAlarmTimes() {
         Schedule schedule = ownedSchedule();
         LocalDateTime first = LocalDateTime.of(2026, 6, 6, 9, 0);
-        List<LocalDateTime> alarmTimes = IntStream.range(0, 11)
+        LocalDateTime second = LocalDateTime.of(2026, 6, 6, 10, 0);
+        authenticate(schedule.getUserId());
+        when(scheduleRepository.findByIdAndIsDeletedFalse(1L)).thenReturn(Optional.of(schedule));
+
+        scheduleService.updateAlarms(1L, new UpdateAlarmsRequest(
+                true,
+                Arrays.asList(first, null, first, null, second)
+        ));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ScheduleAlarm>> captor = ArgumentCaptor.forClass(List.class);
+        verify(scheduleAlarmRepository).saveAll(captor.capture());
+        assertEquals(List.of(first, second), captor.getValue().stream().map(ScheduleAlarm::getAlarmAt).toList());
+    }
+
+    @Test
+    void updateAlarmsRejectsMoreThanThreeDistinctAlarmTimes() {
+        Schedule schedule = ownedSchedule();
+        LocalDateTime first = LocalDateTime.of(2026, 6, 6, 9, 0);
+        List<LocalDateTime> alarmTimes = IntStream.range(0, 4)
                 .mapToObj(first::plusMinutes)
                 .toList();
         authenticate(schedule.getUserId());

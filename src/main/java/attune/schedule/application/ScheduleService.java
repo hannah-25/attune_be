@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class ScheduleService {
 
-    private static final int MAX_ALARMS_PER_SCHEDULE = 10;
+    private static final int MAX_ALARMS_PER_SCHEDULE = 3;
 
     private final ScheduleRepository scheduleRepository;
     private final ScheduleCategoryRepository scheduleCategoryRepository;
@@ -184,6 +185,7 @@ public class ScheduleService {
 
     private void saveAlarms(Schedule schedule, List<LocalDateTime> alarmTimes) {
         List<LocalDateTime> distinctAlarmTimes = alarmTimes.stream()
+                .filter(Objects::nonNull)
                 .distinct()
                 .toList();
         if (distinctAlarmTimes.size() > MAX_ALARMS_PER_SCHEDULE) {

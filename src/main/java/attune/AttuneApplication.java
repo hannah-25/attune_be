@@ -1,9 +1,12 @@
 package attune;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.util.TimeZone;
 
 @EnableAsync
 @EnableScheduling
@@ -11,6 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class AttuneApplication {
 
 	public static void main(String[] args) {
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
 		SpringApplication.run(AttuneApplication.class, args);
 	}
 

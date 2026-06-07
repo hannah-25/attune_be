@@ -32,7 +32,7 @@ public class WeeklyReportAlarmSender {
         PushMessage message = new PushMessage(
                 "\uC8FC\uAC04 \uB9AC\uD3EC\uD2B8",
                 "\uC9C0\uB09C \uC8FC \uBCF5\uC57D \uB9AC\uD3EC\uD2B8\uAC00 \uC900\uBE44\uB410\uC5B4\uC694.",
-                null
+                "/report"
         );
 
         log.info("[WEEKLY REPORT PUSH] weekId={} started", weekId);

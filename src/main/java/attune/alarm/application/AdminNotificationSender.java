@@ -25,7 +25,7 @@ public class AdminNotificationSender {
 
     @Async
     public void sendNoticeToAll(Long noticeId, String title, String content, LocalDateTime scheduledAt) {
-        PushMessage message = new PushMessage(title, content, null);
+        PushMessage message = new PushMessage(title, content, "/community/notice");
 
         log.info("[MARKETING PUSH] noticeId={} title=\"{}\"", noticeId, title);
 

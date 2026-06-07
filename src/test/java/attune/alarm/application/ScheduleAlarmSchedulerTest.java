@@ -31,7 +31,8 @@ class ScheduleAlarmSchedulerTest {
         ScheduleAlarm alarm = alarm(1L, now.minusMinutes(3));
         PushMessage message = messageFor(alarm);
 
-        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(now, 0L, PageRequest.of(0, 500)))
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
                 .thenReturn(List.of(alarm));
         when(notificationService.sendToUser(
                 alarm.getSchedule().getUserId(),
@@ -43,6 +44,7 @@ class ScheduleAlarmSchedulerTest {
 
         scheduler.sendScheduleAlarms(now);
 
+        verify(scheduleAlarmRepository).markExpiredAsSentBefore(now.minusHours(1));
         verify(notificationService).sendToUser(
                 alarm.getSchedule().getUserId(),
                 NotificationAlarmType.SCHEDULE,
@@ -54,12 +56,33 @@ class ScheduleAlarmSchedulerTest {
     }
 
     @Test
+    void marksAlarmsOutsideRecoveryWindowAsExpired() {
+        LocalDateTime now = LocalDateTime.of(2026, 6, 6, 10, 0);
+        when(scheduleAlarmRepository.markExpiredAsSentBefore(now.minusHours(1))).thenReturn(3);
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
+                .thenReturn(List.of());
+
+        scheduler.sendScheduleAlarms(now);
+
+        verify(scheduleAlarmRepository).markExpiredAsSentBefore(now.minusHours(1));
+        verify(notificationService, never()).sendToUser(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()
+        );
+    }
+
+    @Test
     void leavesAlarmUnsentWhenSendingThrows() {
         LocalDateTime now = LocalDateTime.of(2026, 6, 6, 10, 0);
         ScheduleAlarm alarm = alarm(1L, now.minusMinutes(3));
         PushMessage message = messageFor(alarm);
 
-        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(now, 0L, PageRequest.of(0, 500)))
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
                 .thenReturn(List.of(alarm));
         doThrow(new RuntimeException("send failed")).when(notificationService).sendToUser(
                 alarm.getSchedule().getUserId(),
@@ -72,6 +95,7 @@ class ScheduleAlarmSchedulerTest {
         scheduler.sendScheduleAlarms(now);
 
         verify(scheduleAlarmRepository, never()).markAsSent(alarm.getId());
+        verify(scheduleAlarmRepository).incrementFailCount(alarm.getId());
     }
 
     @Test
@@ -80,7 +104,8 @@ class ScheduleAlarmSchedulerTest {
         ScheduleAlarm alarm = alarm(1L, now.minusMinutes(3));
         PushMessage message = messageFor(alarm);
 
-        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(now, 0L, PageRequest.of(0, 500)))
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
                 .thenReturn(List.of(alarm));
         when(notificationService.sendToUser(
                 alarm.getSchedule().getUserId(),
@@ -93,6 +118,7 @@ class ScheduleAlarmSchedulerTest {
         scheduler.sendScheduleAlarms(now);
 
         verify(scheduleAlarmRepository, never()).markAsSent(alarm.getId());
+        verify(scheduleAlarmRepository, never()).incrementFailCount(alarm.getId());
     }
 
     private ScheduleAlarm alarm(Long id, LocalDateTime alarmAt) {
@@ -109,6 +135,6 @@ class ScheduleAlarmSchedulerTest {
     }
 
     private PushMessage messageFor(ScheduleAlarm alarm) {
-        return new PushMessage(alarm.getSchedule().getTitle(), "일정 알림이에요.", null);
+        return new PushMessage(alarm.getSchedule().getTitle(), "일정 알림이에요.", "/calendar");
     }
 }
