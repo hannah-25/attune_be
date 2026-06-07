@@ -3,6 +3,7 @@ package attune.alarm.application;
 import attune.alarm.domain.model.NotificationProvider;
 import attune.alarm.domain.model.NotificationSubscription;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.PushService;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -16,6 +17,7 @@ import java.security.Security;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,6 +40,7 @@ class WebPushSenderTest {
 
         sender.send(subscription(), new PushMessage("title", "body", "/home"));
 
+        verify(pushService).preparePost(any(), eq(Encoding.AES128GCM));
         verify(response).close();
     }
 

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,6 +38,7 @@ public class TodoAlarmScheduler {
 
         Map<UUID, UserSetting> settingsByUser = loadSettings(candidates);
 
+        List<Todo> updatedTodos = new ArrayList<>();
         for (Todo todo : candidates) {
             try {
                 UserSetting setting = settingsByUser.get(todo.getUserId());
@@ -51,11 +53,14 @@ public class TodoAlarmScheduler {
                 );
                 if (status == NotificationStatus.SENT || status == NotificationStatus.SKIPPED) {
                     todo.markAlarmSent();
-                    todoRepository.save(todo);
+                    updatedTodos.add(todo);
                 }
             } catch (Exception e) {
                 log.error("Todo 알림 발송 실패 - todoId={}", todo.getId(), e);
             }
+        }
+        if (!updatedTodos.isEmpty()) {
+            todoRepository.saveAll(updatedTodos);
         }
     }
 

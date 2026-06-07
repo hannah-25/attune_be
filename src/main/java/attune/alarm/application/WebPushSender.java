@@ -44,7 +44,7 @@ public class WebPushSender implements PushSender {
                     subscription.getAuth(),
                     payload
             );
-            HttpPost post = pushService.preparePost(notification, Encoding.AESGCM);
+            HttpPost post = pushService.preparePost(notification, Encoding.AES128GCM);
             try (CloseableHttpResponse response = webPushHttpClient.execute(post)) {
                 int statusCode = response.getStatusLine().getStatusCode();
                 EntityUtils.consumeQuietly(response.getEntity());
