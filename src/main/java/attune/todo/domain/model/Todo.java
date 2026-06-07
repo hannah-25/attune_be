@@ -8,7 +8,12 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "todos")
+@Table(
+        name = "todos",
+        indexes = {
+                @Index(name = "idx_todos_alarm_lookup", columnList = "is_alarm_sent, is_deleted, is_completed, is_all_day, due_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
