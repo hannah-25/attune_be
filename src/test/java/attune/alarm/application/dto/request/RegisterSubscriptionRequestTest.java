@@ -96,6 +96,34 @@ class RegisterSubscriptionRequestTest {
         assertTrue(validator.validate(apns).isEmpty());
     }
 
+    @Test
+    void tokenAcceptsUpTo2048Characters() {
+        RegisterSubscriptionRequest request = new RegisterSubscriptionRequest(
+                NotificationPlatform.ANDROID,
+                NotificationProvider.FCM,
+                null,
+                null,
+                null,
+                "a".repeat(2048)
+        );
+
+        assertTrue(validator.validate(request).isEmpty());
+    }
+
+    @Test
+    void tokenRejectsMoreThan2048Characters() {
+        RegisterSubscriptionRequest request = new RegisterSubscriptionRequest(
+                NotificationPlatform.ANDROID,
+                NotificationProvider.FCM,
+                null,
+                null,
+                null,
+                "a".repeat(2049)
+        );
+
+        assertEquals(Set.of("token"), violationFields(validator.validate(request)));
+    }
+
     private Set<String> violationFields(Set<ConstraintViolation<RegisterSubscriptionRequest>> violations) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString())

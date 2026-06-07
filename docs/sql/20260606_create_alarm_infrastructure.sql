@@ -8,6 +8,9 @@ ALTER TABLE user_settings
 ALTER TABLE user_medications
   ADD COLUMN alarm_active BOOLEAN NOT NULL DEFAULT TRUE;
 
+ALTER TABLE todos
+  ADD COLUMN is_alarm_sent BOOLEAN NOT NULL DEFAULT FALSE;
+
 CREATE TABLE IF NOT EXISTS schedule_alarms (
   id BIGINT NOT NULL AUTO_INCREMENT,
   schedule_id BIGINT NOT NULL,
@@ -30,7 +33,7 @@ CREATE TABLE IF NOT EXISTS notification_subscriptions (
   endpoint VARCHAR(2048) CHARACTER SET ascii NULL,
   p256dh VARCHAR(500) NULL,
   auth VARCHAR(255) NULL,
-  token VARCHAR(500) NULL,
+  token VARCHAR(2048) CHARACTER SET ascii NULL,
   enabled BOOLEAN NOT NULL DEFAULT TRUE,
   created_at DATETIME(6) NOT NULL,
   updated_at DATETIME(6) NOT NULL,
@@ -47,7 +50,7 @@ CREATE TABLE IF NOT EXISTS notification_history (
   id BIGINT NOT NULL AUTO_INCREMENT,
   user_id BINARY(16) NOT NULL,
   alarm_type VARCHAR(50) NOT NULL,
-  reference_id BIGINT NULL,
+  reference_id BIGINT NOT NULL DEFAULT 0,
   alarm_scheduled_at DATETIME(6) NOT NULL,
   title VARCHAR(255) NOT NULL,
   body TEXT NULL,

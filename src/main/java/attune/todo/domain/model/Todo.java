@@ -36,8 +36,15 @@ public class Todo {
     @Column(nullable = false)
     private boolean isDeleted = false;
 
+    @Column(nullable = false)
+    private boolean isAlarmSent = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void markAlarmSent() {
+        this.isAlarmSent = true;
+    }
 
     public void update(String text, LocalDateTime dueAt, Boolean isAllDay, Boolean isCompleted) {
         if (text != null) this.text = text;
