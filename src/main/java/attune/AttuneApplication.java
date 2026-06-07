@@ -13,12 +13,8 @@ import java.util.TimeZone;
 @SpringBootApplication
 public class AttuneApplication {
 
-	@PostConstruct
-	void initializeTimeZone() {
-		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
-	}
-
 	public static void main(String[] args) {
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
 		SpringApplication.run(AttuneApplication.class, args);
 	}
 
