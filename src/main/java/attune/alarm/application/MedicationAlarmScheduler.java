@@ -32,8 +32,8 @@ public class MedicationAlarmScheduler {
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendMedicationAlarms() {
-        LocalTime now = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
-        LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime scheduledAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).truncatedTo(ChronoUnit.MINUTES);
+        LocalTime now = scheduledAt.toLocalTime();
 
         List<UserMedicationSchedule> candidates = loadCandidates(now.minusMinutes(RECOVERY_WINDOW_MINUTES), now);
         if (candidates.isEmpty()) return;
