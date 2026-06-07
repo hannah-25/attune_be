@@ -41,4 +41,9 @@ public interface ScheduleAlarmRepository extends JpaRepository<ScheduleAlarm, Lo
     @Modifying
     @Query("UPDATE ScheduleAlarm sa SET sa.isSent = true WHERE sa.id = :id AND sa.isSent = false")
     int markAsSent(@Param("id") Long id);
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE ScheduleAlarm sa SET sa.failCount = sa.failCount + 1 WHERE sa.id = :id")
+    void incrementFailCount(@Param("id") Long id);
 }

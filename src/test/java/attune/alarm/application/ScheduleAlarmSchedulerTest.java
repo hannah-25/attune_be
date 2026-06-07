@@ -72,6 +72,7 @@ class ScheduleAlarmSchedulerTest {
         scheduler.sendScheduleAlarms(now);
 
         verify(scheduleAlarmRepository, never()).markAsSent(alarm.getId());
+        verify(scheduleAlarmRepository).incrementFailCount(alarm.getId());
     }
 
     @Test
@@ -93,6 +94,7 @@ class ScheduleAlarmSchedulerTest {
         scheduler.sendScheduleAlarms(now);
 
         verify(scheduleAlarmRepository, never()).markAsSent(alarm.getId());
+        verify(scheduleAlarmRepository, never()).incrementFailCount(alarm.getId());
     }
 
     private ScheduleAlarm alarm(Long id, LocalDateTime alarmAt) {
@@ -109,6 +111,6 @@ class ScheduleAlarmSchedulerTest {
     }
 
     private PushMessage messageFor(ScheduleAlarm alarm) {
-        return new PushMessage(alarm.getSchedule().getTitle(), "일정 알림이에요.", null);
+        return new PushMessage(alarm.getSchedule().getTitle(), "일정 알림이에요.", "/calendar");
     }
 }

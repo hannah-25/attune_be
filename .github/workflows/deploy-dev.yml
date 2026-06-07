@@ -67,6 +67,9 @@ jobs:
             docker pull hannah098/attune-be:dev
             docker run -d --name attune-dev-apps --network host \
               -e SPRING_PROFILES_ACTIVE=dev \
+              -e PUSH_PROVIDER=web-push \
+              -e VAPID_PUBLIC_KEY="${{ secrets.VAPID_PUBLIC_KEY }}" \
+              -e VAPID_PRIVATE_KEY="${{ secrets.VAPID_PRIVATE_KEY }}" \
               hannah098/attune-be:dev
             sleep 40
             curl -f http://localhost:8080/actuator/health || exit 1

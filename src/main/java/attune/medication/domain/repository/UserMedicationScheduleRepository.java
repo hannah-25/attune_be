@@ -24,4 +24,22 @@ public interface UserMedicationScheduleRepository extends JpaRepository<UserMedi
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
             """)
     List<UserMedicationSchedule> findAlarmCandidatesByDoseTime(@Param("doseTime") LocalTime doseTime);
+
+    @Query("""
+            SELECT ums FROM UserMedicationSchedule ums
+            JOIN FETCH ums.userMedication um
+            JOIN FETCH um.user u
+            WHERE (
+                    (:wrapsMidnight = false AND ums.doseTime >= :from AND ums.doseTime <= :to)
+                 OR (:wrapsMidnight = true AND (ums.doseTime >= :from OR ums.doseTime <= :to))
+              )
+              AND um.isActive = true
+              AND um.alarmActive = true
+              AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
+            """)
+    List<UserMedicationSchedule> findAlarmCandidatesByDoseTimeBetween(
+            @Param("from") LocalTime from,
+            @Param("to") LocalTime to,
+            @Param("wrapsMidnight") boolean wrapsMidnight
+    );
 }

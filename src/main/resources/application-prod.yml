@@ -59,3 +59,7 @@ cors:
 
 app:
   frontend-url:
+
+notification:
+  push:
+    provider: web-push

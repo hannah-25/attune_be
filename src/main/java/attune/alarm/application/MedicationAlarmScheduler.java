@@ -24,6 +24,8 @@ import java.util.stream.Collectors;
 @Component
 public class MedicationAlarmScheduler {
 
+    private static final int RECOVERY_WINDOW_MINUTES = 10;
+
     private final UserMedicationScheduleRepository scheduleRepository;
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
@@ -33,7 +35,7 @@ public class MedicationAlarmScheduler {
         LocalTime now = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
-        List<UserMedicationSchedule> candidates = loadCandidates(now);
+        List<UserMedicationSchedule> candidates = loadCandidates(now.minusMinutes(RECOVERY_WINDOW_MINUTES), now);
         if (candidates.isEmpty()) return;
 
         Map<UUID, UserSetting> settingsByUser = loadSettings(candidates);
@@ -44,12 +46,16 @@ public class MedicationAlarmScheduler {
             if (setting == null || !setting.isMedicationNotification()) continue;
 
             String label = schedule.getLabel() != null ? schedule.getLabel() : "복약";
+            LocalDateTime alarmScheduledAt = scheduledAt.with(schedule.getDoseTime());
+            if (alarmScheduledAt.isAfter(scheduledAt)) {
+                alarmScheduledAt = alarmScheduledAt.minusDays(1);
+            }
             notificationService.sendToUser(
                     userId,
                     NotificationAlarmType.MEDICATION,
                     schedule.getId(),
-                    scheduledAt,
-                    new PushMessage(label + " 복약 시간", "복약 시간이 됐어요.", null)
+                    alarmScheduledAt,
+                    new PushMessage(label + " 복약 시간", "복약 시간이 됐어요.", "/medication")
             );
         }
     }
@@ -57,6 +63,11 @@ public class MedicationAlarmScheduler {
     @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(LocalTime doseTime) {
         return scheduleRepository.findAlarmCandidatesByDoseTime(doseTime);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserMedicationSchedule> loadCandidates(LocalTime from, LocalTime to) {
+        return scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, from.isAfter(to));
     }
 
     @Transactional(readOnly = true)

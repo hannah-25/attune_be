@@ -45,7 +45,7 @@ public class TodoAlarmScheduler {
                     NotificationAlarmType.TODO,
                     todo.getId(),
                     todo.getDueAt(),
-                    new PushMessage(todo.getText(), "할 일 마감 시간이에요.", null)
+                    new PushMessage(todo.getText(), "할 일 마감 시간이에요.", "/calendar")
             );
         }
     }
