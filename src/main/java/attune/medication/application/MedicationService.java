@@ -2,7 +2,6 @@ package attune.medication.application;
 
 import attune.common.error.BadRequestException;
 import attune.common.error.badrequest.DuplicateScheduleTimeException;
-import attune.common.error.conflict.DuplicateMedicationLogException;
 import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.error.badrequest.InvalidQuickLogRequestException;
 import attune.common.error.notfound.ConsultationNotFoundException;
@@ -46,6 +45,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -238,26 +238,27 @@ public class MedicationService {
         LocalDateTime endOfToday = toExclusiveEndOfDay(today);
 
         if (request.action() == QuickLogAction.CANCEL) {
-            int deletedCount = logRepository.deleteByScheduleIdAndTakenAtRange(
-                    schedule.getId(),
-                    startOfToday,
-                    endOfToday
-            );
-            if (deletedCount == 0) {
+            int deactivatedCount = logRepository.deactivateByScheduleIdAndTakenAtRange(
+                    schedule.getId(), startOfToday, endOfToday);
+            if (deactivatedCount == 0) {
                 throw new MedicationLogNotFoundException();
             }
             return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
         }
 
         if (request.action() == QuickLogAction.TAKEN) {
-            int deletedCount = logRepository.deleteByScheduleIdAndTakenAtRange(
+            int deactivatedCount = logRepository.deactivateByScheduleIdAndTakenAtRange(
                     schedule.getId(), startOfToday, endOfToday);
-            if (deletedCount > 0) {
+            if (deactivatedCount > 0) {
                 return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
             }
-        } else if (logRepository.existsByUserMedicationScheduleIdAndTakenAtBetween(
-                schedule.getId(), startOfToday, endOfToday)) {
-            throw new DuplicateMedicationLogException();
+        } else {
+            Optional<UserMedicationLog> existing = logRepository.findFirstActiveByScheduleIdAndTakenAtRange(
+                    schedule.getId(), startOfToday, endOfToday);
+            if (existing.isPresent()) {
+                existing.get().updateTakenAt(now);
+                return new QuickLogResponse(existing.get().getId(), request.action(), now);
+            }
         }
 
         UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN
@@ -302,10 +303,10 @@ public class MedicationService {
 
     private List<UserMedicationLog> findLogs(List<Long> scheduleIds, LocalDate startDate, LocalDate endDate) {
         if (startDate == null || endDate == null) {
-            return logRepository.findByUserMedicationScheduleIdIn(scheduleIds);
+            return logRepository.findActiveByUserMedicationScheduleIdIn(scheduleIds);
         }
 
-        return logRepository.findByUserMedicationScheduleIdInAndTakenAtBetween(
+        return logRepository.findActiveByUserMedicationScheduleIdInAndTakenAtBetween(
                 scheduleIds,
                 toStartOfDay(startDate),
                 toExclusiveEndOfDay(endDate)

@@ -30,4 +30,12 @@ public class UserMedicationLog {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserMedicationLogStatus status;
+
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
+    public void updateTakenAt(LocalDateTime takenAt) {
+        this.takenAt = takenAt;
+    }
 }
