@@ -21,11 +21,12 @@ public class ScheduleAlarmScheduler {
 
     private static final int BATCH_SIZE = 500;
     private static final int MAX_RETRY = 3;
+    private static final int RECOVERY_WINDOW_HOURS = 1;
 
     private final ScheduleAlarmRepository scheduleAlarmRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendScheduleAlarms() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         sendScheduleAlarms(now);
@@ -45,6 +46,7 @@ public class ScheduleAlarmScheduler {
         long afterId = 0L;
         while (true) {
             List<ScheduleAlarm> targets = scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                    now.minusHours(RECOVERY_WINDOW_HOURS),
                     now,
                     afterId,
                     PageRequest.of(0, BATCH_SIZE)

@@ -27,7 +27,7 @@ public class TodoAlarmScheduler {
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendTodoAlarms() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 

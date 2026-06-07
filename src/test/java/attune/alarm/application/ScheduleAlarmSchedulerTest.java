@@ -31,7 +31,8 @@ class ScheduleAlarmSchedulerTest {
         ScheduleAlarm alarm = alarm(1L, now.minusMinutes(3));
         PushMessage message = messageFor(alarm);
 
-        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(now, 0L, PageRequest.of(0, 500)))
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
                 .thenReturn(List.of(alarm));
         when(notificationService.sendToUser(
                 alarm.getSchedule().getUserId(),
@@ -59,7 +60,8 @@ class ScheduleAlarmSchedulerTest {
         ScheduleAlarm alarm = alarm(1L, now.minusMinutes(3));
         PushMessage message = messageFor(alarm);
 
-        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(now, 0L, PageRequest.of(0, 500)))
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
                 .thenReturn(List.of(alarm));
         doThrow(new RuntimeException("send failed")).when(notificationService).sendToUser(
                 alarm.getSchedule().getUserId(),
@@ -81,7 +83,8 @@ class ScheduleAlarmSchedulerTest {
         ScheduleAlarm alarm = alarm(1L, now.minusMinutes(3));
         PushMessage message = messageFor(alarm);
 
-        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(now, 0L, PageRequest.of(0, 500)))
+        when(scheduleAlarmRepository.findUnsentWithScheduleByAlarmAtBeforeOrEqualAfterId(
+                now.minusHours(1), now, 0L, PageRequest.of(0, 500)))
                 .thenReturn(List.of(alarm));
         when(notificationService.sendToUser(
                 alarm.getSchedule().getUserId(),

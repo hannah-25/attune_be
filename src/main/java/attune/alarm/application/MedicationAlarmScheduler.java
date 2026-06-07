@@ -30,7 +30,7 @@ public class MedicationAlarmScheduler {
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendMedicationAlarms() {
         LocalTime now = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);

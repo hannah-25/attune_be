@@ -13,7 +13,7 @@ public class ReportAlarmScheduler {
     private final WeeklyReportAlarmSender weeklyReportAlarmSender;
 
     // 매주 월요일 오전 9시
-    @Scheduled(cron = "0 0 9 * * MON")
+    @Scheduled(cron = "0 0 9 * * MON", zone = "Asia/Seoul")
     public void sendWeeklyReportAlarms() {
         log.info("[WEEKLY REPORT SCHEDULER] triggered");
         weeklyReportAlarmSender.send();

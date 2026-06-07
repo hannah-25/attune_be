@@ -441,8 +441,8 @@
 | platform | VARCHAR(20) | NOT NULL | 플랫폼 Enum (WEB, ANDROID, IOS) |
 | provider | VARCHAR(20) | NOT NULL | 발송 채널 Enum (WEB_PUSH, FCM, APNS) |
 | endpoint | VARCHAR(2048) CHARACTER SET ascii | | Web Push endpoint URL |
-| p256dh | TEXT | | Web Push 공개키 |
-| auth | TEXT | | Web Push 인증 시크릿 |
+| p256dh | VARCHAR(500) | | Web Push 공개키 |
+| auth | VARCHAR(255) | | Web Push 인증 시크릿 |
 | token | TEXT | | FCM / APNs 토큰 |
 | enabled | BOOLEAN | NOT NULL | 활성화 여부 |
 | created_at | TIMESTAMP | NOT NULL | 생성일시 |

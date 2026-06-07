@@ -2,6 +2,8 @@ package attune.alarm.config;
 
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Utils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -14,6 +16,17 @@ import java.security.Security;
 @EnableConfigurationProperties(WebPushProperties.class)
 @ConditionalOnProperty(name = "notification.push.provider", havingValue = "web-push")
 public class WebPushConfig {
+
+    private static final int MAX_CONN_PER_ROUTE = 50;
+    private static final int MAX_CONN_TOTAL = 200;
+
+    @Bean
+    CloseableHttpClient webPushHttpClient() {
+        return HttpClients.custom()
+                .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
+                .setMaxConnTotal(MAX_CONN_TOTAL)
+                .build();
+    }
 
     @Bean
     PushService webPushService(WebPushProperties properties) throws Exception {
