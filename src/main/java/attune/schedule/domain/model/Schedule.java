@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -49,10 +48,6 @@ public class Schedule {
     @Column(nullable = false)
     private boolean alarmEnabled = false;
 
-    @Convert(converter = AlarmedAtConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private List<LocalDateTime> alarmedAt;
-
     @Column(nullable = false)
     private boolean isDeleted = false;
 
@@ -63,8 +58,7 @@ public class Schedule {
                        Boolean isAllDay,
                        LocalDateTime startTime,
                        LocalDateTime endTime,
-                       Boolean alarmEnabled,
-                       List<LocalDateTime> alarmedAt) {
+                       Boolean alarmEnabled) {
         if (title != null) this.title = title;
         if (description != null) this.description = description;
         if (scheduleCategoryId != null) this.scheduleCategoryId = scheduleCategoryId;
@@ -73,12 +67,10 @@ public class Schedule {
         if (startTime != null) this.startTime = startTime;
         if (endTime != null) this.endTime = endTime;
         if (alarmEnabled != null) this.alarmEnabled = alarmEnabled;
-        if (alarmedAt != null) this.alarmedAt = alarmedAt;
     }
 
-    public void updateAlarms(boolean alarmEnabled, List<LocalDateTime> alarmedAt) {
+    public void updateAlarmEnabled(boolean alarmEnabled) {
         this.alarmEnabled = alarmEnabled;
-        this.alarmedAt = alarmEnabled ? alarmedAt : List.of();
     }
 
     public void delete() {

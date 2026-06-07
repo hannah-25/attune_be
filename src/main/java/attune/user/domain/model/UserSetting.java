@@ -27,16 +27,22 @@ public class UserSetting {
     private boolean medicationNotification;
     private boolean reportNotification;
     private boolean marketingNotification;
+    private boolean communityNotification;
+    private boolean todoNotification;
     private boolean takeMedicationOnHoliday;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Theme theme;
 
-    public void update(Boolean medicationNotification, Boolean reportNotification, Boolean marketingNotification, Boolean takeMedicationOnHoliday, Theme theme) {
+    public void update(Boolean medicationNotification, Boolean reportNotification, Boolean marketingNotification,
+                       Boolean communityNotification, Boolean todoNotification,
+                       Boolean takeMedicationOnHoliday, Theme theme) {
         if (medicationNotification != null) this.medicationNotification = medicationNotification;
         if (reportNotification != null) this.reportNotification = reportNotification;
         if (marketingNotification != null) this.marketingNotification = marketingNotification;
+        if (communityNotification != null) this.communityNotification = communityNotification;
+        if (todoNotification != null) this.todoNotification = todoNotification;
         if (takeMedicationOnHoliday != null) this.takeMedicationOnHoliday = takeMedicationOnHoliday;
         if (theme != null) this.theme = theme;
     }
@@ -47,6 +53,8 @@ public class UserSetting {
                 .medicationNotification(true)
                 .reportNotification(true)
                 .marketingNotification(false)
+                .communityNotification(true)
+                .todoNotification(true)
                 .takeMedicationOnHoliday(false)
                 .theme(Theme.SYSTEM)
                 .build();

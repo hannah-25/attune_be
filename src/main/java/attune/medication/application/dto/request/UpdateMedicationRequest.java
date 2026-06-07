@@ -6,7 +6,8 @@ import java.time.LocalDate;
 
 public record UpdateMedicationRequest(
         JsonNullable<LocalDate> endAt,
-        Boolean isActive
+        Boolean isActive,
+        Boolean alarmActive
 ) {
     public UpdateMedicationRequest {
         if (endAt == null) {

@@ -35,6 +35,10 @@ public class UserMedication {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
+    @Builder.Default
+    @Column(name = "alarm_active", nullable = false)
+    private Boolean alarmActive = true;
+
     @Column(name = "started_at")
     private LocalDate startedAt;
 
@@ -47,13 +51,14 @@ public class UserMedication {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void update(LocalDate endAt, boolean updateEndAt, Boolean isActive) {
+    public void update(LocalDate endAt, boolean updateEndAt, Boolean isActive, Boolean alarmActive) {
         if (Boolean.TRUE.equals(isActive)) {
             this.endAt = null;
         } else if (updateEndAt) {
             this.endAt = endAt;
         }
         if (isActive != null) this.isActive = isActive;
+        if (alarmActive != null) this.alarmActive = alarmActive;
         this.updatedAt = LocalDateTime.now();
     }
 }

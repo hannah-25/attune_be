@@ -6,6 +6,8 @@ public record UserSettingResponse(
         boolean medicationNotification,
         boolean reportNotification,
         boolean marketingNotification,
+        boolean communityNotification,
+        boolean todoNotification,
         boolean takeMedicationOnHoliday,
         String theme
 ) {
@@ -14,6 +16,8 @@ public record UserSettingResponse(
                 setting.isMedicationNotification(),
                 setting.isReportNotification(),
                 setting.isMarketingNotification(),
+                setting.isCommunityNotification(),
+                setting.isTodoNotification(),
                 setting.isTakeMedicationOnHoliday(),
                 setting.getTheme().name()
         );
