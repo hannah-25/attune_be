@@ -246,6 +246,10 @@ public class MedicationService {
             return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
         }
 
+        UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN
+                ? UserMedicationLogStatus.TAKEN
+                : UserMedicationLogStatus.SKIPPED;
+
         if (request.action() == QuickLogAction.TAKEN) {
             int deactivatedCount = logRepository.deactivateByScheduleIdAndTakenAtRange(
                     schedule.getId(), startOfToday, endOfToday);
@@ -256,14 +260,10 @@ public class MedicationService {
             Optional<UserMedicationLog> existing = logRepository.findFirstActiveByScheduleIdAndTakenAtRange(
                     schedule.getId(), startOfToday, endOfToday);
             if (existing.isPresent()) {
-                existing.get().updateTakenAt(now);
+                existing.get().update(now, status);
                 return new QuickLogResponse(existing.get().getId(), request.action(), now);
             }
         }
-
-        UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN
-                ? UserMedicationLogStatus.TAKEN
-                : UserMedicationLogStatus.SKIPPED;
 
         UserMedicationLog saved = logRepository.save(
                 UserMedicationLog.builder()

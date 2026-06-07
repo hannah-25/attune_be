@@ -35,7 +35,8 @@ public class UserMedicationLog {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
-    public void updateTakenAt(LocalDateTime takenAt) {
+    public void update(LocalDateTime takenAt, UserMedicationLogStatus status) {
         this.takenAt = takenAt;
+        this.status = status;
     }
 }

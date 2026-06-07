@@ -92,8 +92,10 @@ CREATE TABLE user_medication_logs (
   user_medication_schedule_id BIGINT NOT NULL,
   taken_at DATETIME(6) NOT NULL,
   status VARCHAR(50) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   PRIMARY KEY (id),
   UNIQUE KEY uk_user_medication_logs_schedule_taken_at (user_medication_schedule_id, taken_at),
+  KEY idx_user_medication_logs_schedule_active_taken_at (user_medication_schedule_id, is_active, taken_at),
   KEY idx_user_medication_logs_schedule_id (user_medication_schedule_id),
   CONSTRAINT fk_user_medication_logs_schedule
     FOREIGN KEY (user_medication_schedule_id) REFERENCES user_medication_schedules(id)

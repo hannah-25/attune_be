@@ -7,6 +7,8 @@ import attune.medication.application.dto.request.QuickLogRequest;
 import attune.medication.application.dto.response.QuickLogResponse;
 import attune.medication.domain.model.QuickLogAction;
 import attune.medication.domain.model.UserMedication;
+import attune.medication.domain.model.UserMedicationLog;
+import attune.medication.domain.model.UserMedicationLogStatus;
 import attune.medication.domain.model.UserMedicationSchedule;
 import attune.medication.domain.repository.MedicationDosageRepository;
 import attune.medication.domain.repository.MedicationRepository;
@@ -54,14 +56,14 @@ class MedicationServiceTest {
     }
 
     @Test
-    void quickLogCancelDeletesTodaysLogWithoutDuplicateCheck() {
+    void quickLogCancelDeactivatesTodaysLogWithoutDuplicateCheck() {
         UUID userId = UUID.randomUUID();
         authenticate(userId);
         when(userMedicationRepository.findByIdAndUserId(7L, userId))
                 .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
         when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
                 .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
-        when(logRepository.deleteByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(1);
+        when(logRepository.deactivateByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(1);
 
         QuickLogResponse response = medicationService.quickLog(
                 7L,
@@ -70,7 +72,7 @@ class MedicationServiceTest {
 
         assertThat(response.action()).isEqualTo(QuickLogAction.CANCEL);
         assertThat(response.logId()).isNull();
-        verify(logRepository, never()).existsByUserMedicationScheduleIdAndTakenAtBetween(any(), any(), any());
+        verify(logRepository, never()).existsActiveByScheduleIdAndTakenAtRange(any(), any(), any());
     }
 
     @Test
@@ -81,12 +83,40 @@ class MedicationServiceTest {
                 .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
         when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
                 .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
-        when(logRepository.deleteByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(0);
+        when(logRepository.deactivateByScheduleIdAndTakenAtRange(eq(11L), any(), any())).thenReturn(0);
 
         assertThrows(
                 MedicationLogNotFoundException.class,
                 () -> medicationService.quickLog(7L, new QuickLogRequest(QuickLogAction.CANCEL, 11L))
         );
+    }
+
+    @Test
+    void quickLogSkippedUpdatesExistingLogStatus() {
+        UUID userId = UUID.randomUUID();
+        authenticate(userId);
+        UserMedicationLog existingLog = UserMedicationLog.builder()
+                .id(3L)
+                .userMedicationSchedule(UserMedicationSchedule.builder().id(11L).build())
+                .status(UserMedicationLogStatus.TAKEN)
+                .build();
+        when(userMedicationRepository.findByIdAndUserId(7L, userId))
+                .thenReturn(Optional.of(UserMedication.builder().id(7L).build()));
+        when(scheduleRepository.findByIdAndUserMedicationId(11L, 7L))
+                .thenReturn(Optional.of(UserMedicationSchedule.builder().id(11L).build()));
+        when(logRepository.findFirstActiveByScheduleIdAndTakenAtRange(eq(11L), any(), any()))
+                .thenReturn(Optional.of(existingLog));
+
+        QuickLogResponse response = medicationService.quickLog(
+                7L,
+                new QuickLogRequest(QuickLogAction.SKIPPED, 11L)
+        );
+
+        assertThat(response.logId()).isEqualTo(3L);
+        assertThat(response.action()).isEqualTo(QuickLogAction.SKIPPED);
+        assertThat(existingLog.getStatus()).isEqualTo(UserMedicationLogStatus.SKIPPED);
+        assertThat(existingLog.getTakenAt()).isEqualTo(response.recordedAt());
+        verify(logRepository, never()).save(any());
     }
 
     private void authenticate(UUID userId) {
