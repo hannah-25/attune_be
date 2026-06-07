@@ -238,10 +238,14 @@ public class MedicationService {
         LocalDateTime endOfToday = toExclusiveEndOfDay(today);
 
         if (request.action() == QuickLogAction.CANCEL) {
-            UserMedicationLog existing = logRepository
-                    .findByUserMedicationScheduleIdAndTakenAtBetween(schedule.getId(), startOfToday, endOfToday)
-                    .orElseThrow(MedicationLogNotFoundException::new);
-            logRepository.delete(existing);
+            int deletedCount = logRepository.deleteByScheduleIdAndTakenAtRange(
+                    schedule.getId(),
+                    startOfToday,
+                    endOfToday
+            );
+            if (deletedCount == 0) {
+                throw new MedicationLogNotFoundException();
+            }
             return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
         }
 
