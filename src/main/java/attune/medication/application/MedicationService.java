@@ -256,7 +256,7 @@ public class MedicationService {
             Optional<UserMedicationLog> existing = logRepository.findFirstActiveByScheduleIdAndTakenAtRange(
                     schedule.getId(), startOfToday, endOfToday);
             if (existing.isPresent()) {
-                existing.get().updateTakenAt(now);
+                existing.get().update(now, UserMedicationLogStatus.SKIPPED);
                 return new QuickLogResponse(existing.get().getId(), request.action(), now);
             }
         }
