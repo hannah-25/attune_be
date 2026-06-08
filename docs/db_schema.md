@@ -147,6 +147,7 @@
 | takenAt | TIMESTAMP | NOT NULL | 복용 일시 |
 | | | UNIQUE(user_medication_schedule_id, takenAt) | 동일 스케줄의 같은 시간 중복 로그 방지 |
 | status | VARCHAR | NOT NULL | 복용 여부 enum값 (TAKEN, SKIPPED, MISSED) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | 소프트 딜리트 플래그 (복용 취소 시 false로 변경) |
 
 ---
 
