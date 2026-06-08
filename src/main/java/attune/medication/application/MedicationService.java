@@ -252,8 +252,8 @@ public class MedicationService {
 
         if (existing.isPresent()) {
             UserMedicationLog existingLog = existing.get();
-            if (request.action() == QuickLogAction.TAKEN
-                    && existingLog.getStatus() == UserMedicationLogStatus.TAKEN) {
+            if ((request.action() == QuickLogAction.TAKEN && existingLog.getStatus() == UserMedicationLogStatus.TAKEN)
+                    || (request.action() == QuickLogAction.SKIPPED && existingLog.getStatus() == UserMedicationLogStatus.SKIPPED)) {
                 existingLog.deactivate();
                 return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
             }
