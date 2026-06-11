@@ -26,6 +26,10 @@ public class DailyGoal {
     @Column(nullable = false, length = 500)
     private String dailyGoal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private DailyGoalType type;
+
     @Column(nullable = false)
     private boolean isActive = true;
 

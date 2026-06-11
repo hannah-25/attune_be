@@ -30,6 +30,15 @@ public class GeminiTextGenerator implements AiTextGenerator {
 
     @Override
     public String generate(String prompt) {
+        return callGemini(GeminiRequest.text(prompt));
+    }
+
+    @Override
+    public String generateJson(String prompt) {
+        return callGemini(GeminiRequest.json(prompt));
+    }
+
+    private String callGemini(GeminiRequest request) {
         if (!StringUtils.hasText(properties.apiKey())) {
             throw new GeminiGenerationException("GEMINI_API_KEY is not configured.");
         }
@@ -38,7 +47,7 @@ public class GeminiTextGenerator implements AiTextGenerator {
             GeminiResponse response = restClient.post()
                     .uri("/v1beta/models/{model}:generateContent", properties.model())
                     .header("x-goog-api-key", properties.apiKey())
-                    .body(GeminiRequest.from(prompt))
+                    .body(request)
                     .retrieve()
                     .body(GeminiResponse.class);
 
@@ -70,9 +79,19 @@ public class GeminiTextGenerator implements AiTextGenerator {
                 .orElse("");
     }
 
-    private record GeminiRequest(List<Content> contents) {
-        private static GeminiRequest from(String prompt) {
-            return new GeminiRequest(List.of(new Content("user", List.of(new Part(prompt)))));
+    private record GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
+        static GeminiRequest text(String prompt) {
+            return new GeminiRequest(
+                    List.of(new Content("user", List.of(new Part(prompt)))),
+                    null
+            );
+        }
+
+        static GeminiRequest json(String prompt) {
+            return new GeminiRequest(
+                    List.of(new Content("user", List.of(new Part(prompt)))),
+                    new GenerationConfig("application/json")
+            );
         }
     }
 
@@ -83,4 +102,6 @@ public class GeminiTextGenerator implements AiTextGenerator {
     private record Content(String role, List<Part> parts) {}
 
     private record Part(String text) {}
+
+    private record GenerationConfig(String responseMimeType) {}
 }

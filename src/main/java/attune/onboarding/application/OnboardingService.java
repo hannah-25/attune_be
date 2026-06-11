@@ -2,9 +2,15 @@ package attune.onboarding.application;
 
 import attune.common.error.badrequest.OnboardingNotCompleteException;
 import attune.common.error.notfound.UserNotFoundException;
+import attune.journal.domain.model.DailyGoal;
+import attune.journal.domain.model.DailyGoalType;
+import attune.journal.domain.model.TroubleTag;
+import attune.journal.domain.repository.DailyGoalRepository;
+import attune.journal.domain.repository.TroubleTagRepository;
 import attune.onboarding.application.dto.request.AsrsRequest;
 import attune.onboarding.application.dto.request.GoalRequest;
 import attune.onboarding.application.dto.request.SymptomRequest;
+import attune.onboarding.application.dto.response.AiRecommendationResponse;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
 import attune.onboarding.application.dto.response.GoalResponse;
@@ -13,10 +19,8 @@ import attune.onboarding.application.dto.response.SymptomResponse;
 import attune.onboarding.domain.model.AsrsAnswer;
 import attune.onboarding.domain.model.AsrsAssessment;
 import attune.onboarding.domain.model.OnboardingSymptom;
-import attune.onboarding.domain.model.TreatmentGoal;
 import attune.onboarding.domain.repository.AsrsAssessmentRepository;
 import attune.onboarding.domain.repository.OnboardingSymptomRepository;
-import attune.onboarding.domain.repository.TreatmentGoalRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -34,28 +41,26 @@ public class OnboardingService {
     private final UserRepository userRepository;
     private final AsrsAssessmentRepository asrsAssessmentRepository;
     private final OnboardingSymptomRepository onboardingSymptomRepository;
-    private final TreatmentGoalRepository treatmentGoalRepository;
+    private final DailyGoalRepository dailyGoalRepository;
+    private final TroubleTagRepository troubleTagRepository;
+    private final OnboardingAiService onboardingAiService;
 
     @Transactional(readOnly = true)
     public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        if (user.isOnboarded()) {
-            return OnboardingStatusResponse.completed(user);
-        }
-        if (user.isOnboardingSkipped()) {
-            return OnboardingStatusResponse.ofSkipped();
-        }
+        if (user.isOnboarded()) return OnboardingStatusResponse.completed(user);
+        if (user.isOnboardingSkipped()) return OnboardingStatusResponse.ofSkipped();
 
         boolean hasSymptom = onboardingSymptomRepository.existsByUser(user);
         boolean hasAsrs = asrsAssessmentRepository.existsByUser(user);
-        boolean hasGoals = treatmentGoalRepository.existsByUser(user);
+        boolean hasGoals = dailyGoalRepository.existsByUserId(userId);
 
         int resumeStep;
-        if (hasGoals)         resumeStep = 5;
-        else if (hasAsrs)     resumeStep = 4;
-        else if (hasSymptom)  resumeStep = 3;
-        else                  resumeStep = 2;
+        if (hasGoals)        resumeStep = 5;
+        else if (hasAsrs)    resumeStep = 4;
+        else if (hasSymptom) resumeStep = 3;
+        else                 resumeStep = 2;
 
         return OnboardingStatusResponse.inProgress(resumeStep);
     }
@@ -70,7 +75,6 @@ public class OnboardingService {
     public AsrsResponse saveAsrs(UUID userId, AsrsRequest request) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        // 1~6 이 핵심 문항
         int partAScore = request.answers().stream()
                 .filter(a -> a.questionId() >= 1 && a.questionId() <= 6)
                 .mapToInt(AsrsRequest.AnswerItem::score)
@@ -83,7 +87,6 @@ public class OnboardingService {
                 .map(a -> new AsrsAnswer(a.questionId(), a.score()))
                 .toList();
 
-
         LocalDateTime now = LocalDateTime.now();
         AsrsAssessment assessment = AsrsAssessment.builder()
                 .user(user)
@@ -94,7 +97,6 @@ public class OnboardingService {
                 .build();
 
         asrsAssessmentRepository.save(assessment);
-
         return new AsrsResponse(assessment.getId(), partAScore, totalScore, now);
     }
 
@@ -103,34 +105,106 @@ public class OnboardingService {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
         LocalDateTime now = LocalDateTime.now();
-        OnboardingSymptom symptom = OnboardingSymptom.builder()
+        OnboardingSymptom.OnboardingSymptomBuilder builder = OnboardingSymptom.builder()
                 .user(user)
-                .description(request.description())
-                .emotionalEvent(request.emotionalEvent())
                 .savedAt(now)
-                .build();
+                .isQuickOnboarding(request.isQuickOnboarding());
 
-        onboardingSymptomRepository.save(symptom);
+        if (request.isQuickOnboarding()) {
+            // 경로 B
+            builder.selectedSymptomTypes(String.join(",", request.selectedSymptomTypes()))
+                   .selectedFunctionalAreas(request.selectedFunctionalAreas().stream()
+                           .map(Enum::name)
+                           .collect(java.util.stream.Collectors.joining(",")));
+        } else {
+            // 경로 A
+            builder.description(request.description())
+                   .emotionalEvent(request.emotionalEvent());
+        }
 
+        OnboardingSymptom symptom = onboardingSymptomRepository.save(builder.build());
         return new SymptomResponse(symptom.getId(), now);
+    }
+
+    /**
+     * Gemini 분석 호출 — ASRS + 증상 서술(경로 A) 또는 취약 영역 선택(경로 B) 완료 후 호출.
+     * 결과는 저장하지 않고 프론트에 반환, 사용자가 확인/편집 후 saveGoals()로 확정.
+     */
+    @Transactional(readOnly = true)
+    public AiRecommendationResponse getAiRecommendations(UUID userId) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+
+        OnboardingSymptom symptom = onboardingSymptomRepository
+                .findTopByUserOrderBySavedAtDesc(user)
+                .orElseThrow(() -> new IllegalStateException("증상 서술이 없습니다."));
+
+        GeminiOnboardingResponse geminiResponse;
+
+        if (symptom.isQuickOnboarding()) {
+            // 경로 B
+            List<String> symptomTypes = List.of(symptom.getSelectedSymptomTypes().split(","));
+            List<DailyGoalType> functionalAreas = Arrays.stream(symptom.getSelectedFunctionalAreas().split(","))
+                    .map(name -> DailyGoalType.valueOf(name.trim()))
+                    .toList();
+            geminiResponse = onboardingAiService.analyzeQuickOnboarding(symptomTypes, functionalAreas);
+        } else {
+            // 경로 A
+            AsrsAssessment assessment = asrsAssessmentRepository
+                    .findTopByUserOrderByCompletedAtDesc(user)
+                    .orElseThrow(() -> new IllegalStateException("ASRS 결과가 없습니다."));
+
+            int inattentionScore = assessment.getAnswers().stream()
+                    .filter(a -> a.getQuestionId() >= 1 && a.getQuestionId() <= 9)
+                    .mapToInt(AsrsAnswer::getScore)
+                    .sum();
+            int hyperactivityScore = assessment.getAnswers().stream()
+                    .filter(a -> a.getQuestionId() >= 10 && a.getQuestionId() <= 18)
+                    .mapToInt(AsrsAnswer::getScore)
+                    .sum();
+
+            geminiResponse = onboardingAiService.analyzeFullOnboarding(
+                    symptom.getDescription(), inattentionScore, hyperactivityScore);
+        }
+
+        // 태그: 유저 태그 전체 + Gemini 추천 여부 표시
+        List<TroubleTag> userTags = troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId);
+        Set<String> recommended = new HashSet<>(geminiResponse.visibleTags());
+
+        List<AiRecommendationResponse.TagItem> tagItems = userTags.stream()
+                .map(t -> new AiRecommendationResponse.TagItem(
+                        t.getId(), t.getTrouble(), t.getType().name(),
+                        recommended.contains(t.getTrouble())))
+                .toList();
+
+        // 목표: Korean functionalArea → DailyGoalType 매핑
+        List<AiRecommendationResponse.GoalItem> goalItems = geminiResponse.treatmentGoals().stream()
+                .map(g -> new AiRecommendationResponse.GoalItem(g.goal(), mapFunctionalArea(g.functionalArea())))
+                .toList();
+
+        return new AiRecommendationResponse(tagItems, goalItems);
     }
 
     @Transactional
     public GoalResponse saveGoals(UUID userId, GoalRequest request) {
-        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-
-        List<TreatmentGoal> goals = request.goals().stream()
-                .map(item -> TreatmentGoal.builder()
-                        .user(user)
-                        .title(item.title())
-                        .description(item.description())
+        // 1. 치료 목표 저장
+        List<DailyGoal> goals = request.goals().stream()
+                .map(item -> DailyGoal.builder()
+                        .userId(userId)
+                        .dailyGoal(item.title())
+                        .type(item.type())
                         .build())
                 .toList();
+        List<DailyGoal> saved = dailyGoalRepository.saveAll(goals);
 
-        List<TreatmentGoal> saved = treatmentGoalRepository.saveAll(goals);
+        // 2. 태그 visible 업데이트
+        if (request.visibleTagIds() != null && !request.visibleTagIds().isEmpty()) {
+            Set<Long> visibleIds = new HashSet<>(request.visibleTagIds());
+            troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId)
+                    .forEach(tag -> tag.changeVisibility(visibleIds.contains(tag.getId())));
+        }
 
         List<GoalResponse.GoalItem> items = saved.stream()
-                .map(g -> new GoalResponse.GoalItem(g.getId(), g.getTitle(), g.isActive()))
+                .map(g -> new GoalResponse.GoalItem(g.getId(), g.getDailyGoal(), g.getType(), g.isActive()))
                 .toList();
 
         return new GoalResponse(items);
@@ -140,17 +214,34 @@ public class OnboardingService {
     public CompleteOnboardingResponse completeOnboarding(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        boolean hasAsrs = asrsAssessmentRepository.existsByUser(user);
         boolean hasSymptom = onboardingSymptomRepository.existsByUser(user);
-        boolean hasGoals = treatmentGoalRepository.existsByUser(user);
+        boolean hasGoals = dailyGoalRepository.existsByUserId(userId);
 
-        if (!hasAsrs || !hasSymptom || !hasGoals) {
+        // 경로 B(빠른 온보딩)는 ASRS 불필요
+        boolean isQuickOnboarding = onboardingSymptomRepository
+                .findTopByUserOrderBySavedAtDesc(user)
+                .map(OnboardingSymptom::isQuickOnboarding)
+                .orElse(false);
+
+        boolean hasAsrs = isQuickOnboarding || asrsAssessmentRepository.existsByUser(user);
+
+        if (!hasSymptom || !hasGoals || !hasAsrs) {
             throw new OnboardingNotCompleteException();
         }
 
         LocalDateTime now = LocalDateTime.now();
         user.completeOnboarding(now);
-
         return new CompleteOnboardingResponse(true, now);
+    }
+
+    private DailyGoalType mapFunctionalArea(String koreanArea) {
+        return switch (koreanArea.trim()) {
+            case "업무/학업" -> DailyGoalType.WORK_STUDY;
+            case "시간관리" -> DailyGoalType.TIME_MANAGEMENT;
+            case "생활관리" -> DailyGoalType.LIFE_MANAGEMENT;
+            case "정서/관계" -> DailyGoalType.EMOTIONAL_SOCIAL;
+            default -> throw new attune.ai.adapter.gemini.GeminiGenerationException(
+                    "Unexpected functionalArea from Gemini: " + koreanArea);
+        };
     }
 }
