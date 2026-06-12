@@ -2,6 +2,7 @@ package attune.ai.adapter.gemini;
 
 import attune.ai.application.AiTextGenerator;
 import attune.ai.config.GeminiProperties;
+import attune.common.error.internalserver.GeminiGenerationException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -9,6 +10,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Objects;
 
@@ -79,6 +81,7 @@ public class GeminiTextGenerator implements AiTextGenerator {
                 .orElse("");
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private record GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
         static GeminiRequest text(String prompt) {
             return new GeminiRequest(

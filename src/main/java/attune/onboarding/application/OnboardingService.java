@@ -1,5 +1,6 @@
 package attune.onboarding.application;
 
+import attune.common.error.badrequest.InvalidOnboardingRequestException;
 import attune.common.error.badrequest.OnboardingNotCompleteException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.journal.domain.model.DailyGoal;
@@ -112,12 +113,21 @@ public class OnboardingService {
 
         if (request.isQuickOnboarding()) {
             // 경로 B
+            if (request.selectedSymptomTypes() == null || request.selectedSymptomTypes().isEmpty()) {
+                throw new InvalidOnboardingRequestException("selectedSymptomTypes는 필수입니다.");
+            }
+            if (request.selectedFunctionalAreas() == null || request.selectedFunctionalAreas().isEmpty()) {
+                throw new InvalidOnboardingRequestException("selectedFunctionalAreas는 필수입니다.");
+            }
             builder.selectedSymptomTypes(String.join(",", request.selectedSymptomTypes()))
                    .selectedFunctionalAreas(request.selectedFunctionalAreas().stream()
                            .map(Enum::name)
                            .collect(java.util.stream.Collectors.joining(",")));
         } else {
             // 경로 A
+            if (request.description() == null || request.description().isBlank()) {
+                throw new InvalidOnboardingRequestException("description은 필수입니다.");
+            }
             builder.description(request.description())
                    .emotionalEvent(request.emotionalEvent());
         }
@@ -197,7 +207,7 @@ public class OnboardingService {
         List<DailyGoal> saved = dailyGoalRepository.saveAll(goals);
 
         // 2. 태그 visible 업데이트
-        if (request.visibleTagIds() != null && !request.visibleTagIds().isEmpty()) {
+        if (request.visibleTagIds() != null) {
             Set<Long> visibleIds = new HashSet<>(request.visibleTagIds());
             troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId)
                     .forEach(tag -> tag.changeVisibility(visibleIds.contains(tag.getId())));
@@ -235,13 +245,12 @@ public class OnboardingService {
     }
 
     private DailyGoalType mapFunctionalArea(String koreanArea) {
-        return switch (koreanArea.trim()) {
-            case "업무/학업" -> DailyGoalType.WORK_STUDY;
-            case "시간관리" -> DailyGoalType.TIME_MANAGEMENT;
-            case "생활관리" -> DailyGoalType.LIFE_MANAGEMENT;
-            case "정서/관계" -> DailyGoalType.EMOTIONAL_SOCIAL;
-            default -> throw new attune.ai.adapter.gemini.GeminiGenerationException(
-                    "Unexpected functionalArea from Gemini: " + koreanArea);
-        };
+        String area = koreanArea.trim();
+        if (area.contains("업무") || area.contains("학업")) return DailyGoalType.WORK_STUDY;
+        if (area.contains("시간")) return DailyGoalType.TIME_MANAGEMENT;
+        if (area.contains("생활")) return DailyGoalType.LIFE_MANAGEMENT;
+        if (area.contains("정서") || area.contains("관계")) return DailyGoalType.EMOTIONAL_SOCIAL;
+        throw new attune.common.error.internalserver.GeminiGenerationException(
+                "Unexpected functionalArea from Gemini: " + koreanArea);
     }
 }

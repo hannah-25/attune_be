@@ -1,6 +1,6 @@
 package attune.onboarding.application;
 
-import attune.ai.adapter.gemini.GeminiGenerationException;
+import attune.common.error.internalserver.GeminiGenerationException;
 import attune.ai.application.AiTextGenerator;
 import attune.journal.domain.model.DailyGoalType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -114,11 +114,14 @@ public class OnboardingAiService {
 
     private GeminiOnboardingResponse parse(String json) {
         try {
-            String cleaned = json.strip();
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", "").replaceAll("```$", "").strip();
+            int start = json.indexOf('{');
+            int end = json.lastIndexOf('}');
+            if (start == -1 || end == -1 || start > end) {
+                throw new GeminiGenerationException("No valid JSON object found in Gemini response");
             }
-            return objectMapper.readValue(cleaned, GeminiOnboardingResponse.class);
+            return objectMapper.readValue(json.substring(start, end + 1), GeminiOnboardingResponse.class);
+        } catch (GeminiGenerationException e) {
+            throw e;
         } catch (Exception e) {
             throw new GeminiGenerationException("Failed to parse Gemini onboarding response", e);
         }
