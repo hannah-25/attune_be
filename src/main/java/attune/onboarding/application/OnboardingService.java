@@ -161,7 +161,7 @@ public class OnboardingService {
             // 경로 A
             AsrsAssessment assessment = asrsAssessmentRepository
                     .findTopByUserOrderByCompletedAtDesc(user)
-                    .orElseThrow(() -> new IllegalStateException("ASRS 결과가 없습니다."));
+                    .orElseThrow(() -> new InvalidOnboardingRequestException("ASRS 결과가 없습니다."));
 
             int inattentionScore = assessment.getAnswers().stream()
                     .filter(a -> a.getQuestionId() >= 1 && a.getQuestionId() <= 9)
