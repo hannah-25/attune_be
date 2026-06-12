@@ -146,7 +146,7 @@ public class OnboardingService {
 
         OnboardingSymptom symptom = onboardingSymptomRepository
                 .findTopByUserOrderBySavedAtDesc(user)
-                .orElseThrow(() -> new IllegalStateException("증상 서술이 없습니다."));
+                .orElseThrow(() -> new InvalidOnboardingRequestException("증상 서술이 없습니다."));
 
         GeminiOnboardingResponse geminiResponse;
 
