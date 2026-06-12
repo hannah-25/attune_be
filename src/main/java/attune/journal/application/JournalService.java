@@ -38,11 +38,11 @@ public class JournalService {
         LocalDateTime endAt = date.plusDays(1).atStartOfDay();
 
         ActiveTagsResponse activeTags = new ActiveTagsResponse(
-                conditionTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+                conditionTagRepository.findAllByUserIdAndIsActiveTrueAndVisibleTrue(userId).stream()
                         .map(ConditionTagResponse::from).toList(),
-                sideEffectTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+                sideEffectTagRepository.findAllByUserIdAndIsActiveTrueAndVisibleTrue(userId).stream()
                         .map(SideEffectTagResponse::from).toList(),
-                troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
+                troubleTagRepository.findAllByUserIdAndIsActiveTrueAndVisibleTrue(userId).stream()
                         .map(TroubleTagResponse::from).toList(),
                 dailyGoalRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
                         .map(GoalActiveResponse::from).toList()

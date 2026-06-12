@@ -117,6 +117,7 @@ public class OnboardingService {
 
     @Transactional
     public GoalResponse saveGoals(UUID userId, GoalRequest request) {
+<<<<<<< Updated upstream
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
         List<TreatmentGoal> goals = request.goals().stream()
@@ -124,6 +125,15 @@ public class OnboardingService {
                         .user(user)
                         .title(item.title())
                         .description(item.description())
+=======
+        // 1. 치료 목표 저장
+        List<DailyGoal> goals = request.goals().stream()
+                .map(item -> DailyGoal.builder()
+                        .userId(userId)
+                        .dailyGoal(item.title())
+                        .type(item.type())
+                        .isActive(true)
+>>>>>>> Stashed changes
                         .build())
                 .toList();
 

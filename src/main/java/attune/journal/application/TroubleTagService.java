@@ -46,6 +46,7 @@ public class TroubleTagService {
                 .trouble(request.trouble())
                 .type(request.type())
                 .isActive(true)
+                .visible(true)
                 .build();
         return TroubleTagResponse.from(troubleTagRepository.save(tag));
     }

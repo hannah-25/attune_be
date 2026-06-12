@@ -45,6 +45,7 @@ public class SideEffectTagService {
                 .userId(userId)
                 .sideEffect(request.sideEffect())
                 .isActive(true)
+                .visible(true)
                 .build();
         return SideEffectTagResponse.from(sideEffectTagRepository.save(tag));
     }
