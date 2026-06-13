@@ -41,4 +41,8 @@ public class TroubleTag {
     public void toggleVisible() {
         this.visible = !this.visible;
     }
+
+    public void changeVisibility(boolean visible) {
+        this.visible = visible;
+    }
 }

@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface OnboardingSymptomRepository extends JpaRepository<OnboardingSymptom, Long> {
     boolean existsByUser(User user);
+
+    java.util.Optional<OnboardingSymptom> findTopByUserOrderBySavedAtDesc(User user);
 }

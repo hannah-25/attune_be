@@ -18,6 +18,7 @@
       "Bash(grep \"field\\\\|Field\\\\| [a-z].*;$\")",
       "Bash(javap -private -verbose -cp \"C:/Users/jhjoo/.gradle/caches/modules-2/files-2.1/nl.martijndwars/web-push/5.1.2/dd1afc5f5e3f6c1a4f0a95bc70b3069bfbe371e8/web-push-5.1.2.jar\" nl.martijndwars.webpush.PushService)",
       "Bash(javap *)",
+      "Bash(Remove-Item *)",
       "Bash(./gradlew compileJava)",
       "Bash(./gradlew compileJava --rerun-tasks)",
       "Bash(./gradlew compileJava compileTestJava)",

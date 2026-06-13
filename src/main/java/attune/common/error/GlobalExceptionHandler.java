@@ -1,5 +1,6 @@
 package attune.common.error;
 
+import attune.common.error.internalserver.GeminiGenerationException;
 import attune.common.error.internalserver.MailSendFailedException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -78,6 +79,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MailSendFailedException.class)
     public ResponseEntity<ErrorResponse> handleMailSendFailed(MailSendFailedException e) {
         log.error("500 MailSendFailed", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+    }
+
+    @ExceptionHandler(GeminiGenerationException.class)
+    public ResponseEntity<ErrorResponse> handleGeminiGeneration(GeminiGenerationException e) {
+        log.error("500 GeminiGenerationFailed", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
     }

@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AsrsAssessmentRepository extends JpaRepository<AsrsAssessment, Long> {
     boolean existsByUser(User user);
+
+    java.util.Optional<AsrsAssessment> findTopByUserOrderByCompletedAtDesc(User user);
 }

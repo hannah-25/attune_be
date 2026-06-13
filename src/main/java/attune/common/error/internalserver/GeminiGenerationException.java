@@ -1,6 +1,8 @@
-package attune.ai.adapter.gemini;
+package attune.common.error.internalserver;
 
-public class GeminiGenerationException extends RuntimeException {
+import attune.common.error.InternalServerException;
+
+public class GeminiGenerationException extends InternalServerException {
 
     public GeminiGenerationException(String message) {
         super(message);
