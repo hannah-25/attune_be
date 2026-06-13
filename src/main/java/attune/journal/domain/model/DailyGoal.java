@@ -37,6 +37,10 @@ public class DailyGoal {
         this.dailyGoal = content;
     }
 
+    public void updateType(DailyGoalType type) {
+        this.type = type;
+    }
+
     public void deactivate() {
         this.isActive = false;
     }

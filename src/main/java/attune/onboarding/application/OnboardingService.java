@@ -32,8 +32,11 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -196,13 +199,36 @@ public class OnboardingService {
 
     @Transactional
     public GoalResponse saveGoals(UUID userId, GoalRequest request) {
+        Set<String> requestedTitles = new HashSet<>();
+        boolean hasDuplicateTitle = request.goals().stream()
+                .map(GoalRequest.GoalItem::title)
+                .anyMatch(title -> !requestedTitles.add(title));
+        if (hasDuplicateTitle) {
+            throw new InvalidOnboardingRequestException("목표 제목은 중복될 수 없습니다.");
+        }
+
+        List<DailyGoal> existingGoals = dailyGoalRepository.findAllByUserId(userId);
+        existingGoals.forEach(DailyGoal::deactivate);
+
+        Map<String, DailyGoal> existingGoalsByTitle = existingGoals.stream()
+                .collect(Collectors.toMap(DailyGoal::getDailyGoal, Function.identity()));
+
         // 1. 치료 목표 저장
         List<DailyGoal> goals = request.goals().stream()
-                .map(item -> DailyGoal.builder()
-                        .userId(userId)
-                        .dailyGoal(item.title())
-                        .type(item.type())
-                        .build())
+                .map(item -> {
+                    DailyGoal existingGoal = existingGoalsByTitle.get(item.title());
+                    if (existingGoal != null) {
+                        existingGoal.updateType(item.type());
+                        existingGoal.reactivate();
+                        return existingGoal;
+                    }
+                    return DailyGoal.builder()
+                            .userId(userId)
+                            .dailyGoal(item.title())
+                            .type(item.type())
+                            .isActive(true)
+                            .build();
+                })
                 .toList();
         List<DailyGoal> saved = dailyGoalRepository.saveAll(goals);
 
@@ -224,15 +250,13 @@ public class OnboardingService {
     public CompleteOnboardingResponse completeOnboarding(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        boolean hasSymptom = onboardingSymptomRepository.existsByUser(user);
+        java.util.Optional<OnboardingSymptom> latestSymptom =
+                onboardingSymptomRepository.findTopByUserOrderBySavedAtDesc(user);
+        boolean hasSymptom = latestSymptom.isPresent();
         boolean hasGoals = dailyGoalRepository.existsByUserId(userId);
 
         // 경로 B(빠른 온보딩)는 ASRS 불필요
-        boolean isQuickOnboarding = onboardingSymptomRepository
-                .findTopByUserOrderBySavedAtDesc(user)
-                .map(OnboardingSymptom::isQuickOnboarding)
-                .orElse(false);
-
+        boolean isQuickOnboarding = latestSymptom.map(OnboardingSymptom::isQuickOnboarding).orElse(false);
         boolean hasAsrs = isQuickOnboarding || asrsAssessmentRepository.existsByUser(user);
 
         if (!hasSymptom || !hasGoals || !hasAsrs) {
@@ -245,6 +269,10 @@ public class OnboardingService {
     }
 
     private DailyGoalType mapFunctionalArea(String koreanArea) {
+        if (koreanArea == null || koreanArea.isBlank()) {
+            throw new attune.common.error.internalserver.GeminiGenerationException(
+                    "functionalArea is null or blank in Gemini response");
+        }
         String area = koreanArea.trim();
         if (area.contains("업무") || area.contains("학업")) return DailyGoalType.WORK_STUDY;
         if (area.contains("시간")) return DailyGoalType.TIME_MANAGEMENT;

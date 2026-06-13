@@ -113,6 +113,9 @@ public class OnboardingAiService {
     }
 
     private GeminiOnboardingResponse parse(String json) {
+        if (json == null || json.isBlank()) {
+            throw new GeminiGenerationException("Empty response from Gemini");
+        }
         try {
             int start = json.indexOf('{');
             int end = json.lastIndexOf('}');
