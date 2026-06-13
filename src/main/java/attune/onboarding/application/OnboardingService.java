@@ -2,6 +2,7 @@ package attune.onboarding.application;
 
 import attune.common.error.badrequest.InvalidOnboardingRequestException;
 import attune.common.error.badrequest.OnboardingNotCompleteException;
+import attune.common.error.notfound.AsrsAssessmentNotFoundException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.journal.domain.model.DailyGoal;
 import attune.journal.domain.model.DailyGoalType;
@@ -15,6 +16,8 @@ import attune.onboarding.application.dto.response.AiRecommendationResponse;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
 import attune.onboarding.application.dto.response.GoalResponse;
+import attune.onboarding.application.dto.response.OnboardingHistoryDetailResponse;
+import attune.onboarding.application.dto.response.OnboardingHistoryResponse;
 import attune.onboarding.application.dto.response.OnboardingStatusResponse;
 import attune.onboarding.application.dto.response.SymptomResponse;
 import attune.onboarding.domain.model.AsrsAnswer;
@@ -286,6 +289,86 @@ public class OnboardingService {
         LocalDateTime now = LocalDateTime.now();
         user.completeOnboarding(now);
         return new CompleteOnboardingResponse(true, now);
+    }
+
+    @Transactional(readOnly = true)
+    public OnboardingHistoryResponse getHistory(UUID userId) {
+        long goalCount = dailyGoalRepository.countByUserIdAndIsActiveTrue(userId);
+
+        List<OnboardingHistoryResponse.HistoryRecord> records = asrsAssessmentRepository
+                .findAllByUserWithAnswers(userId)
+                .stream()
+                .map(a -> new OnboardingHistoryResponse.HistoryRecord(
+                        String.valueOf(a.getId()),
+                        a.getCompletedAt(),
+                        calcInattentionScore(a),
+                        calcHyperactivityScore(a),
+                        (int) goalCount
+                ))
+                .toList();
+
+        return new OnboardingHistoryResponse(records);
+    }
+
+    @Transactional(readOnly = true)
+    public OnboardingHistoryDetailResponse getHistoryDetail(UUID userId, Long assessmentId) {
+        AsrsAssessment assessment = asrsAssessmentRepository
+                .findByIdAndUserWithAnswers(assessmentId, userId)
+                .orElseThrow(AsrsAssessmentNotFoundException::new);
+
+        int inattentionScore = calcInattentionScore(assessment);
+        int hyperactivityScore = calcHyperactivityScore(assessment);
+
+        OnboardingHistoryDetailResponse.SymptomDetail symptomDetail = onboardingSymptomRepository
+                .findTopByUserIdAndSavedAtLessThanEqualOrderBySavedAtDesc(userId, assessment.getCompletedAt())
+                .map(s -> {
+                    List<String> symptomTypes = s.getSelectedSymptomTypes() != null
+                            ? List.of(s.getSelectedSymptomTypes().split(","))
+                            : null;
+                    List<String> functionalAreas = s.getSelectedFunctionalAreas() != null
+                            ? List.of(s.getSelectedFunctionalAreas().split(","))
+                            : null;
+                    return new OnboardingHistoryDetailResponse.SymptomDetail(
+                            s.getDescription(),
+                            s.getEmotionalEvent(),
+                            s.isQuickOnboarding(),
+                            symptomTypes,
+                            functionalAreas
+                    );
+                })
+                .orElse(null);
+
+        List<OnboardingHistoryDetailResponse.GoalItem> goals = dailyGoalRepository
+                .findAllByUserIdAndIsActiveTrue(userId)
+                .stream()
+                .map(g -> new OnboardingHistoryDetailResponse.GoalItem(
+                        g.getId(),
+                        g.getDailyGoal(),
+                        g.getType()))
+                .toList();
+
+        return new OnboardingHistoryDetailResponse(
+                String.valueOf(assessment.getId()),
+                assessment.getCompletedAt(),
+                inattentionScore,
+                hyperactivityScore,
+                symptomDetail,
+                goals
+        );
+    }
+
+    private int calcInattentionScore(AsrsAssessment assessment) {
+        return assessment.getAnswers().stream()
+                .filter(a -> a.getQuestionId() >= 1 && a.getQuestionId() <= 9)
+                .mapToInt(AsrsAnswer::getScore)
+                .sum();
+    }
+
+    private int calcHyperactivityScore(AsrsAssessment assessment) {
+        return assessment.getAnswers().stream()
+                .filter(a -> a.getQuestionId() >= 10 && a.getQuestionId() <= 18)
+                .mapToInt(AsrsAnswer::getScore)
+                .sum();
     }
 
     private DailyGoalType mapFunctionalArea(String koreanArea) {

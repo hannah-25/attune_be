@@ -18,4 +18,6 @@ public interface DailyGoalRepository extends JpaRepository<DailyGoal, Long> {
     Optional<DailyGoal> findByUserIdAndDailyGoal(UUID userId, String dailyGoal);
 
     boolean existsByUserId(UUID userId);
+
+    long countByUserIdAndIsActiveTrue(UUID userId);
 }

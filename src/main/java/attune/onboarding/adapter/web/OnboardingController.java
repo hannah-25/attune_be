@@ -11,6 +11,8 @@ import attune.onboarding.application.dto.response.AiRecommendationResponse;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
 import attune.onboarding.application.dto.response.GoalResponse;
+import attune.onboarding.application.dto.response.OnboardingHistoryDetailResponse;
+import attune.onboarding.application.dto.response.OnboardingHistoryResponse;
 import attune.onboarding.application.dto.response.OnboardingStatusResponse;
 import attune.onboarding.application.dto.response.SymptomResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +38,28 @@ import org.springframework.web.bind.annotation.RestController;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
+
+    @Operation(summary = "자가 체크 이력 목록 조회", description = "현재 로그인한 사용자의 ASRS 자가 체크 이력 목록을 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/history")
+    public ResponseEntity<OnboardingHistoryResponse> getHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(onboardingService.getHistory(userDetails.getId()));
+    }
+
+    @Operation(summary = "자가 체크 이력 상세 조회", description = "특정 ASRS 자가 체크 이력의 증상 서술, 점수, 목표를 반환합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "이력 없음")
+    })
+    @GetMapping("/history/{id}")
+    public ResponseEntity<OnboardingHistoryDetailResponse> getHistoryDetail(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(onboardingService.getHistoryDetail(userDetails.getId(), id));
+    }
 
     @Operation(summary = "온보딩 상태 조회", description = "현재 로그인한 사용자의 온보딩 완료 여부를 반환합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
