@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -33,5 +34,6 @@ public class AsrsAssessment {
 
     @ElementCollection
     @CollectionTable(name = "asrs_answers", joinColumns = @JoinColumn(name = "assessment_id"))
-    private List<AsrsAnswer> answers;
+    @Builder.Default
+    private List<AsrsAnswer> answers = new ArrayList<>();
 }
