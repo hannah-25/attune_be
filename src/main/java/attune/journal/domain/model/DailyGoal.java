@@ -26,11 +26,19 @@ public class DailyGoal {
     @Column(nullable = false, length = 500)
     private String dailyGoal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private DailyGoalType type;
+
     @Column(nullable = false)
     private boolean isActive = true;
 
     public void update(String content) {
         this.dailyGoal = content;
+    }
+
+    public void updateType(DailyGoalType type) {
+        this.type = type;
     }
 
     public void deactivate() {
