@@ -325,7 +325,7 @@ public class OnboardingService {
     public OnboardingHistoryDetailResponse getHistoryDetail(UUID userId, Long assessmentId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        AsrsAssessment assessment = asrsAssessmentRepository.findById(assessmentId)
+        AsrsAssessment assessment = asrsAssessmentRepository.findByIdWithAnswers(assessmentId)
                 .filter(a -> a.getUser().getId().equals(user.getId()))
                 .orElseThrow(AsrsAssessmentNotFoundException::new);
 
