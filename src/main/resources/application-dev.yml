@@ -26,7 +26,9 @@ logging:
     root: INFO
     attune: DEBUG # 내 코드: 디버그 로그
     org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG        # SQL문 보기
+    # Alarm schedulers run every minute, so enable SQL logs only when needed.
+    org.hibernate.SQL: ${LOGGING_LEVEL_HIBERNATE_SQL:OFF}
+    org.hibernate.orm.jdbc.bind: ${LOGGING_LEVEL_HIBERNATE_BIND:OFF}
     org.springframework.security: INFO
 
 
