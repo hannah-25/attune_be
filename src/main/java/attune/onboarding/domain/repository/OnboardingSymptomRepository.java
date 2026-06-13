@@ -12,5 +12,5 @@ public interface OnboardingSymptomRepository extends JpaRepository<OnboardingSym
 
     Optional<OnboardingSymptom> findTopByUserOrderBySavedAtDesc(User user);
 
-    Optional<OnboardingSymptom> findTopByUserAndSavedAtLessThanEqualOrderBySavedAtDesc(User user, LocalDateTime savedAt);
+    Optional<OnboardingSymptom> findTopByUserIdAndSavedAtLessThanEqualOrderBySavedAtDesc(java.util.UUID userId, LocalDateTime savedAt);
 }
