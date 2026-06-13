@@ -293,11 +293,10 @@ public class OnboardingService {
 
     @Transactional(readOnly = true)
     public OnboardingHistoryResponse getHistory(UUID userId) {
-        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         long goalCount = dailyGoalRepository.countByUserIdAndIsActiveTrue(userId);
 
         List<OnboardingHistoryResponse.HistoryRecord> records = asrsAssessmentRepository
-                .findAllByUserWithAnswers(user)
+                .findAllByUserWithAnswers(userId)
                 .stream()
                 .map(a -> new OnboardingHistoryResponse.HistoryRecord(
                         String.valueOf(a.getId()),
@@ -313,17 +312,15 @@ public class OnboardingService {
 
     @Transactional(readOnly = true)
     public OnboardingHistoryDetailResponse getHistoryDetail(UUID userId, Long assessmentId) {
-        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-
         AsrsAssessment assessment = asrsAssessmentRepository
-                .findByIdAndUserWithAnswers(assessmentId, user)
+                .findByIdAndUserWithAnswers(assessmentId, userId)
                 .orElseThrow(AsrsAssessmentNotFoundException::new);
 
         int inattentionScore = calcInattentionScore(assessment);
         int hyperactivityScore = calcHyperactivityScore(assessment);
 
         OnboardingHistoryDetailResponse.SymptomDetail symptomDetail = onboardingSymptomRepository
-                .findTopByUserAndSavedAtLessThanEqualOrderBySavedAtDesc(user, assessment.getCompletedAt())
+                .findTopByUserIdAndSavedAtLessThanEqualOrderBySavedAtDesc(userId, assessment.getCompletedAt())
                 .map(s -> {
                     List<String> symptomTypes = s.getSelectedSymptomTypes() != null
                             ? List.of(s.getSelectedSymptomTypes().split(","))

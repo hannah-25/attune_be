@@ -6,11 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface OnboardingSymptomRepository extends JpaRepository<OnboardingSymptom, Long> {
     boolean existsByUser(User user);
 
     Optional<OnboardingSymptom> findTopByUserOrderBySavedAtDesc(User user);
 
-    Optional<OnboardingSymptom> findTopByUserAndSavedAtLessThanEqualOrderBySavedAtDesc(User user, LocalDateTime savedAt);
+    Optional<OnboardingSymptom> findTopByUserIdAndSavedAtLessThanEqualOrderBySavedAtDesc(UUID userId, LocalDateTime savedAt);
 }
