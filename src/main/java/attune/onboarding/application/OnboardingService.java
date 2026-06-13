@@ -347,7 +347,7 @@ public class OnboardingService {
                 .map(g -> new OnboardingHistoryDetailResponse.GoalItem(
                         g.getId(),
                         g.getDailyGoal(),
-                        g.getType() != null ? g.getType().name() : null))
+                        g.getType()))
                 .toList();
 
         return new OnboardingHistoryDetailResponse(

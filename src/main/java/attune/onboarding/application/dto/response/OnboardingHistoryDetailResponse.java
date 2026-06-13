@@ -1,5 +1,7 @@
 package attune.onboarding.application.dto.response;
 
+import attune.journal.domain.model.DailyGoalType;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,6 +24,6 @@ public record OnboardingHistoryDetailResponse(
     public record GoalItem(
             Long id,
             String title,
-            String type
+            DailyGoalType type
     ) {}
 }
