@@ -6,17 +6,23 @@ import attune.journal.domain.model.DailyGoalType;
 import attune.journal.domain.repository.DailyGoalRepository;
 import attune.journal.domain.repository.TroubleTagRepository;
 import attune.onboarding.application.dto.request.GoalRequest;
+import attune.onboarding.application.dto.request.SymptomRequest;
 import attune.onboarding.application.dto.response.GoalResponse;
+import attune.onboarding.domain.model.OnboardingSymptom;
 import attune.onboarding.domain.repository.AsrsAssessmentRepository;
 import attune.onboarding.domain.repository.OnboardingSymptomRepository;
+import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +50,68 @@ class OnboardingServiceTest {
 
     @InjectMocks
     private OnboardingService onboardingService;
+
+    @Test
+    void saveSymptomFiltersNullAndBlankQuickOnboardingSelectionsBeforeSaving() {
+        UUID userId = UUID.randomUUID();
+        User user = User.builder().id(userId).build();
+        SymptomRequest request = new SymptomRequest(
+                null,
+                null,
+                Arrays.asList(null, " INATTENTION ", "", "  ", "TIME_MANAGEMENT"),
+                Arrays.asList(null, DailyGoalType.WORK_STUDY, DailyGoalType.TIME_MANAGEMENT),
+                true
+        );
+        ArgumentCaptor<OnboardingSymptom> symptomCaptor = ArgumentCaptor.forClass(OnboardingSymptom.class);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(onboardingSymptomRepository.save(symptomCaptor.capture()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        onboardingService.saveSymptom(userId, request);
+
+        OnboardingSymptom savedSymptom = symptomCaptor.getValue();
+        assertThat(savedSymptom.getSelectedSymptomTypes()).isEqualTo("INATTENTION,TIME_MANAGEMENT");
+        assertThat(savedSymptom.getSelectedFunctionalAreas()).isEqualTo("WORK_STUDY,TIME_MANAGEMENT");
+    }
+
+    @Test
+    void saveSymptomRejectsQuickOnboardingWhenNoValidSymptomTypesRemain() {
+        UUID userId = UUID.randomUUID();
+        SymptomRequest request = new SymptomRequest(
+                null,
+                null,
+                Arrays.asList(null, "", "  "),
+                List.of(DailyGoalType.WORK_STUDY),
+                true
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().id(userId).build()));
+
+        assertThatThrownBy(() -> onboardingService.saveSymptom(userId, request))
+                .isInstanceOf(InvalidOnboardingRequestException.class);
+
+        verifyNoInteractions(onboardingSymptomRepository);
+    }
+
+    @Test
+    void saveSymptomRejectsQuickOnboardingWhenNoValidFunctionalAreasRemain() {
+        UUID userId = UUID.randomUUID();
+        SymptomRequest request = new SymptomRequest(
+                null,
+                null,
+                List.of("INATTENTION"),
+                Arrays.asList(null, null),
+                true
+        );
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(User.builder().id(userId).build()));
+
+        assertThatThrownBy(() -> onboardingService.saveSymptom(userId, request))
+                .isInstanceOf(InvalidOnboardingRequestException.class);
+
+        verifyNoInteractions(onboardingSymptomRepository);
+    }
 
     @Test
     void saveGoalsDeactivatesExistingGoalsAndReusesMatchingTitles() {
@@ -82,6 +150,41 @@ class OnboardingServiceTest {
         assertThat(response.goals().get(0).goalId()).isEqualTo(1L);
         assertThat(response.goals()).allMatch(GoalResponse.GoalItem::isActive);
         verify(dailyGoalRepository).saveAll(anyList());
+    }
+
+    @Test
+    void saveGoalsUsesFirstExistingGoalWhenRepositoryReturnsDuplicateTitles() {
+        UUID userId = UUID.randomUUID();
+        DailyGoal firstGoal = DailyGoal.builder()
+                .id(1L)
+                .userId(userId)
+                .dailyGoal("same title")
+                .type(DailyGoalType.WORK_STUDY)
+                .isActive(true)
+                .build();
+        DailyGoal duplicateGoal = DailyGoal.builder()
+                .id(2L)
+                .userId(userId)
+                .dailyGoal("same title")
+                .type(DailyGoalType.TIME_MANAGEMENT)
+                .isActive(true)
+                .build();
+        GoalRequest request = new GoalRequest(
+                List.of(new GoalRequest.GoalItem("same title", DailyGoalType.LIFE_MANAGEMENT)),
+                null
+        );
+
+        when(dailyGoalRepository.findAllByUserId(userId)).thenReturn(List.of(firstGoal, duplicateGoal));
+        when(dailyGoalRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        GoalResponse response = onboardingService.saveGoals(userId, request);
+
+        assertThat(response.goals()).singleElement()
+                .satisfies(goal -> assertThat(goal.goalId()).isEqualTo(1L));
+        assertThat(firstGoal.isActive()).isTrue();
+        assertThat(firstGoal.getType()).isEqualTo(DailyGoalType.LIFE_MANAGEMENT);
+        assertThat(duplicateGoal.isActive()).isFalse();
+        verify(dailyGoalRepository).saveAll(List.of(firstGoal));
     }
 
     @Test

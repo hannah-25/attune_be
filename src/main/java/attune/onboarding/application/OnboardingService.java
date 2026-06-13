@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -116,16 +117,29 @@ public class OnboardingService {
 
         if (request.isQuickOnboarding()) {
             // 경로 B
-            if (request.selectedSymptomTypes() == null || request.selectedSymptomTypes().isEmpty()) {
+            List<String> selectedSymptomTypes = request.selectedSymptomTypes() == null
+                    ? List.of()
+                    : request.selectedSymptomTypes().stream()
+                            .filter(Objects::nonNull)
+                            .map(String::strip)
+                            .filter(value -> !value.isBlank())
+                            .toList();
+            List<DailyGoalType> selectedFunctionalAreas = request.selectedFunctionalAreas() == null
+                    ? List.of()
+                    : request.selectedFunctionalAreas().stream()
+                            .filter(Objects::nonNull)
+                            .toList();
+
+            if (selectedSymptomTypes.isEmpty()) {
                 throw new InvalidOnboardingRequestException("selectedSymptomTypes는 필수입니다.");
             }
-            if (request.selectedFunctionalAreas() == null || request.selectedFunctionalAreas().isEmpty()) {
+            if (selectedFunctionalAreas.isEmpty()) {
                 throw new InvalidOnboardingRequestException("selectedFunctionalAreas는 필수입니다.");
             }
-            builder.selectedSymptomTypes(String.join(",", request.selectedSymptomTypes()))
-                   .selectedFunctionalAreas(request.selectedFunctionalAreas().stream()
+            builder.selectedSymptomTypes(String.join(",", selectedSymptomTypes))
+                   .selectedFunctionalAreas(selectedFunctionalAreas.stream()
                            .map(Enum::name)
-                           .collect(java.util.stream.Collectors.joining(",")));
+                           .collect(Collectors.joining(",")));
         } else {
             // 경로 A
             if (request.description() == null || request.description().isBlank()) {
@@ -155,6 +169,9 @@ public class OnboardingService {
 
         if (symptom.isQuickOnboarding()) {
             // 경로 B
+            if (symptom.getSelectedSymptomTypes() == null || symptom.getSelectedFunctionalAreas() == null) {
+                throw new InvalidOnboardingRequestException("경로 B 증상 데이터가 올바르지 않습니다.");
+            }
             List<String> symptomTypes = List.of(symptom.getSelectedSymptomTypes().split(","));
             List<DailyGoalType> functionalAreas = Arrays.stream(symptom.getSelectedFunctionalAreas().split(","))
                     .map(name -> DailyGoalType.valueOf(name.trim()))
@@ -211,7 +228,10 @@ public class OnboardingService {
         existingGoals.forEach(DailyGoal::deactivate);
 
         Map<String, DailyGoal> existingGoalsByTitle = existingGoals.stream()
-                .collect(Collectors.toMap(DailyGoal::getDailyGoal, Function.identity()));
+                .collect(Collectors.toMap(
+                        DailyGoal::getDailyGoal,
+                        Function.identity(),
+                        (existing, duplicate) -> existing));
 
         // 1. 치료 목표 저장
         List<DailyGoal> goals = request.goals().stream()
