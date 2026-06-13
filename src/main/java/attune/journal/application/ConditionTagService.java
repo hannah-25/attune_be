@@ -46,6 +46,7 @@ public class ConditionTagService {
                 .condition(request.condition())
                 .conditionType(request.conditionType())
                 .isActive(true)
+                .visible(true)
                 .build();
         return ConditionTagResponse.from(conditionTagRepository.save(tag));
     }
