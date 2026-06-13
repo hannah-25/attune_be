@@ -216,15 +216,6 @@ public class OnboardingService {
 
     @Transactional
     public GoalResponse saveGoals(UUID userId, GoalRequest request) {
-        // 1. 치료 목표 저장
-        List<DailyGoal> goals = request.goals().stream()
-                .map(item -> DailyGoal.builder()
-                        .userId(userId)
-                        .dailyGoal(item.title())
-                        .type(item.type())
-                        .isActive(true)
-                        .build())
-
         Set<String> requestedTitles = new HashSet<>();
         boolean hasDuplicateTitle = request.goals().stream()
                 .map(GoalRequest.GoalItem::title)
