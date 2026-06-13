@@ -299,23 +299,13 @@ public class OnboardingService {
         List<OnboardingHistoryResponse.HistoryRecord> records = asrsAssessmentRepository
                 .findAllByUserWithAnswers(user)
                 .stream()
-                .map(a -> {
-                    int inattentionScore = a.getAnswers().stream()
-                            .filter(ans -> ans.getQuestionId() >= 1 && ans.getQuestionId() <= 9)
-                            .mapToInt(AsrsAnswer::getScore)
-                            .sum();
-                    int hyperactivityScore = a.getAnswers().stream()
-                            .filter(ans -> ans.getQuestionId() >= 10 && ans.getQuestionId() <= 18)
-                            .mapToInt(AsrsAnswer::getScore)
-                            .sum();
-                    return new OnboardingHistoryResponse.HistoryRecord(
-                            String.valueOf(a.getId()),
-                            a.getCompletedAt(),
-                            inattentionScore,
-                            hyperactivityScore,
-                            (int) goalCount
-                    );
-                })
+                .map(a -> new OnboardingHistoryResponse.HistoryRecord(
+                        String.valueOf(a.getId()),
+                        a.getCompletedAt(),
+                        calcInattentionScore(a),
+                        calcHyperactivityScore(a),
+                        (int) goalCount
+                ))
                 .toList();
 
         return new OnboardingHistoryResponse(records);
@@ -325,18 +315,12 @@ public class OnboardingService {
     public OnboardingHistoryDetailResponse getHistoryDetail(UUID userId, Long assessmentId) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        AsrsAssessment assessment = asrsAssessmentRepository.findByIdWithAnswers(assessmentId)
-                .filter(a -> a.getUser().getId().equals(user.getId()))
+        AsrsAssessment assessment = asrsAssessmentRepository
+                .findByIdAndUserWithAnswers(assessmentId, user)
                 .orElseThrow(AsrsAssessmentNotFoundException::new);
 
-        int inattentionScore = assessment.getAnswers().stream()
-                .filter(a -> a.getQuestionId() >= 1 && a.getQuestionId() <= 9)
-                .mapToInt(AsrsAnswer::getScore)
-                .sum();
-        int hyperactivityScore = assessment.getAnswers().stream()
-                .filter(a -> a.getQuestionId() >= 10 && a.getQuestionId() <= 18)
-                .mapToInt(AsrsAnswer::getScore)
-                .sum();
+        int inattentionScore = calcInattentionScore(assessment);
+        int hyperactivityScore = calcHyperactivityScore(assessment);
 
         OnboardingHistoryDetailResponse.SymptomDetail symptomDetail = onboardingSymptomRepository
                 .findTopByUserAndSavedAtLessThanEqualOrderBySavedAtDesc(user, assessment.getCompletedAt())
@@ -374,6 +358,20 @@ public class OnboardingService {
                 symptomDetail,
                 goals
         );
+    }
+
+    private int calcInattentionScore(AsrsAssessment assessment) {
+        return assessment.getAnswers().stream()
+                .filter(a -> a.getQuestionId() >= 1 && a.getQuestionId() <= 9)
+                .mapToInt(AsrsAnswer::getScore)
+                .sum();
+    }
+
+    private int calcHyperactivityScore(AsrsAssessment assessment) {
+        return assessment.getAnswers().stream()
+                .filter(a -> a.getQuestionId() >= 10 && a.getQuestionId() <= 18)
+                .mapToInt(AsrsAnswer::getScore)
+                .sum();
     }
 
     private DailyGoalType mapFunctionalArea(String koreanArea) {

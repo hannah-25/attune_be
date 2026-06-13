@@ -17,6 +17,6 @@ public interface AsrsAssessmentRepository extends JpaRepository<AsrsAssessment, 
     @Query("SELECT a FROM AsrsAssessment a LEFT JOIN FETCH a.answers WHERE a.user = :user ORDER BY a.completedAt DESC")
     List<AsrsAssessment> findAllByUserWithAnswers(@Param("user") User user);
 
-    @Query("SELECT a FROM AsrsAssessment a LEFT JOIN FETCH a.answers WHERE a.id = :id")
-    Optional<AsrsAssessment> findByIdWithAnswers(@Param("id") Long id);
+    @Query("SELECT a FROM AsrsAssessment a LEFT JOIN FETCH a.answers WHERE a.id = :id AND a.user = :user")
+    Optional<AsrsAssessment> findByIdAndUserWithAnswers(@Param("id") Long id, @Param("user") User user);
 }
