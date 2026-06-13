@@ -15,7 +15,7 @@ public interface AsrsAssessmentRepository extends JpaRepository<AsrsAssessment, 
 
     Optional<AsrsAssessment> findTopByUserOrderByCompletedAtDesc(User user);
 
-    @Query("SELECT a FROM AsrsAssessment a LEFT JOIN FETCH a.answers WHERE a.user.id = :userId ORDER BY a.completedAt DESC")
+    @Query("SELECT DISTINCT a FROM AsrsAssessment a LEFT JOIN FETCH a.answers WHERE a.user.id = :userId ORDER BY a.completedAt DESC")
     List<AsrsAssessment> findAllByUserWithAnswers(@Param("userId") UUID userId);
 
     @Query("SELECT a FROM AsrsAssessment a LEFT JOIN FETCH a.answers WHERE a.id = :id AND a.user.id = :userId")
