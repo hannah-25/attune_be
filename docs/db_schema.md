@@ -40,12 +40,10 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 약관 고유 식별자 |
 | version | INTEGER | NOT NULL | 약관 버전 |
+| type | VARCHAR(50) | NOT NULL | 약관 종류 Enum (TERMS_OF_SERVICE, PRIVACY_POLICY, MARKETING_CONSENT, AI_ANALYSIS_CONSENT) |
 | content | TEXT | NOT NULL | 약관 내용 |
 | effectiveAt | TIMESTAMP | NOT NULL | 약관 시행일 |
 | createdAt | TIMESTAMP | NOT NULL | 생성일시 |
-| marketing_consent | TEXT | | |
-| privacy_policy | TEXT | | |
-| terms_of_service | TEXT | | |
 
 ---
 
@@ -311,10 +309,20 @@
 | hospital_id | BIGINT | FK → Hospital.id, NOT NULL | 병원 ID |
 | date | TIMESTAMP | NOT NULL | 상담일시 |
 | isFirst | BOOLEAN | DEFAULT false | 첫 상담 여부 |
-| preConsultationNote | TEXT | | 상담 전 메모 |
 | nextTreatmentGoal | TEXT | | 다음 치료 목표 |
 | doctorAdvice | TEXT | | 의사 조언 |
 | prescriptionNote | TEXT | | 처방 메모 |
+
+---
+
+## ConsultationQuestion (상담 전 질문)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 질문 고유 식별자 |
+| consultation_id | BIGINT | FK → ConsultationRecord.id, NOT NULL | 상담 기록 ID |
+| text | VARCHAR(255) | NOT NULL | 질문 내용 |
+| createdAt | TIMESTAMP | | 생성 일시 |
 
 ---
 
@@ -468,4 +476,24 @@
 | status | VARCHAR(20) | NOT NULL | 발송 상태 Enum (SENDING, SENT, FAILED, SKIPPED) |
 | sent_at | TIMESTAMP | NOT NULL | 최근 발송 선점/시도 시각 |
 | | | UNIQUE(user_id, alarm_type, reference_id, alarm_scheduled_at) | 중복 발송 방지 |
+
+
+
+---
+
+## MedicationAnalysisReport (약물 치료 경과 리포트)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 리포트 고유 식별자 |
+| user_id | UUID | FK → User.id, ON DELETE CASCADE, NOT NULL | 사용자 ID |
+| period_start | DATE | NOT NULL | 분석 기간 시작일 |
+| period_end | DATE | NOT NULL | 분석 기간 종료일 |
+| status | VARCHAR(20) | NOT NULL | 리포트 상태 Enum (PENDING, COMPLETED, FAILED, OUTDATED) |
+| source_data_hash | VARCHAR(64) | NOT NULL | 원본 데이터 SHA-256 해시 (중복 생성 방지 및 OUTDATED 감지) |
+| snapshot_json | TEXT | | 서버 분석 스냅샷 JSON |
+| ai_result_json | TEXT | | Gemini AI 분석 결과 JSON (미동의 또는 실패 시 NULL) |
+| model_name | VARCHAR(100) | | 사용된 AI 모델명 |
+| prompt_version | VARCHAR(20) | | 사용된 프롬프트 버전 |
+| generated_at | TIMESTAMP | NOT NULL | 리포트 생성 시각 |
 

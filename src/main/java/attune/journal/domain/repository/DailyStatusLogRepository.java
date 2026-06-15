@@ -15,6 +15,8 @@ public interface DailyStatusLogRepository extends JpaRepository<DailyStatusLog, 
 
     Optional<DailyStatusLog> findByUserIdAndDate(UUID userId, LocalDate date);
 
+    List<DailyStatusLog> findByUserIdAndDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
+
     boolean existsByUserIdAndDate(UUID userId, LocalDate date);
 
     @Query("""

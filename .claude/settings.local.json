@@ -23,7 +23,8 @@
       "Bash(./gradlew compileJava --rerun-tasks)",
       "Bash(./gradlew compileJava compileTestJava)",
       "Bash(./gradlew compileTestJava)",
-      "Bash(./gradlew clean *)"
+      "Bash(./gradlew clean *)",
+      "Bash(xargs grep -n \"user\\\\|User\")"
     ]
   }
 }

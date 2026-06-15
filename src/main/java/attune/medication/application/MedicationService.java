@@ -130,6 +130,7 @@ public class MedicationService {
                 : getOwnedConsultationOrThrow(request.consultationId());
         MedicationDosage dosage = getMedicationDosageOrThrow(request.medicationDosageId());
         validateEndAtNotBeforeStartedAt(request.startedAt(), request.endAt());
+        validateActiveMedicationEndAt(request.endAt());
 
         LocalDateTime now = LocalDateTime.now();
         UserMedication um = UserMedication.builder()
@@ -169,12 +170,10 @@ public class MedicationService {
         UserMedication um = getOwnedUserMedicationOrThrow(userMedicationId);
         boolean active = request.isActive() != null ? request.isActive() : um.getIsActive();
         boolean updateEndAt = request.endAt().isPresent();
-        LocalDate endAt = updateEndAt ? request.endAt().get() : null;
-        if (active && endAt != null) {
-            throw new BadRequestException("활성화된 복약 정보는 종료일을 가질 수 없습니다.");
-        }
+        LocalDate endAt = updateEndAt ? request.endAt().get() : um.getEndAt();
+        if (active) validateActiveMedicationEndAt(endAt);
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
-        um.update(endAt, updateEndAt, request.isActive(), request.alarmActive());
+        um.update(updateEndAt ? endAt : null, updateEndAt, request.isActive(), request.alarmActive());
         return UpdateMedicationResponse.from(um);
     }
 
@@ -335,6 +334,12 @@ public class MedicationService {
         }
         if (endAt.isBefore(startedAt)) {
             throw new InvalidDateRangeException();
+        }
+    }
+
+    private void validateActiveMedicationEndAt(LocalDate endAt) {
+        if (endAt != null && endAt.isBefore(LocalDate.now())) {
+            throw new BadRequestException("활성화된 복약 정보의 종료일은 오늘보다 이전일 수 없습니다.");
         }
     }
 
