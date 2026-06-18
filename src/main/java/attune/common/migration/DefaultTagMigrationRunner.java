@@ -10,9 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,22 +27,24 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
     private final UserJournalTagPreferenceRepository preferenceRepository;
     private final DefaultTagService defaultTagService;
 
+    private static final int BATCH_SIZE = 100;
+
     @Override
     public void run(ApplicationArguments args) {
-        List<User> allUsers = userRepository.findAll();
         Set<UUID> usersWithPreferences = preferenceRepository.findDistinctUserIds();
         int count = 0;
+        int pageNumber = 0;
+        Page<User> page;
 
-        for (User user : allUsers) {
-            if (user.getUserStatus() != UserStatus.ACTIVE) {
-                continue;
+        do {
+            page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, PageRequest.of(pageNumber++, BATCH_SIZE));
+            for (User user : page.getContent()) {
+                if (!usersWithPreferences.contains(user.getId())) {
+                    defaultTagService.copyDefaultTagsForUser(user.getId());
+                    count++;
+                }
             }
-
-            if (!usersWithPreferences.contains(user.getId())) {
-                defaultTagService.copyDefaultTagsForUser(user.getId());
-                count++;
-            }
-        }
+        } while (page.hasNext());
 
         if (count > 0) {
             log.info("기본 태그 마이그레이션 완료: {}명", count);
