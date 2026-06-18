@@ -151,11 +151,11 @@ public class MedicationAnalysisService {
         }
     }
 
-    private boolean isOutdated(MedicationAnalysisReport report) {
+    private boolean isOutdated(UUID userId, MedicationAnalysisReport report) {
         // 리포트 생성 이후 동일 기간의 원본 데이터가 변경되었는지 해시 재계산으로 확인
         try {
             String currentHash = snapshotSerializer.computeHash(
-                    report.getUser().getId(), report.getPeriodStart(), report.getPeriodEnd());
+                    userId, report.getPeriodStart(), report.getPeriodEnd());
             return !currentHash.equals(report.getSourceDataHash());
         } catch (Exception e) {
             return false;
