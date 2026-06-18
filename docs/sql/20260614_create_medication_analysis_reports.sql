@@ -7,6 +7,7 @@ CREATE TABLE medication_analysis_reports
     period_end       DATE         NOT NULL,
     status           VARCHAR(20)  NOT NULL,
     source_data_hash VARCHAR(64)  NOT NULL,
+    row_count_hash   VARCHAR(64),
     snapshot_json    LONGTEXT,
     ai_result_json   LONGTEXT,
     model_name       VARCHAR(100),

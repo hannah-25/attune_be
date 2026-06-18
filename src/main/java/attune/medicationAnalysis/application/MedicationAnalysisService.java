@@ -83,13 +83,8 @@ public class MedicationAnalysisService {
         Optional<MedicationAnalysisReport> existing = reportRepository
                 .findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
                         userId, request.periodStart(), request.periodEnd(), hash);
-        if (existing.isPresent()) {
-            MedicationAnalysisReport report = existing.get();
-            if (report.getStatus() == ReportStatus.COMPLETED) {
-                return ReportDetailResponse.from(report, false);
-            }
-            report.updateToPending();
-            reportRepository.save(report);
+        if (existing.isPresent() && existing.get().getStatus() == ReportStatus.COMPLETED) {
+            return ReportDetailResponse.from(existing.get(), false);
         }
 
         // 스냅샷 생성
@@ -110,23 +105,34 @@ public class MedicationAnalysisService {
             }
         }
 
-        // 저장
-        User userRef = userRepository.getReferenceById(userId);
-        MedicationAnalysisReport report = MedicationAnalysisReport.builder()
-                .user(userRef)
-                .periodStart(request.periodStart())
-                .periodEnd(request.periodEnd())
-                .status(ReportStatus.COMPLETED)
-                .sourceDataHash(hash)
-                .rowCountHash(countHash)
-                .snapshotJson(snapshotJson)
-                .aiResultJson(aiResultJson)
-                .modelName(modelName)
-                .promptVersion(promptVersion)
-                .generatedAt(LocalDateTime.now())
-                .build();
+        // 저장: 기존 엔티티가 있으면 in-place 업데이트(unique constraint 방지), 없으면 신규 생성
+        MedicationAnalysisReport saved;
+        if (existing.isPresent()) {
+            MedicationAnalysisReport report = existing.get();
+            report.updateSnapshot(snapshotJson, countHash, LocalDateTime.now());
+            if (aiResultJson != null) {
+                report.completeWithAiResult(aiResultJson, modelName, promptVersion);
+            } else {
+                report.failAiResult();
+            }
+            saved = reportRepository.save(report);
+        } else {
+            User userRef = userRepository.getReferenceById(userId);
+            saved = reportRepository.save(MedicationAnalysisReport.builder()
+                    .user(userRef)
+                    .periodStart(request.periodStart())
+                    .periodEnd(request.periodEnd())
+                    .status(ReportStatus.COMPLETED)
+                    .sourceDataHash(hash)
+                    .rowCountHash(countHash)
+                    .snapshotJson(snapshotJson)
+                    .aiResultJson(aiResultJson)
+                    .modelName(modelName)
+                    .promptVersion(promptVersion)
+                    .generatedAt(LocalDateTime.now())
+                    .build());
+        }
 
-        MedicationAnalysisReport saved = reportRepository.save(report);
         return ReportDetailResponse.from(saved, false);
     }
 

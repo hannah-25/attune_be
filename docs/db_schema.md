@@ -335,7 +335,7 @@
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 질문 고유 식별자 |
-| consultation_id | BIGINT | FK → ConsultationRecord.id, NOT NULL | 상담 기록 ID |
+| consultation_id | BIGINT | FK → Consultation.id, NOT NULL | 상담 기록 ID |
 | text | VARCHAR(255) | NOT NULL | 질문 내용 |
 | createdAt | TIMESTAMP | | 생성 일시 |
 
@@ -506,6 +506,7 @@
 | period_end | DATE | NOT NULL | 분석 기간 종료일 |
 | status | VARCHAR(20) | NOT NULL | 리포트 상태 Enum (PENDING, COMPLETED, FAILED, OUTDATED) |
 | source_data_hash | VARCHAR(64) | NOT NULL | 원본 데이터 SHA-256 해시 (중복 생성 방지 및 OUTDATED 감지) |
+| row_count_hash | VARCHAR(64) | NULLABLE | 복약 데이터 건수 기반 해시 (OUTDATED 판단용) |
 | snapshot_json | TEXT | | 서버 분석 스냅샷 JSON |
 | ai_result_json | TEXT | | Gemini AI 분석 결과 JSON (미동의 또는 실패 시 NULL) |
 | model_name | VARCHAR(100) | | 사용된 AI 모델명 |

@@ -21,9 +21,30 @@ LEFT JOIN (
 SET goal.saved_at = COALESCE(assessment.latest_completed_at, CURRENT_TIMESTAMP(6))
 WHERE goal.saved_at IS NULL;
 
+-- Backfill onboarding_goal_snapshots for existing goals.
+-- onboarding_time mirrors saved_at so that getHistoryDetail (which now queries
+-- onboarding_goal_snapshots) continues to return goals for pre-migration users.
+-- NOT EXISTS guard makes this safe to rerun.
+INSERT INTO onboarding_goal_snapshots (user_id, daily_goal_id, onboarding_time)
+SELECT goal.user_id, goal.id, goal.saved_at
+FROM daily_goals goal
+WHERE goal.saved_at IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM onboarding_goal_snapshots snap
+    WHERE snap.daily_goal_id = goal.id
+  );
+
 COMMIT;
 
--- Verification: this count must be zero.
+-- Verification: both counts must be zero.
 SELECT COUNT(*) AS daily_goals_without_saved_at
 FROM daily_goals
 WHERE saved_at IS NULL;
+
+SELECT COUNT(*) AS goals_without_snapshot
+FROM daily_goals
+WHERE saved_at IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM onboarding_goal_snapshots snap
+    WHERE snap.daily_goal_id = daily_goals.id
+  );
