@@ -4,6 +4,7 @@ import attune.common.error.BadRequestException;
 import attune.medicationAnalysis.application.dto.request.CreateReportRequest;
 import attune.medicationAnalysis.application.dto.response.AvailabilityResponse;
 import attune.medicationAnalysis.application.dto.response.ReportDetailResponse;
+import attune.medicationAnalysis.application.dto.response.ReportListItemResponse;
 import attune.medicationAnalysis.application.engine.AnalysisEngine;
 import attune.medicationAnalysis.application.engine.SnapshotSerializer;
 import attune.medicationAnalysis.application.model.AnalysisSnapshot;
@@ -220,6 +221,24 @@ class MedicationAnalysisServiceTest {
 
         assertEquals(ReportStatus.COMPLETED, response.status());
         assertNull(response.aiResultJson());
+    }
+
+    // -------------------------------------------------------------------------
+    // listReports
+    // -------------------------------------------------------------------------
+
+    @Test
+    void listReports_doesNotRecomputeSnapshotHashes() {
+        MedicationAnalysisReport first = completedReport("first-hash");
+        MedicationAnalysisReport second = completedReport("second-hash");
+        when(reportRepository.findByUser_IdOrderByGeneratedAtDesc(USER_ID))
+                .thenReturn(List.of(first, second));
+
+        List<ReportListItemResponse> responses = service.listReports(USER_ID);
+
+        assertEquals(2, responses.size());
+        assertTrue(responses.stream().noneMatch(ReportListItemResponse::outdated));
+        verifyNoInteractions(snapshotSerializer);
     }
 
     // -------------------------------------------------------------------------

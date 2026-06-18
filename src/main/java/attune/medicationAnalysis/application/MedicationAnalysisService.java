@@ -132,7 +132,7 @@ public class MedicationAnalysisService {
     @Transactional(readOnly = true)
     public List<ReportListItemResponse> listReports(UUID userId) {
         return reportRepository.findByUser_IdOrderByGeneratedAtDesc(userId).stream()
-                .map(r -> ReportListItemResponse.from(r, isOutdated(r)))
+                .map(report -> ReportListItemResponse.from(report, false))
                 .toList();
     }
 
