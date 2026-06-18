@@ -16,6 +16,18 @@ public interface DailyGoalLogRepository extends JpaRepository<DailyGoalLog, Long
     Optional<DailyGoalLog> findByDailyGoalIdAndDate(Long dailyGoalId, LocalDate date);
 
     @Query("""
+            SELECT COUNT(l) FROM DailyGoalLog l, DailyGoal g
+            WHERE l.dailyGoalId = g.id
+              AND g.userId = :userId
+              AND l.date BETWEEN :startDate AND :endDate
+            """)
+    long countInRangeWithGoal(
+            @Param("userId") UUID userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("""
             SELECT l, g FROM DailyGoalLog l, DailyGoal g
             WHERE l.dailyGoalId = g.id
               AND g.userId = :userId

@@ -79,6 +79,7 @@ public class MedicationAnalysisService {
 
         // 해시 계산 → 기존 리포트 재사용 여부 판단
         String hash = snapshotSerializer.computeHash(rawData);
+        String countHash = snapshotSerializer.computeCountHash(rawData);
         Optional<MedicationAnalysisReport> existing = reportRepository
                 .findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
                         userId, request.periodStart(), request.periodEnd(), hash);
@@ -113,6 +114,7 @@ public class MedicationAnalysisService {
                 .periodEnd(request.periodEnd())
                 .status(ReportStatus.COMPLETED)
                 .sourceDataHash(hash)
+                .rowCountHash(countHash)
                 .snapshotJson(snapshotJson)
                 .aiResultJson(aiResultJson)
                 .modelName(modelName)
@@ -156,11 +158,11 @@ public class MedicationAnalysisService {
     }
 
     private boolean isOutdated(UUID userId, MedicationAnalysisReport report) {
-        // 리포트 생성 이후 동일 기간의 원본 데이터가 변경되었는지 해시 재계산으로 확인
+        if (report.getRowCountHash() == null) return false;
         try {
-            String currentHash = snapshotSerializer.computeHash(
+            String currentCountHash = snapshotSerializer.computeCountHash(
                     userId, report.getPeriodStart(), report.getPeriodEnd());
-            return !currentHash.equals(report.getSourceDataHash());
+            return !currentCountHash.equals(report.getRowCountHash());
         } catch (Exception e) {
             return false;
         }

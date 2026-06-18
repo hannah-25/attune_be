@@ -220,8 +220,7 @@ public class JournalTagCatalogService {
     private List<Long> syncLegacyTags(
             UUID userId, JournalTagCategory category, Long catalogTagId, boolean enabled, boolean visible
     ) {
-        List<Long> legacyIds = mappingRepository.findAllByUserIdAndLegacyCategory(userId, category).stream()
-                .filter(mapping -> mapping.getJournalTagId().equals(catalogTagId))
+        List<Long> legacyIds = mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(userId, category, catalogTagId).stream()
                 .map(LegacyJournalTagMapping::getLegacyTagId)
                 .toList();
 

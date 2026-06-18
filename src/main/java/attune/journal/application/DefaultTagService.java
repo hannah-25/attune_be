@@ -4,15 +4,17 @@ import attune.journal.domain.model.JournalTag;
 import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.JournalTagScope;
 import attune.journal.domain.model.UserJournalTagPreference;
-import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,13 +50,23 @@ public class DefaultTagService {
     private void copyForCategory(UUID userId, JournalTagCategory category) {
         List<JournalTag> systemTags = journalTagRepository
                 .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category);
+        if (systemTags.isEmpty()) return;
+
+        List<Long> tagIds = systemTags.stream().map(JournalTag::getId).toList();
+        Set<Long> existingTagIds = preferenceRepository
+                .findAllByUserIdAndJournalTagIdIn(userId, tagIds)
+                .stream()
+                .map(UserJournalTagPreference::getJournalTagId)
+                .collect(Collectors.toSet());
+
         int visibleCount = 0;
+        List<UserJournalTagPreference> toSave = new ArrayList<>();
         for (JournalTag tag : systemTags) {
-            UserJournalTagPreferenceId prefId = new UserJournalTagPreferenceId(userId, tag.getId());
-            if (preferenceRepository.findById(prefId).isPresent()) continue;
+            if (existingTagIds.contains(tag.getId())) continue;
             boolean makeVisible = tag.isDefaultVisible() && visibleCount < MAX_VISIBLE_DEFAULTS;
             if (makeVisible) visibleCount++;
-            preferenceRepository.save(UserJournalTagPreference.create(userId, tag.getId(), true, makeVisible));
+            toSave.add(UserJournalTagPreference.create(userId, tag.getId(), true, makeVisible));
         }
+        preferenceRepository.saveAll(toSave);
     }
 }

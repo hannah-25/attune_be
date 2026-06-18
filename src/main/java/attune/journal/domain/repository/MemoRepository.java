@@ -19,6 +19,8 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
 
     boolean existsByUserIdAndJournalDate(UUID userId, LocalDate journalDate);
 
+    long countByUserIdAndJournalDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
+
     @Query("""
             SELECT DISTINCT m.journalDate FROM Memo m
             WHERE m.userId = :userId

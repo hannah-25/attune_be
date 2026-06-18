@@ -11,4 +11,6 @@ public interface UserJournalTagPreferenceRepository
         extends JpaRepository<UserJournalTagPreference, UserJournalTagPreferenceId> {
 
     List<UserJournalTagPreference> findAllByUserId(UUID userId);
+
+    List<UserJournalTagPreference> findAllByUserIdAndJournalTagIdIn(UUID userId, List<Long> journalTagIds);
 }

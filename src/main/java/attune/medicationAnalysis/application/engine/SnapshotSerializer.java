@@ -19,7 +19,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -43,55 +42,32 @@ public class SnapshotSerializer {
         }
     }
 
+    public String computeCountHash(AnalysisRawData rawData) {
+        String raw = "ML:" + rawData.medicationLogs().size()
+                + "|CL:" + rawData.conditionTuples().size()
+                + "|SL:" + rawData.sideEffectTuples().size()
+                + "|TL:" + rawData.troubleTuples().size()
+                + "|DS:" + rawData.statusLogs().size()
+                + "|GL:" + rawData.goalLogPairs().size()
+                + "|MO:" + rawData.memos().size();
+        return sha256(raw);
+    }
+
     @Transactional(readOnly = true)
-    public String computeHash(UUID userId, LocalDate startDate, LocalDate endDate) {
+    public String computeCountHash(UUID userId, LocalDate startDate, LocalDate endDate) {
         LocalDateTime startAt = startDate.atStartOfDay();
         LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
 
-        List<String> fingerprints = new ArrayList<>();
+        long ml = medicationLogRepository.countByUserIdAndTakenAtBetween(userId, startAt, endAt);
+        long cl = conditionLogRepository.countInRangeWithTag(userId, startAt, endAt);
+        long sl = sideEffectLogRepository.countInRangeWithTag(userId, startAt, endAt);
+        long tl = troubleLogRepository.countInRangeWithTag(userId, startAt, endAt);
+        long ds = dailyStatusLogRepository.countByUserIdAndDateBetween(userId, startDate, endDate);
+        long gl = dailyGoalLogRepository.countInRangeWithGoal(userId, startDate, endDate);
+        long mo = memoRepository.countByUserIdAndJournalDateBetween(userId, startDate, endDate);
 
-        // UserMedicationLog
-        medicationLogRepository.findAllByUserIdAndTakenAtBetween(userId, startAt, endAt)
-                .forEach(l -> fingerprints.add("ML:" + l.getId() + ":" + l.getTakenAt()));
-
-        // ConditionLog
-        conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt)
-                .forEach(t -> {
-                    ConditionLog l = t.get("log", ConditionLog.class);
-                    fingerprints.add("CL:" + l.getId() + ":" + l.getCheckedAt());
-                });
-
-        // SideEffectLog
-        sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt)
-                .forEach(t -> {
-                    SideEffectLog l = t.get("log", SideEffectLog.class);
-                    fingerprints.add("SL:" + l.getId() + ":" + l.getCheckedAt());
-                });
-
-        // TroubleLog
-        troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt)
-                .forEach(t -> {
-                    TroubleLog l = t.get("log", TroubleLog.class);
-                    fingerprints.add("TL:" + l.getId() + ":" + l.getCheckedAt());
-                });
-
-        // DailyStatusLog
-        dailyStatusLogRepository.findByUserIdAndDateBetween(userId, startDate, endDate)
-                .forEach(s -> fingerprints.add("DS:" + s.getId() + ":" + s.getDate()));
-
-        // DailyGoalLog
-        dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate)
-                .forEach(pair -> {
-                    DailyGoalLog l = (DailyGoalLog) pair[0];
-                    fingerprints.add("GL:" + l.getId() + ":" + l.getDate());
-                });
-
-        // Memo
-        memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate)
-                .forEach(m -> fingerprints.add("MO:" + m.getId() + ":" + m.getJournalDate()));
-
-        Collections.sort(fingerprints);
-        String raw = String.join("|", fingerprints);
+        String raw = "ML:" + ml + "|CL:" + cl + "|SL:" + sl + "|TL:" + tl
+                + "|DS:" + ds + "|GL:" + gl + "|MO:" + mo;
         return sha256(raw);
     }
 

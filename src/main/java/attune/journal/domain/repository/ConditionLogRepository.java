@@ -15,6 +15,19 @@ import java.util.UUID;
 public interface ConditionLogRepository extends JpaRepository<ConditionLog, Long> {
 
     @Query("""
+            SELECT COUNT(l) FROM ConditionLog l, ConditionTag t
+            WHERE l.conditionTagId = t.id
+              AND t.userId = :userId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    long countInRangeWithTag(
+            @Param("userId") UUID userId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Query("""
             SELECT l AS log, t AS tag FROM ConditionLog l, ConditionTag t
             WHERE l.conditionTagId = t.id
               AND t.userId = :userId

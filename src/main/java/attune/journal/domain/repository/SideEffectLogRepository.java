@@ -15,6 +15,19 @@ import java.util.UUID;
 public interface SideEffectLogRepository extends JpaRepository<SideEffectLog, Long> {
 
     @Query("""
+            SELECT COUNT(l) FROM SideEffectLog l, SideEffectTag t
+            WHERE l.sideEffectTagId = t.id
+              AND t.userId = :userId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    long countInRangeWithTag(
+            @Param("userId") UUID userId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Query("""
             SELECT l AS log, t AS tag FROM SideEffectLog l, SideEffectTag t
             WHERE l.sideEffectTagId = t.id
               AND t.userId = :userId

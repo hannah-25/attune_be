@@ -19,6 +19,8 @@ public interface DailyStatusLogRepository extends JpaRepository<DailyStatusLog, 
 
     boolean existsByUserIdAndDate(UUID userId, LocalDate date);
 
+    long countByUserIdAndDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
+
     @Query("""
             SELECT DISTINCT l.date FROM DailyStatusLog l
             WHERE l.userId = :userId

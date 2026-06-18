@@ -42,6 +42,8 @@ public class MedicationAnalysisReport {
     @Column(nullable = false)
     private String sourceDataHash;
 
+    private String rowCountHash;
+
     @Column(columnDefinition = "TEXT")
     private String snapshotJson;
 
