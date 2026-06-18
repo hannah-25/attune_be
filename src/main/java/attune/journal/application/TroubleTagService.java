@@ -1,22 +1,27 @@
 package attune.journal.application;
 
-import attune.common.error.conflict.DuplicateTagException;
 import attune.common.error.notfound.TroubleTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckTroubleRequest;
+import attune.journal.application.dto.request.CreateCatalogJournalTagRequest;
 import attune.journal.application.dto.request.CreateTroubleTagRequest;
+import attune.journal.application.dto.request.UpdateCatalogTagPreferenceRequest;
+import attune.journal.application.dto.response.CatalogJournalTagResponse;
+import attune.journal.application.dto.response.CatalogTagCheckResponse;
 import attune.journal.application.dto.response.TroubleCheckResponse;
 import attune.journal.application.dto.response.TroubleTagResponse;
-import attune.journal.domain.model.TroubleLog;
-import attune.journal.domain.model.TroubleTag;
-import attune.journal.domain.repository.TroubleLogRepository;
-import attune.journal.domain.repository.TroubleTagRepository;
+import attune.journal.domain.model.JournalTag;
+import attune.journal.domain.model.JournalTagCategory;
+import attune.journal.domain.model.TroubleType;
+import attune.journal.domain.model.UserJournalTagPreference;
+import attune.journal.domain.model.UserJournalTagPreferenceId;
+import attune.journal.domain.repository.JournalTagRepository;
+import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,89 +29,62 @@ import java.util.UUID;
 @Service
 public class TroubleTagService {
 
-    private final TroubleTagRepository troubleTagRepository;
-    private final TroubleLogRepository troubleLogRepository;
+    private final JournalTagCatalogService catalogService;
+    private final JournalTagCatalogCheckService catalogCheckService;
+    private final JournalTagRepository journalTagRepository;
+    private final UserJournalTagPreferenceRepository preferenceRepository;
 
     @Transactional(readOnly = true)
     public List<TroubleTagResponse> getActiveTags() {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        return troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
-                .map(TroubleTagResponse::from)
+        return catalogService.getTags(JournalTagCategory.TROUBLE).stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     @Transactional
     public TroubleTagResponse createTag(CreateTroubleTagRequest request) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        if (troubleTagRepository.existsByUserIdAndTroubleAndIsActiveTrue(userId, request.trouble())) {
-            throw new DuplicateTagException("트러블");
-        }
-        TroubleTag tag = TroubleTag.builder()
-                .userId(userId)
-                .trouble(request.trouble())
-                .type(request.type())
-                .isActive(true)
-                .visible(true)
-                .build();
-        return TroubleTagResponse.from(troubleTagRepository.save(tag));
+        return toResponse(catalogService.createTag(new CreateCatalogJournalTagRequest(
+                JournalTagCategory.TROUBLE, request.trouble(), request.type().name(), true)));
     }
 
     @Transactional
-    public void deleteTag(Long tagId, LocalDate journalDate) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
-                .orElseThrow(TroubleTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
-            throw new TroubleTagNotFoundException();
-        }
-
-        troubleLogRepository.deleteAllByTagFromDate(
-                tagId,
-                journalDate.atStartOfDay()
-        );
-        tag.deactivate();
+    public void deleteTag(Long catalogTagId, LocalDate journalDate) {
+        catalogService.deleteTag(catalogTagId, journalDate);
     }
 
     @Transactional
-    public void uncheckByDate(Long tagId, LocalDate date) {
+    public TroubleTagResponse toggleVisible(Long catalogTagId) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
+        JournalTag tag = journalTagRepository.findById(catalogTagId)
+                .filter(JournalTag::isActive)
                 .orElseThrow(TroubleTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
-            throw new TroubleTagNotFoundException();
-        }
-        troubleLogRepository.deleteAllByTagAndDate(
-                tagId,
-                date.atStartOfDay(),
-                date.plusDays(1).atStartOfDay()
-        );
-    }
-
-    @Transactional
-    public TroubleTagResponse toggleVisible(Long tagId) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(tagId)
-                .orElseThrow(TroubleTagNotFoundException::new);
-        if (!userId.equals(tag.getUserId())) {
-            throw new TroubleTagNotFoundException();
-        }
-        tag.toggleVisible();
-        return TroubleTagResponse.from(tag);
+        boolean currentVisible = preferenceRepository
+                .findById(new UserJournalTagPreferenceId(userId, catalogTagId))
+                .map(UserJournalTagPreference::isVisible)
+                .orElse(tag.isDefaultVisible());
+        return toResponse(catalogService.updatePreference(
+                catalogTagId, new UpdateCatalogTagPreferenceRequest(true, !currentVisible)));
     }
 
     @Transactional
     public TroubleCheckResponse check(CheckTroubleRequest request) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        TroubleTag tag = troubleTagRepository.findByIdAndIsActiveTrue(request.tagId())
+        CatalogTagCheckResponse checkResponse = catalogCheckService.check(request.tagId());
+        JournalTag tag = journalTagRepository.findById(request.tagId())
                 .orElseThrow(TroubleTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
-            throw new TroubleTagNotFoundException();
-        }
+        return new TroubleCheckResponse(
+                checkResponse.catalogTagId(),
+                tag.getName(),
+                TroubleType.valueOf(tag.getTagType()),
+                checkResponse.checkedAt());
+    }
 
-        TroubleLog log = TroubleLog.builder()
-                .troubleTagId(request.tagId())
-                .checkedAt(LocalDateTime.now())
-                .build();
-        return TroubleCheckResponse.of(tag, troubleLogRepository.save(log));
+    @Transactional
+    public void uncheckByDate(Long catalogTagId, LocalDate date) {
+        catalogCheckService.uncheck(catalogTagId, date);
+    }
+
+    private TroubleTagResponse toResponse(CatalogJournalTagResponse r) {
+        return new TroubleTagResponse(
+                r.catalogTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible());
     }
 }

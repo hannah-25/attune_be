@@ -16,6 +16,8 @@ public interface SideEffectTagRepository extends JpaRepository<SideEffectTag, Lo
     @Query("SELECT t FROM SideEffectTag t WHERE t.userId = :userId AND t.isActive = true")
     List<SideEffectTag> findAllByUserIdAndIsActiveTrue(@Param("userId") UUID userId);
 
+    List<SideEffectTag> findAllByUserId(UUID userId);
+
     @Query("SELECT t FROM SideEffectTag t WHERE t.userId = :userId AND t.isActive = true AND t.visible = true")
     List<SideEffectTag> findAllByUserIdAndIsActiveTrueAndVisibleTrue(@Param("userId") UUID userId);
 

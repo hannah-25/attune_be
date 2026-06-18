@@ -20,16 +20,14 @@ import java.util.UUID;
 @Service
 public class JournalService {
 
-    private final ConditionTagRepository conditionTagRepository;
     private final ConditionLogRepository conditionLogRepository;
-    private final SideEffectTagRepository sideEffectTagRepository;
     private final SideEffectLogRepository sideEffectLogRepository;
-    private final TroubleTagRepository troubleTagRepository;
     private final TroubleLogRepository troubleLogRepository;
     private final DailyStatusLogRepository dailyStatusLogRepository;
     private final DailyGoalRepository dailyGoalRepository;
     private final DailyGoalLogRepository dailyGoalLogRepository;
     private final MemoRepository memoRepository;
+    private final JournalTagCatalogService catalogService;
 
     @Transactional(readOnly = true)
     public JournalDetailResponse getJournal(LocalDate date) {
@@ -38,12 +36,9 @@ public class JournalService {
         LocalDateTime endAt = date.plusDays(1).atStartOfDay();
 
         ActiveTagsResponse activeTags = new ActiveTagsResponse(
-                conditionTagRepository.findAllByUserIdAndIsActiveTrueAndVisibleTrue(userId).stream()
-                        .map(ConditionTagResponse::from).toList(),
-                sideEffectTagRepository.findAllByUserIdAndIsActiveTrueAndVisibleTrue(userId).stream()
-                        .map(SideEffectTagResponse::from).toList(),
-                troubleTagRepository.findAllByUserIdAndIsActiveTrueAndVisibleTrue(userId).stream()
-                        .map(TroubleTagResponse::from).toList(),
+                getVisibleConditionTags(),
+                getVisibleSideEffectTags(),
+                getVisibleTroubleTags(),
                 dailyGoalRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
                         .map(GoalActiveResponse::from).toList()
         );
@@ -140,5 +135,28 @@ public class JournalService {
         total += dailyGoalLogRepository.deleteAllInRange(userId, startDate, endDate);
         total += memoRepository.deleteAllInRange(userId, startDate, endDate);
         return total;
+    }
+
+    private List<ConditionTagResponse> getVisibleConditionTags() {
+        return catalogService.getTags(JournalTagCategory.CONDITION).stream()
+                .filter(CatalogJournalTagResponse::visible)
+                .map(r -> new ConditionTagResponse(
+                        r.catalogTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible()))
+                .toList();
+    }
+
+    private List<SideEffectTagResponse> getVisibleSideEffectTags() {
+        return catalogService.getTags(JournalTagCategory.SIDE_EFFECT).stream()
+                .filter(CatalogJournalTagResponse::visible)
+                .map(r -> new SideEffectTagResponse(r.catalogTagId(), r.name(), r.visible()))
+                .toList();
+    }
+
+    private List<TroubleTagResponse> getVisibleTroubleTags() {
+        return catalogService.getTags(JournalTagCategory.TROUBLE).stream()
+                .filter(CatalogJournalTagResponse::visible)
+                .map(r -> new TroubleTagResponse(
+                        r.catalogTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible()))
+                .toList();
     }
 }

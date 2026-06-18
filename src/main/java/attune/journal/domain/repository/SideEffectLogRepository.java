@@ -77,4 +77,32 @@ public interface SideEffectLogRepository extends JpaRepository<SideEffectLog, Lo
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt
     );
+
+    @Modifying
+    @Query("""
+            DELETE FROM SideEffectLog l
+            WHERE l.userId = :userId
+              AND l.journalTagId = :journalTagId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    int deleteAllByCatalogTagAndDate(
+            @Param("userId") UUID userId,
+            @Param("journalTagId") Long journalTagId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Modifying
+    @Query("""
+            DELETE FROM SideEffectLog l
+            WHERE l.userId = :userId
+              AND l.journalTagId = :journalTagId
+              AND l.checkedAt >= :startAt
+            """)
+    int deleteAllByCatalogTagFromDate(
+            @Param("userId") UUID userId,
+            @Param("journalTagId") Long journalTagId,
+            @Param("startAt") LocalDateTime startAt
+    );
 }

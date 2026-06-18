@@ -24,8 +24,11 @@ public class GeminiReportClient {
 
     private final ObjectMapper objectMapper = buildObjectMapper();
 
-    public GeminiReportResult generate(String snapshotJson) {
-        String prompt = buildPrompt(snapshotJson);
+    public GeminiReportResult generate(String snapshotJson, AnalysisSnapshot snapshot) {
+        List<String> validEvidenceIds = snapshot.timeWindowPatterns().stream()
+                .map(AnalysisSnapshot.TimeWindowPattern::evidenceId)
+                .toList();
+        String prompt = buildPrompt(snapshotJson, validEvidenceIds);
         try {
             String rawJson = aiTextGenerator.generateJson(prompt);
             GeminiReportResponse parsed = validator.validate(rawJson, snapshotJson);
@@ -43,7 +46,11 @@ public class GeminiReportClient {
         return PROMPT_VERSION;
     }
 
-    private String buildPrompt(String snapshotJson) {
+    private String buildPrompt(String snapshotJson, List<String> validEvidenceIds) {
+        String evidenceIdList = validEvidenceIds.isEmpty()
+                ? "(없음)"
+                : String.join(", ", validEvidenceIds);
+
         return """
                 당신은 ADHD 약물 치료를 받는 사용자의 복용 기록과 일지 데이터를 분석하여,
                 기록된 패턴을 사용자가 이해하기 쉬운 언어로 요약하는 역할을 합니다.
@@ -53,6 +60,8 @@ public class GeminiReportClient {
                 - 인과관계를 단정하지 않습니다. "~때문에"가 아닌 "~경향이 있었어요" 표현을 사용합니다.
                 - 서버가 계산한 수치를 벗어나는 새로운 통계를 생성하지 않습니다.
                 - 금지 표현: "약효가 떨어졌어요", "복용량을 늘리세요", "부작용이므로 중단하세요", "특정 질환으로 진단됩니다"
+                - evidenceIds는 반드시 아래 목록에서만 선택하세요:
+                """ + evidenceIdList + """
 
                 다음 JSON 분석 스냅샷을 바탕으로 아래 형식의 JSON을 반환하세요:
 
@@ -63,7 +72,7 @@ public class GeminiReportClient {
                       "category": "ADHERENCE | DAY_GROUP | TIME_PATTERN | SIDE_EFFECT | MEDICATION_CHANGE",
                       "title": "패턴 제목 (15자 이내)",
                       "description": "구체적인 설명 (50자 이내, 수치 포함)",
-                      "evidenceIds": ["스냅샷의 근거 ID"],
+                      "evidenceIds": ["위 목록의 ID만 사용"],
                       "confidence": "HIGH | MEDIUM | LOW",
                       "limitation": "해석 한계 설명"
                     }

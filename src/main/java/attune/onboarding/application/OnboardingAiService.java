@@ -35,7 +35,7 @@ public class OnboardingAiService {
 
     private static final String OUTPUT_RULES = """
             [출력 규칙]
-            - visibleTags: 사용자와 가장 관련 높은 태그 5~7개를 태그 풀에서만 선택.
+            - visibleTags: 사용자와 가장 관련 높은 세부 태그 5~7개를 태그 풀의 각 줄 콜론(:) 뒤에 나열된 항목 중에서만 선택. '부주의', '시간관리', '충동성', '과활성', '인지오류' 같은 카테고리명은 절대 선택 불가.
             - treatmentGoals: 반드시 4개 고정.
 
             [treatmentGoals 작성 가이드라인 - 엄격 적용]
@@ -71,8 +71,8 @@ public class OnboardingAiService {
                 %s
                 
                 [ASRS 검사 결과]
-                부주의: %d점 (부주의 점수가 높을 경우 시간관리 어려움도 함께 있는 것으로 해석하세요)
-                과잉행동-충동성: %d점
+                주의력 점수: %d점 (높을 경우 시간관리 어려움도 함께 있는 것으로 해석하세요)
+                과잉행동·충동 점수: %d점
                 
                 [태그 풀 - 반드시 이 목록에서만 선택]
                 %s

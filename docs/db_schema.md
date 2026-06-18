@@ -241,6 +241,7 @@
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
 | dailyGoal | VARCHAR(500) | NOT NULL | 일일 목표 내용 |
 | isActive | BOOLEAN | DEFAULT true | 목표 활성화 여부 |
+| savedAt | TIMESTAMP | NULLABLE | 온보딩 회차 저장 시각 (이력 조회 시 회차 구분용) |
 | | | UNIQUE(user_id, dailyGoal) | 같은 일일 목표 중복 생성 방지 |
 
 ---

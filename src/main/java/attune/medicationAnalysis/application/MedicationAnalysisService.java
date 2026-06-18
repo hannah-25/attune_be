@@ -93,7 +93,7 @@ public class MedicationAnalysisService {
         String promptVersion = null;
 
         if (termService.isAiAnalysisConsented(userId)) {
-            GeminiReportClient.GeminiReportResult geminiResult = geminiReportClient.generate(snapshotJson);
+            GeminiReportClient.GeminiReportResult geminiResult = geminiReportClient.generate(snapshotJson, snapshot);
             if (geminiResult.success()) {
                 aiResultJson = geminiResult.aiResultJson();
                 modelName = geminiResult.modelName();

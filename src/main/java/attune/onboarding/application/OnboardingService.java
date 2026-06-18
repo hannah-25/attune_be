@@ -4,11 +4,11 @@ import attune.common.error.badrequest.InvalidOnboardingRequestException;
 import attune.common.error.badrequest.OnboardingNotCompleteException;
 import attune.common.error.notfound.AsrsAssessmentNotFoundException;
 import attune.common.error.notfound.UserNotFoundException;
+import attune.journal.application.JournalTagCatalogService;
+import attune.journal.application.dto.response.CatalogJournalTagResponse;
 import attune.journal.domain.model.DailyGoal;
 import attune.journal.domain.model.DailyGoalType;
-import attune.journal.domain.model.TroubleTag;
 import attune.journal.domain.repository.DailyGoalRepository;
-import attune.journal.domain.repository.TroubleTagRepository;
 import attune.onboarding.application.dto.request.AsrsRequest;
 import attune.onboarding.application.dto.request.GoalRequest;
 import attune.onboarding.application.dto.request.SymptomRequest;
@@ -50,8 +50,8 @@ public class OnboardingService {
     private final AsrsAssessmentRepository asrsAssessmentRepository;
     private final OnboardingSymptomRepository onboardingSymptomRepository;
     private final DailyGoalRepository dailyGoalRepository;
-    private final TroubleTagRepository troubleTagRepository;
     private final OnboardingAiService onboardingAiService;
+    private final JournalTagCatalogService journalTagCatalogService;
 
     @Transactional(readOnly = true)
     public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
@@ -199,14 +199,14 @@ public class OnboardingService {
                     symptom.getDescription(), inattentionScore, hyperactivityScore);
         }
 
-        // 태그: 유저 태그 전체 + Gemini 추천 여부 표시
-        List<TroubleTag> userTags = troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId);
+        // 태그: 카탈로그 시스템 태그 전체 + Gemini 추천 여부 표시
+        List<CatalogJournalTagResponse> catalogTags = journalTagCatalogService.getTroubleTags(userId);
         Set<String> recommended = new HashSet<>(geminiResponse.visibleTags());
 
-        List<AiRecommendationResponse.TagItem> tagItems = userTags.stream()
+        List<AiRecommendationResponse.TagItem> tagItems = catalogTags.stream()
                 .map(t -> new AiRecommendationResponse.TagItem(
-                        t.getId(), t.getTrouble(), t.getType().name(),
-                        recommended.contains(t.getTrouble())))
+                        t.catalogTagId(), t.name(), t.tagType(),
+                        recommended.contains(t.name())))
                 .toList();
 
         // 목표: Korean functionalArea → DailyGoalType 매핑
@@ -236,13 +236,15 @@ public class OnboardingService {
                         Function.identity(),
                         (existing, duplicate) -> existing));
 
+        LocalDateTime now = LocalDateTime.now();
+
         // 1. 치료 목표 저장
         List<DailyGoal> goals = request.goals().stream()
                 .map(item -> {
                     DailyGoal existingGoal = existingGoalsByTitle.get(item.title());
                     if (existingGoal != null) {
                         existingGoal.updateType(item.type());
-                        existingGoal.reactivate();
+                        existingGoal.reactivate(now);
                         return existingGoal;
                     }
                     return DailyGoal.builder()
@@ -250,16 +252,16 @@ public class OnboardingService {
                             .dailyGoal(item.title())
                             .type(item.type())
                             .isActive(true)
+                            .savedAt(now)
                             .build();
                 })
                 .toList();
         List<DailyGoal> saved = dailyGoalRepository.saveAll(goals);
 
         // 2. 태그 visible 업데이트
-        if (request.visibleTagIds() != null) {
-            Set<Long> visibleIds = new HashSet<>(request.visibleTagIds());
-            troubleTagRepository.findAllByUserIdAndIsActiveTrue(userId)
-                    .forEach(tag -> tag.changeVisibility(visibleIds.contains(tag.getId())));
+        if (request.visibleCatalogTagIds() != null) {
+            journalTagCatalogService.bulkSetVisibilityForOnboarding(
+                    userId, new HashSet<>(request.visibleCatalogTagIds()));
         }
 
         List<GoalResponse.GoalItem> items = saved.stream()
@@ -338,9 +340,17 @@ public class OnboardingService {
                 })
                 .orElse(null);
 
-        List<OnboardingHistoryDetailResponse.GoalItem> goals = dailyGoalRepository
-                .findAllByUserIdAndIsActiveTrue(userId)
-                .stream()
+        LocalDateTime assessmentTime = assessment.getCompletedAt();
+        LocalDateTime nextAssessmentTime = asrsAssessmentRepository
+                .findNextByUserIdAndCompletedAtAfter(userId, assessmentTime)
+                .map(AsrsAssessment::getCompletedAt)
+                .orElse(null);
+
+        List<DailyGoal> goalsAtTime = nextAssessmentTime != null
+                ? dailyGoalRepository.findAllByUserIdAndSavedAtBetween(userId, assessmentTime, nextAssessmentTime)
+                : dailyGoalRepository.findAllByUserIdAndSavedAtFrom(userId, assessmentTime);
+
+        List<OnboardingHistoryDetailResponse.GoalItem> goals = goalsAtTime.stream()
                 .map(g -> new OnboardingHistoryDetailResponse.GoalItem(
                         g.getId(),
                         g.getDailyGoal(),

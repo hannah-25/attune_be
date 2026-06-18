@@ -28,6 +28,7 @@ public class TroubleTag {
     private TroubleType type;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isActive = true;
 
     @Column(nullable = false)
@@ -43,6 +44,11 @@ public class TroubleTag {
     }
 
     public void changeVisibility(boolean visible) {
+        this.visible = visible;
+    }
+
+    public void changePreference(boolean active, boolean visible) {
+        this.isActive = active;
         this.visible = visible;
     }
 }

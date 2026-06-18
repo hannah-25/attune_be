@@ -38,3 +38,5 @@ out/
 .vscode/
 
 *.md
+!docs/journal-tag-catalog-migration.md
+!docs/frontend-journal-tag-catalog-migration.md

@@ -5,17 +5,20 @@ import attune.journal.domain.repository.ConditionTagRepository;
 import attune.journal.domain.repository.SideEffectTagRepository;
 import attune.journal.domain.repository.TroubleTagRepository;
 import attune.user.domain.model.User;
+import attune.user.domain.model.UserStatus;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "app.migration.default-tags.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class DefaultTagMigrationRunner implements ApplicationRunner {
 
@@ -31,17 +34,21 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
         int count = 0;
 
         for (User user : allUsers) {
+            if (user.getUserStatus() != UserStatus.ACTIVE) {
+                continue;
+            }
+
             boolean copied = false;
 
-            if (conditionTagRepository.findAllByUserIdAndIsActiveTrue(user.getId()).isEmpty()) {
+            if (conditionTagRepository.findAllByUserId(user.getId()).isEmpty()) {
                 defaultTagService.copyConditionTagsForUser(user.getId());
                 copied = true;
             }
-            if (sideEffectTagRepository.findAllByUserIdAndIsActiveTrue(user.getId()).isEmpty()) {
+            if (sideEffectTagRepository.findAllByUserId(user.getId()).isEmpty()) {
                 defaultTagService.copySideEffectTagsForUser(user.getId());
                 copied = true;
             }
-            if (troubleTagRepository.findAllByUserIdAndIsActiveTrue(user.getId()).isEmpty()) {
+            if (troubleTagRepository.findAllByUserId(user.getId()).isEmpty()) {
                 defaultTagService.copyTroubleTagsForUser(user.getId());
                 copied = true;
             }

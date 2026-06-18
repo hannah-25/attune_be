@@ -12,7 +12,6 @@ class JacksonConfigTest {
 
     private final JsonMapper objectMapper = JsonMapper.builder()
             .addModule(new JacksonConfig().jsonNullableModule())
-            .findAndRegisterModules()
             .build();
 
     @Test

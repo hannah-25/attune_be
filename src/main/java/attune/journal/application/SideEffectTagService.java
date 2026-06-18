@@ -1,22 +1,26 @@
 package attune.journal.application;
 
-import attune.common.error.conflict.DuplicateTagException;
 import attune.common.error.notfound.SideEffectTagNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.request.CheckSideEffectRequest;
+import attune.journal.application.dto.request.CreateCatalogJournalTagRequest;
 import attune.journal.application.dto.request.CreateSideEffectTagRequest;
+import attune.journal.application.dto.request.UpdateCatalogTagPreferenceRequest;
+import attune.journal.application.dto.response.CatalogJournalTagResponse;
+import attune.journal.application.dto.response.CatalogTagCheckResponse;
 import attune.journal.application.dto.response.SideEffectCheckResponse;
 import attune.journal.application.dto.response.SideEffectTagResponse;
-import attune.journal.domain.model.SideEffectLog;
-import attune.journal.domain.model.SideEffectTag;
-import attune.journal.domain.repository.SideEffectLogRepository;
-import attune.journal.domain.repository.SideEffectTagRepository;
+import attune.journal.domain.model.JournalTag;
+import attune.journal.domain.model.JournalTagCategory;
+import attune.journal.domain.model.UserJournalTagPreference;
+import attune.journal.domain.model.UserJournalTagPreferenceId;
+import attune.journal.domain.repository.JournalTagRepository;
+import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,88 +28,62 @@ import java.util.UUID;
 @Service
 public class SideEffectTagService {
 
-    private final SideEffectTagRepository sideEffectTagRepository;
-    private final SideEffectLogRepository sideEffectLogRepository;
+    private static final String SIDE_EFFECT_TAG_TYPE = "NONE";
+
+    private final JournalTagCatalogService catalogService;
+    private final JournalTagCatalogCheckService catalogCheckService;
+    private final JournalTagRepository journalTagRepository;
+    private final UserJournalTagPreferenceRepository preferenceRepository;
 
     @Transactional(readOnly = true)
     public List<SideEffectTagResponse> getActiveTags() {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        return sideEffectTagRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
-                .map(SideEffectTagResponse::from)
+        return catalogService.getTags(JournalTagCategory.SIDE_EFFECT).stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     @Transactional
     public SideEffectTagResponse createTag(CreateSideEffectTagRequest request) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        if (sideEffectTagRepository.existsByUserIdAndSideEffectAndIsActiveTrue(userId, request.sideEffect())) {
-            throw new DuplicateTagException("부작용");
-        }
-        SideEffectTag tag = SideEffectTag.builder()
-                .userId(userId)
-                .sideEffect(request.sideEffect())
-                .isActive(true)
-                .visible(true)
-                .build();
-        return SideEffectTagResponse.from(sideEffectTagRepository.save(tag));
+        return toResponse(catalogService.createTag(new CreateCatalogJournalTagRequest(
+                JournalTagCategory.SIDE_EFFECT, request.sideEffect(), SIDE_EFFECT_TAG_TYPE, true)));
     }
 
     @Transactional
-    public void deleteTag(Long tagId, LocalDate journalDate) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
-                .orElseThrow(SideEffectTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
-            throw new SideEffectTagNotFoundException();
-        }
-
-        sideEffectLogRepository.deleteAllByTagFromDate(
-                tagId,
-                journalDate.atStartOfDay()
-        );
-        tag.deactivate();
+    public void deleteTag(Long catalogTagId, LocalDate journalDate) {
+        catalogService.deleteTag(catalogTagId, journalDate);
     }
 
     @Transactional
-    public void uncheckByDate(Long tagId, LocalDate date) {
+    public SideEffectTagResponse toggleVisible(Long catalogTagId) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
+        JournalTag tag = journalTagRepository.findById(catalogTagId)
+                .filter(JournalTag::isActive)
                 .orElseThrow(SideEffectTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
-            throw new SideEffectTagNotFoundException();
-        }
-        sideEffectLogRepository.deleteAllByTagAndDate(
-                tagId,
-                date.atStartOfDay(),
-                date.plusDays(1).atStartOfDay()
-        );
-    }
-
-    @Transactional
-    public SideEffectTagResponse toggleVisible(Long tagId) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(tagId)
-                .orElseThrow(SideEffectTagNotFoundException::new);
-        if (!userId.equals(tag.getUserId())) {
-            throw new SideEffectTagNotFoundException();
-        }
-        tag.toggleVisible();
-        return SideEffectTagResponse.from(tag);
+        boolean currentVisible = preferenceRepository
+                .findById(new UserJournalTagPreferenceId(userId, catalogTagId))
+                .map(UserJournalTagPreference::isVisible)
+                .orElse(tag.isDefaultVisible());
+        return toResponse(catalogService.updatePreference(
+                catalogTagId, new UpdateCatalogTagPreferenceRequest(true, !currentVisible)));
     }
 
     @Transactional
     public SideEffectCheckResponse check(CheckSideEffectRequest request) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        SideEffectTag tag = sideEffectTagRepository.findByIdAndIsActiveTrue(request.tagId())
+        CatalogTagCheckResponse checkResponse = catalogCheckService.check(request.tagId());
+        JournalTag tag = journalTagRepository.findById(request.tagId())
                 .orElseThrow(SideEffectTagNotFoundException::new);
-        if (!tag.getUserId().equals(userId)) {
-            throw new SideEffectTagNotFoundException();
-        }
+        return new SideEffectCheckResponse(
+                checkResponse.catalogTagId(),
+                tag.getName(),
+                checkResponse.checkedAt());
+    }
 
-        SideEffectLog log = SideEffectLog.builder()
-                .sideEffectTagId(request.tagId())
-                .checkedAt(LocalDateTime.now())
-                .build();
-        return SideEffectCheckResponse.of(tag, sideEffectLogRepository.save(log));
+    @Transactional
+    public void uncheckByDate(Long catalogTagId, LocalDate date) {
+        catalogCheckService.uncheck(catalogTagId, date);
+    }
+
+    private SideEffectTagResponse toResponse(CatalogJournalTagResponse r) {
+        return new SideEffectTagResponse(r.catalogTagId(), r.name(), r.visible());
     }
 }

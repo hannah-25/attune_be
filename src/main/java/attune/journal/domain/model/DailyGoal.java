@@ -3,6 +3,7 @@ package attune.journal.domain.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -33,6 +34,9 @@ public class DailyGoal {
     @Column(nullable = false)
     private boolean isActive = true;
 
+    @Column
+    private LocalDateTime savedAt;
+
     public void update(String content) {
         this.dailyGoal = content;
     }
@@ -47,5 +51,10 @@ public class DailyGoal {
 
     public void reactivate() {
         this.isActive = true;
+    }
+
+    public void reactivate(LocalDateTime savedAt) {
+        this.isActive = true;
+        this.savedAt = savedAt;
     }
 }

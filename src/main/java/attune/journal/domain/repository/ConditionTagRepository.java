@@ -18,6 +18,8 @@ public interface ConditionTagRepository extends JpaRepository<ConditionTag, Long
     @Query("SELECT t FROM ConditionTag t WHERE t.userId = :userId AND t.isActive = true")
     List<ConditionTag> findAllByUserIdAndIsActiveTrue(@Param("userId") UUID userId);
 
+    List<ConditionTag> findAllByUserId(UUID userId);
+
     @Query("SELECT t FROM ConditionTag t WHERE t.userId = :userId AND t.isActive = true AND t.visible = true")
     List<ConditionTag> findAllByUserIdAndIsActiveTrueAndVisibleTrue(@Param("userId") UUID userId);
 

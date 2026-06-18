@@ -16,6 +16,8 @@ public interface TroubleTagRepository extends JpaRepository<TroubleTag, Long> {
     @Query("SELECT t FROM TroubleTag t WHERE t.userId = :userId AND t.isActive = true")
     List<TroubleTag> findAllByUserIdAndIsActiveTrue(@Param("userId") UUID userId);
 
+    List<TroubleTag> findAllByUserId(UUID userId);
+
     @Query("SELECT t FROM TroubleTag t WHERE t.userId = :userId AND t.isActive = true AND t.visible = true")
     List<TroubleTag> findAllByUserIdAndIsActiveTrueAndVisibleTrue(@Param("userId") UUID userId);
 
