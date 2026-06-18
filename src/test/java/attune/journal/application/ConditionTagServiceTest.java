@@ -52,6 +52,8 @@ class ConditionTagServiceTest {
     private JournalTagRepository journalTagRepository;
     @Mock
     private UserJournalTagPreferenceRepository preferenceRepository;
+    @Mock
+    private LegacyJournalTagMappingRepository legacyMappingRepository;
 
     @InjectMocks
     private ConditionTagService conditionTagService;
