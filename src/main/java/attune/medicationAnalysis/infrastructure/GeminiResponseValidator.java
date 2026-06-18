@@ -18,7 +18,6 @@ public class GeminiResponseValidator {
             Pattern.compile("복용량을\\s*(늘리|줄이|바꾸|변경)"),
             Pattern.compile("부작용이므로\\s*(복용을\\s*)?중단"),
             Pattern.compile("(특정\\s*)?질환으로\\s*진단"),
-            Pattern.compile("효과가\\s*있습니다"),
             Pattern.compile("처방을\\s*(받으|바꾸|변경)")
     );
 

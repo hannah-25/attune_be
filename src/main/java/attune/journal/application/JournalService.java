@@ -140,6 +140,7 @@ public class JournalService {
     private List<ConditionTagResponse> getVisibleConditionTags() {
         return catalogService.getTags(JournalTagCategory.CONDITION).stream()
                 .filter(CatalogJournalTagResponse::visible)
+                .filter(r -> r.legacyTagId() != null)
                 .map(r -> new ConditionTagResponse(
                         r.legacyTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible()))
                 .toList();
@@ -148,15 +149,17 @@ public class JournalService {
     private List<SideEffectTagResponse> getVisibleSideEffectTags() {
         return catalogService.getTags(JournalTagCategory.SIDE_EFFECT).stream()
                 .filter(CatalogJournalTagResponse::visible)
-                .map(r -> new SideEffectTagResponse(r.catalogTagId(), r.name(), r.visible()))
+                .filter(r -> r.legacyTagId() != null)
+                .map(r -> new SideEffectTagResponse(r.legacyTagId(), r.name(), r.visible()))
                 .toList();
     }
 
     private List<TroubleTagResponse> getVisibleTroubleTags() {
         return catalogService.getTags(JournalTagCategory.TROUBLE).stream()
                 .filter(CatalogJournalTagResponse::visible)
+                .filter(r -> r.legacyTagId() != null)
                 .map(r -> new TroubleTagResponse(
-                        r.catalogTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible()))
+                        r.legacyTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible()))
                 .toList();
     }
 }

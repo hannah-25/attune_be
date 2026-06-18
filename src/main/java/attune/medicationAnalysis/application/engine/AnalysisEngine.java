@@ -49,7 +49,8 @@ public class AnalysisEngine {
         return loadRawData(userId, startDate, endDate, true);
     }
 
-    private AnalysisRawData loadRawData(
+    @Transactional(readOnly = true)
+    public AnalysisRawData loadRawData(
             UUID userId, LocalDate startDate, LocalDate endDate, boolean loadMemos) {
         LocalDateTime startAt = startDate.atStartOfDay();
         LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
