@@ -125,7 +125,7 @@ public class MedicationAnalysisService {
         MedicationAnalysisReport report = reportRepository.findByIdAndUser_Id(reportId, userId)
                 .orElseThrow(() -> new NotFoundException("리포트를 찾을 수 없습니다."));
 
-        boolean outdated = isOutdated(report);
+        boolean outdated = isOutdated(userId, report);
         return ReportDetailResponse.from(report, outdated);
     }
 
