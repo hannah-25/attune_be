@@ -6,6 +6,7 @@ import attune.medicationAnalysis.application.dto.response.AvailabilityResponse;
 import attune.medicationAnalysis.application.dto.response.ReportDetailResponse;
 import attune.medicationAnalysis.application.dto.response.ReportListItemResponse;
 import attune.medicationAnalysis.application.engine.AnalysisEngine;
+import attune.medicationAnalysis.application.engine.AnalysisRawData;
 import attune.medicationAnalysis.application.engine.SnapshotSerializer;
 import attune.medicationAnalysis.application.model.AnalysisSnapshot;
 import attune.medicationAnalysis.domain.model.MedicationAnalysisReport;
@@ -36,6 +37,7 @@ class MedicationAnalysisServiceTest {
     private final AnalysisEngine analysisEngine = mock(AnalysisEngine.class);
     private final SnapshotSerializer snapshotSerializer = mock(SnapshotSerializer.class);
     private final GeminiReportClient geminiReportClient = mock(GeminiReportClient.class);
+    private final AnalysisRawData rawData = mock(AnalysisRawData.class);
 
     private final MedicationAnalysisService service = new MedicationAnalysisService(
             reportRepository, termService, userRepository,
@@ -103,14 +105,14 @@ class MedicationAnalysisServiceTest {
 
     @Test
     void createReport_throwsBadRequest_whenRecordedDaysInsufficient() {
-        when(analysisEngine.countRecordedDays(USER_ID, START, END)).thenReturn(3);
-        when(snapshotSerializer.computeHash(USER_ID, START, END)).thenReturn("hash-abc");
-        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
-                .thenReturn(Optional.empty());
+        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.countRecordedDays(rawData)).thenReturn(3);
 
         CreateReportRequest request = new CreateReportRequest(START, END, false);
 
         assertThrows(BadRequestException.class, () -> service.createReport(USER_ID, request));
+        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END);
+        verifyNoInteractions(snapshotSerializer);
     }
 
     // -------------------------------------------------------------------------
@@ -122,18 +124,17 @@ class MedicationAnalysisServiceTest {
         String hash = "same-hash";
         MedicationAnalysisReport cached = completedReport(hash);
 
-        when(analysisEngine.countRecordedDays(USER_ID, START, END)).thenReturn(10);
-        when(snapshotSerializer.computeHash(USER_ID, START, END)).thenReturn(hash);
+        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
+        when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
         when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(USER_ID, START, END, hash))
                 .thenReturn(Optional.of(cached));
-        // hash for isOutdated check
-        when(snapshotSerializer.computeHash(USER_ID, cached.getPeriodStart(), cached.getPeriodEnd()))
-                .thenReturn(hash);
 
         ReportDetailResponse response = service.createReport(USER_ID, new CreateReportRequest(START, END, false));
 
         assertEquals(ReportStatus.COMPLETED, response.status());
-        verify(analysisEngine, never()).build(any(), any(), any(), anyBoolean());
+        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END);
+        verify(analysisEngine, never()).build(any(AnalysisRawData.class), anyBoolean());
         verify(geminiReportClient, never()).generate(any(), any());
         verify(reportRepository, never()).save(any());
     }
@@ -149,11 +150,12 @@ class MedicationAnalysisServiceTest {
         String aiJson = "{\"summary\":\"요약\"}";
         AnalysisSnapshot snapshot = minimalSnapshot(START, END);
 
-        when(analysisEngine.countRecordedDays(USER_ID, START, END)).thenReturn(10);
-        when(snapshotSerializer.computeHash(USER_ID, START, END)).thenReturn(hash);
+        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
+        when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
         when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
                 .thenReturn(Optional.empty());
-        when(analysisEngine.build(USER_ID, START, END, false)).thenReturn(snapshot);
+        when(analysisEngine.build(rawData, false)).thenReturn(snapshot);
         when(snapshotSerializer.toJson(snapshot)).thenReturn(snapshotJson);
         when(termService.isAiAnalysisConsented(USER_ID)).thenReturn(true);
         when(geminiReportClient.generate(eq(snapshotJson), any()))
@@ -165,6 +167,10 @@ class MedicationAnalysisServiceTest {
 
         assertEquals(ReportStatus.COMPLETED, response.status());
         assertEquals(aiJson, response.aiResultJson());
+        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END);
+        verify(analysisEngine).countRecordedDays(same(rawData));
+        verify(snapshotSerializer).computeHash(same(rawData));
+        verify(analysisEngine).build(same(rawData), eq(false));
         verify(geminiReportClient).generate(eq(snapshotJson), any());
     }
 
@@ -178,11 +184,12 @@ class MedicationAnalysisServiceTest {
         String snapshotJson = "{\"period\":{}}";
         AnalysisSnapshot snapshot = minimalSnapshot(START, END);
 
-        when(analysisEngine.countRecordedDays(USER_ID, START, END)).thenReturn(10);
-        when(snapshotSerializer.computeHash(USER_ID, START, END)).thenReturn(hash);
+        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
+        when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
         when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
                 .thenReturn(Optional.empty());
-        when(analysisEngine.build(USER_ID, START, END, false)).thenReturn(snapshot);
+        when(analysisEngine.build(rawData, false)).thenReturn(snapshot);
         when(snapshotSerializer.toJson(snapshot)).thenReturn(snapshotJson);
         when(termService.isAiAnalysisConsented(USER_ID)).thenReturn(false);
         when(userRepository.getReferenceById(USER_ID)).thenReturn(mock(User.class));
@@ -205,11 +212,12 @@ class MedicationAnalysisServiceTest {
         String snapshotJson = "{\"period\":{}}";
         AnalysisSnapshot snapshot = minimalSnapshot(START, END);
 
-        when(analysisEngine.countRecordedDays(USER_ID, START, END)).thenReturn(10);
-        when(snapshotSerializer.computeHash(USER_ID, START, END)).thenReturn(hash);
+        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
+        when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
         when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
                 .thenReturn(Optional.empty());
-        when(analysisEngine.build(USER_ID, START, END, false)).thenReturn(snapshot);
+        when(analysisEngine.build(rawData, false)).thenReturn(snapshot);
         when(snapshotSerializer.toJson(snapshot)).thenReturn(snapshotJson);
         when(termService.isAiAnalysisConsented(USER_ID)).thenReturn(true);
         when(geminiReportClient.generate(eq(snapshotJson), any()))

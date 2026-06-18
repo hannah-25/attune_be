@@ -95,6 +95,42 @@ public class SnapshotSerializer {
         return sha256(raw);
     }
 
+    public String computeHash(AnalysisRawData rawData) {
+        List<String> fingerprints = new ArrayList<>();
+
+        rawData.medicationLogs()
+                .forEach(l -> fingerprints.add("ML:" + l.getId() + ":" + l.getTakenAt()));
+
+        rawData.conditionTuples().forEach(t -> {
+            ConditionLog l = t.get("log", ConditionLog.class);
+            fingerprints.add("CL:" + l.getId() + ":" + l.getCheckedAt());
+        });
+
+        rawData.sideEffectTuples().forEach(t -> {
+            SideEffectLog l = t.get("log", SideEffectLog.class);
+            fingerprints.add("SL:" + l.getId() + ":" + l.getCheckedAt());
+        });
+
+        rawData.troubleTuples().forEach(t -> {
+            TroubleLog l = t.get("log", TroubleLog.class);
+            fingerprints.add("TL:" + l.getId() + ":" + l.getCheckedAt());
+        });
+
+        rawData.statusLogs()
+                .forEach(s -> fingerprints.add("DS:" + s.getId() + ":" + s.getDate()));
+
+        rawData.goalLogPairs().forEach(pair -> {
+            DailyGoalLog l = (DailyGoalLog) pair[0];
+            fingerprints.add("GL:" + l.getId() + ":" + l.getDate());
+        });
+
+        rawData.memos()
+                .forEach(m -> fingerprints.add("MO:" + m.getId() + ":" + m.getJournalDate()));
+
+        Collections.sort(fingerprints);
+        return sha256(String.join("|", fingerprints));
+    }
+
     private String sha256(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

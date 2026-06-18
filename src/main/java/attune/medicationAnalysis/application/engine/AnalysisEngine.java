@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AnalysisEngine {
 
-    private static final int MIN_RECORDED_DAYS = 7;
     private static final int MIN_GROUP_DAYS = 3;
     private static final int MIN_WINDOW_DAYS = 3;
     private static final int TOP_SIDE_EFFECTS = 5;
@@ -42,6 +41,16 @@ public class AnalysisEngine {
 
     @Transactional(readOnly = true)
     public AnalysisSnapshot build(UUID userId, LocalDate startDate, LocalDate endDate, boolean includeMemo) {
+        return build(loadRawData(userId, startDate, endDate, includeMemo), includeMemo);
+    }
+
+    @Transactional(readOnly = true)
+    public AnalysisRawData loadRawData(UUID userId, LocalDate startDate, LocalDate endDate) {
+        return loadRawData(userId, startDate, endDate, true);
+    }
+
+    private AnalysisRawData loadRawData(
+            UUID userId, LocalDate startDate, LocalDate endDate, boolean loadMemos) {
         LocalDateTime startAt = startDate.atStartOfDay();
         LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
 
@@ -57,7 +66,31 @@ public class AnalysisEngine {
         List<Tuple> troubleTuples = troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
         List<DailyStatusLog> statusLogs = dailyStatusLogRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
         List<Object[]> goalLogPairs = dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate);
-        List<Memo> memos = includeMemo ? memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate) : List.of();
+        List<Memo> memos = loadMemos
+                ? memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate)
+                : List.of();
+
+        return new AnalysisRawData(
+                userId, startDate, endDate,
+                medications, schedules, medLogs,
+                conditionTuples, sideEffectTuples, troubleTuples,
+                statusLogs, goalLogPairs, memos
+        );
+    }
+
+    public AnalysisSnapshot build(AnalysisRawData rawData, boolean includeMemo) {
+        UUID userId = rawData.userId();
+        LocalDate startDate = rawData.startDate();
+        LocalDate endDate = rawData.endDate();
+        List<UserMedication> medications = rawData.medications();
+        List<UserMedicationSchedule> schedules = rawData.schedules();
+        List<UserMedicationLog> medLogs = rawData.medicationLogs();
+        List<Tuple> conditionTuples = rawData.conditionTuples();
+        List<Tuple> sideEffectTuples = rawData.sideEffectTuples();
+        List<Tuple> troubleTuples = rawData.troubleTuples();
+        List<DailyStatusLog> statusLogs = rawData.statusLogs();
+        List<Object[]> goalLogPairs = rawData.goalLogPairs();
+        List<Memo> memos = rawData.memos();
 
         // --- 데이터 품질 검사 ---
         Set<LocalDate> recordedDays = computeRecordedDays(conditionTuples, sideEffectTuples, troubleTuples,
@@ -91,7 +124,9 @@ public class AnalysisEngine {
         List<AnalysisSnapshot.MedicationChange> medicationChanges = changeDetector.detect(userId, startDate, endDate);
 
         // --- 메모 발췌 ---
-        List<AnalysisSnapshot.MemoEvidence> memoEvidence = buildMemoEvidence(memos, conditionTuples, sideEffectTuples, troubleTuples);
+        List<AnalysisSnapshot.MemoEvidence> memoEvidence = includeMemo
+                ? buildMemoEvidence(memos, conditionTuples, sideEffectTuples, troubleTuples)
+                : List.of();
 
         int totalDays = (int) startDate.until(endDate.plusDays(1), java.time.temporal.ChronoUnit.DAYS);
         return new AnalysisSnapshot(
@@ -120,7 +155,21 @@ public class AnalysisEngine {
         List<Object[]> goalLogPairs = dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate);
         List<Memo> memos = memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate);
 
-        return computeRecordedDays(conditionTuples, sideEffectTuples, troubleTuples, statusLogs, goalLogPairs, memos).size();
+        return computeRecordedDays(
+                conditionTuples, sideEffectTuples, troubleTuples,
+                statusLogs, goalLogPairs, memos
+        ).size();
+    }
+
+    public int countRecordedDays(AnalysisRawData rawData) {
+        return computeRecordedDays(
+                rawData.conditionTuples(),
+                rawData.sideEffectTuples(),
+                rawData.troubleTuples(),
+                rawData.statusLogs(),
+                rawData.goalLogPairs(),
+                rawData.memos()
+        ).size();
     }
 
     // -------------------------------------------------------------------------

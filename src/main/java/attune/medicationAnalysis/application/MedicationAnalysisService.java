@@ -8,6 +8,7 @@ import attune.medicationAnalysis.application.dto.response.AvailabilityResponse;
 import attune.medicationAnalysis.application.dto.response.ReportDetailResponse;
 import attune.medicationAnalysis.application.dto.response.ReportListItemResponse;
 import attune.medicationAnalysis.application.engine.AnalysisEngine;
+import attune.medicationAnalysis.application.engine.AnalysisRawData;
 import attune.medicationAnalysis.application.engine.SnapshotSerializer;
 import attune.medicationAnalysis.application.model.AnalysisSnapshot;
 import attune.medicationAnalysis.domain.model.MedicationAnalysisReport;
@@ -67,14 +68,17 @@ public class MedicationAnalysisService {
     public ReportDetailResponse createReport(UUID userId, CreateReportRequest request) {
         validatePeriod(request.periodStart(), request.periodEnd());
 
+        AnalysisRawData rawData = analysisEngine.loadRawData(
+                userId, request.periodStart(), request.periodEnd());
+
         // 데이터 품질 검사
-        int recordedDays = analysisEngine.countRecordedDays(userId, request.periodStart(), request.periodEnd());
+        int recordedDays = analysisEngine.countRecordedDays(rawData);
         if (recordedDays < MIN_RECORDED_DAYS) {
             throw new BadRequestException("일지 기록일이 부족하여 리포트를 생성할 수 없습니다. (" + recordedDays + "/" + MIN_RECORDED_DAYS + "일)");
         }
 
         // 해시 계산 → 기존 리포트 재사용 여부 판단
-        String hash = snapshotSerializer.computeHash(userId, request.periodStart(), request.periodEnd());
+        String hash = snapshotSerializer.computeHash(rawData);
         Optional<MedicationAnalysisReport> existing = reportRepository
                 .findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
                         userId, request.periodStart(), request.periodEnd(), hash);
@@ -84,7 +88,7 @@ public class MedicationAnalysisService {
         }
 
         // 스냅샷 생성
-        AnalysisSnapshot snapshot = analysisEngine.build(userId, request.periodStart(), request.periodEnd(), request.includeMemoExcerpts());
+        AnalysisSnapshot snapshot = analysisEngine.build(rawData, request.includeMemoExcerpts());
         String snapshotJson = snapshotSerializer.toJson(snapshot);
 
         // Gemini 호출 (동의한 경우)
