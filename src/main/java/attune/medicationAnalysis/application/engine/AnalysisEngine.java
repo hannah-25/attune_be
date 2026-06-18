@@ -531,8 +531,8 @@ public class AnalysisEngine {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
     }
 
-    private double mealRate(List<DailyStatusLog> logs, java.util.function.Predicate<DailyStatusLog> pred) {
-        if (logs.isEmpty()) return 0.0;
+    private Double mealRate(List<DailyStatusLog> logs, java.util.function.Predicate<DailyStatusLog> pred) {
+        if (logs.isEmpty()) return null;
         long count = logs.stream().filter(pred).count();
         return Math.round((double) count / logs.size() * 1000) / 10.0;
     }
