@@ -217,9 +217,7 @@ public class AnalysisEngine {
         Map<TimeWindow, int[]> windowCounts = new EnumMap<>(TimeWindow.class);
         for (TimeWindow w : TimeWindow.values()) windowCounts.put(w, new int[3]);
 
-        for (AnalysisSnapshot.DailyMedicationStatus daily : dailyStatuses) {
-            // UNRECORDED는 takenAt이 없으므로 전체 unrecorded는 시간대 미배치
-        }
+        // UNRECORDED는 takenAt이 없으므로 시간대별 집계에서 제외한다.
         for (UserMedicationLog log : medLogs) {
             TimeWindow w = TimeWindow.of(log.getTakenAt().toLocalTime());
             int[] c = windowCounts.get(w);
