@@ -4,6 +4,7 @@ import attune.journal.application.DefaultTagService;
 import attune.journal.domain.repository.ConditionTagRepository;
 import attune.journal.domain.repository.SideEffectTagRepository;
 import attune.journal.domain.repository.TroubleTagRepository;
+import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.repository.UserRepository;
@@ -26,6 +27,7 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
     private final ConditionTagRepository conditionTagRepository;
     private final SideEffectTagRepository sideEffectTagRepository;
     private final TroubleTagRepository troubleTagRepository;
+    private final UserJournalTagPreferenceRepository preferenceRepository;
     private final DefaultTagService defaultTagService;
 
     @Override
