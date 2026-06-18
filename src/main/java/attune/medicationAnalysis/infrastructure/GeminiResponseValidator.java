@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -27,9 +28,9 @@ public class GeminiResponseValidator {
      * JSON schema 검증 → evidenceId 존재 검증 → 금지 표현 검증 순서로 실행.
      * 검증 통과 시 파싱된 응답 반환.
      */
-    public GeminiReportResponse validate(String rawJson, String snapshotJson) {
+    public GeminiReportResponse validate(String rawJson, List<String> validEvidenceIds) {
         GeminiReportResponse response = parseJson(rawJson);
-        validateEvidenceIds(response, snapshotJson);
+        validateEvidenceIds(response, Set.copyOf(validEvidenceIds));
         validateForbiddenExpressions(rawJson);
         return response;
     }
@@ -43,12 +44,12 @@ public class GeminiResponseValidator {
         }
     }
 
-    private void validateEvidenceIds(GeminiReportResponse response, String snapshotJson) {
+    private void validateEvidenceIds(GeminiReportResponse response, Set<String> validEvidenceIds) {
         if (response.insights() == null) return;
         for (GeminiReportResponse.Insight insight : response.insights()) {
             if (insight.evidenceIds() == null) continue;
             for (String evidenceId : insight.evidenceIds()) {
-                if (!snapshotJson.contains(evidenceId)) {
+                if (!validEvidenceIds.contains(evidenceId)) {
                     throw new GeminiValidationException("스냅샷에 존재하지 않는 evidenceId: " + evidenceId);
                 }
             }

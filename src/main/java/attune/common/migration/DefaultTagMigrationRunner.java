@@ -1,9 +1,6 @@
 package attune.common.migration;
 
 import attune.journal.application.DefaultTagService;
-import attune.journal.domain.repository.ConditionTagRepository;
-import attune.journal.domain.repository.SideEffectTagRepository;
-import attune.journal.domain.repository.TroubleTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
@@ -24,9 +21,6 @@ import java.util.List;
 public class DefaultTagMigrationRunner implements ApplicationRunner {
 
     private final UserRepository userRepository;
-    private final ConditionTagRepository conditionTagRepository;
-    private final SideEffectTagRepository sideEffectTagRepository;
-    private final TroubleTagRepository troubleTagRepository;
     private final UserJournalTagPreferenceRepository preferenceRepository;
     private final DefaultTagService defaultTagService;
 
@@ -44,14 +38,6 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
 
             if (preferenceRepository.findAllByUserId(user.getId()).isEmpty()) {
                 defaultTagService.copyDefaultTagsForUser(user.getId());
-                copied = true;
-            }
-            if (sideEffectTagRepository.findAllByUserId(user.getId()).isEmpty()) {
-                defaultTagService.copySideEffectTagsForUser(user.getId());
-                copied = true;
-            }
-            if (troubleTagRepository.findAllByUserId(user.getId()).isEmpty()) {
-                defaultTagService.copyTroubleTagsForUser(user.getId());
                 copied = true;
             }
 
