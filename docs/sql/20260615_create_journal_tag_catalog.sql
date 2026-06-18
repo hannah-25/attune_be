@@ -100,3 +100,6 @@ ALTER TABLE trouble_logs
   ADD INDEX idx_trouble_logs_journal_tag_checked_at (journal_tag_id, checked_at),
   ADD CONSTRAINT fk_trouble_logs_catalog_tag
     FOREIGN KEY (journal_tag_id) REFERENCES journal_tags(id);
+
+ALTER TABLE daily_goals
+  ADD COLUMN saved_at DATETIME(6) NULL;
