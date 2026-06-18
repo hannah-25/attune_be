@@ -40,8 +40,8 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
 
             boolean copied = false;
 
-            if (conditionTagRepository.findAllByUserId(user.getId()).isEmpty()) {
-                defaultTagService.copyConditionTagsForUser(user.getId());
+            if (preferenceRepository.findAllByUserId(user.getId()).isEmpty()) {
+                defaultTagService.copyDefaultTagsForUser(user.getId());
                 copied = true;
             }
             if (sideEffectTagRepository.findAllByUserId(user.getId()).isEmpty()) {
