@@ -16,6 +16,7 @@ import attune.journal.domain.model.JournalTagScope;
 import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
+import attune.journal.domain.repository.LegacyJournalTagMappingRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
