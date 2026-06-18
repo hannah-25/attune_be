@@ -11,8 +11,8 @@ import java.util.UUID;
 
 public interface MedicationAnalysisReportRepository extends JpaRepository<MedicationAnalysisReport, Long> {
 
-    Optional<MedicationAnalysisReport> findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
-            UUID userId, LocalDate periodStart, LocalDate periodEnd, String sourceDataHash);
+    Optional<MedicationAnalysisReport> findByUser_IdAndPeriodStartAndPeriodEnd(
+            UUID userId, LocalDate periodStart, LocalDate periodEnd);
 
     List<MedicationAnalysisReport> findByUser_IdOrderByGeneratedAtDesc(UUID userId);
 

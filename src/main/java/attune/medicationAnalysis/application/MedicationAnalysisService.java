@@ -81,9 +81,11 @@ public class MedicationAnalysisService {
         String hash = snapshotSerializer.computeHash(rawData);
         String countHash = snapshotSerializer.computeCountHash(rawData);
         Optional<MedicationAnalysisReport> existing = reportRepository
-                .findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
-                        userId, request.periodStart(), request.periodEnd(), hash);
-        if (existing.isPresent() && existing.get().getStatus() == ReportStatus.COMPLETED) {
+                .findByUser_IdAndPeriodStartAndPeriodEnd(
+                        userId, request.periodStart(), request.periodEnd());
+        if (existing.isPresent()
+                && existing.get().getStatus() == ReportStatus.COMPLETED
+                && hash.equals(existing.get().getSourceDataHash())) {
             return ReportDetailResponse.from(existing.get(), false);
         }
 
@@ -109,7 +111,7 @@ public class MedicationAnalysisService {
         MedicationAnalysisReport saved;
         if (existing.isPresent()) {
             MedicationAnalysisReport report = existing.get();
-            report.updateSnapshot(snapshotJson, countHash, LocalDateTime.now());
+            report.updateSnapshot(snapshotJson, hash, countHash, LocalDateTime.now());
             if (aiResultJson != null) {
                 report.completeWithAiResult(aiResultJson, modelName, promptVersion);
             } else {

@@ -61,8 +61,9 @@ public class MedicationAnalysisReport {
         this.status = ReportStatus.PENDING;
     }
 
-    public void updateSnapshot(String snapshotJson, String rowCountHash, LocalDateTime generatedAt) {
+    public void updateSnapshot(String snapshotJson, String sourceDataHash, String rowCountHash, LocalDateTime generatedAt) {
         this.snapshotJson = snapshotJson;
+        this.sourceDataHash = sourceDataHash;
         this.rowCountHash = rowCountHash;
         this.generatedAt = generatedAt;
     }
