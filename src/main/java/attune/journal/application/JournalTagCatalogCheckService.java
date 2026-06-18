@@ -116,8 +116,9 @@ public class JournalTagCatalogCheckService {
     }
 
     private Long findOrCreateLegacyTag(UUID userId, JournalTag tag) {
-        return mappingRepository.findAllByUserIdAndLegacyCategory(userId, tag.getCategory()).stream()
-                .filter(mapping -> mapping.getJournalTagId().equals(tag.getId()))
+        return mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(
+                        userId, tag.getCategory(), tag.getId()
+                ).stream()
                 .map(LegacyJournalTagMapping::getLegacyTagId)
                 .min(Long::compareTo)
                 .orElseGet(() -> createLegacyCompatibilityTag(userId, tag));

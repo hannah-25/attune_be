@@ -8,6 +8,7 @@ import attune.journal.domain.model.ConditionTag;
 import attune.journal.domain.model.JournalTag;
 import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.JournalTagScope;
+import attune.journal.domain.model.LegacyJournalTagMapping;
 import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.repository.ConditionLogRepository;
 import attune.journal.domain.repository.ConditionTagRepository;
@@ -40,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,7 +103,9 @@ class JournalTagCatalogCheckServiceTest {
 
 when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
-        when(mappingRepository.findAllByUserIdAndLegacyCategory(userId, JournalTagCategory.CONDITION)).thenReturn(List.of());
+        when(mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(
+                userId, JournalTagCategory.CONDITION, 10L
+        )).thenReturn(List.of());
         when(conditionTagRepository.save(any(ConditionTag.class))).thenAnswer(invocation -> {
             ConditionTag source = invocation.getArgument(0);
             return ConditionTag.builder()
@@ -127,6 +131,39 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         assertThat(preferenceCaptor.getValue().getJournalTagId()).isEqualTo(10L);
         assertThat(preferenceCaptor.getValue().isEnabled()).isTrue();
         assertThat(preferenceCaptor.getValue().isVisible()).isTrue();
+    }
+
+    @Test
+    void existingMappingsAreQueriedByCatalogTagAndUseLowestLegacyTagId() {
+        JournalTag systemTag = JournalTag.builder()
+                .id(10L)
+                .category(JournalTagCategory.CONDITION)
+                .name("calm")
+                .tagType("CALM")
+                .scope(JournalTagScope.SYSTEM)
+                .ownerKey(JournalTag.SYSTEM_OWNER_KEY)
+                .isActive(true)
+                .defaultVisible(true)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        LegacyJournalTagMapping higherMapping = LegacyJournalTagMapping.create(
+                JournalTagCategory.CONDITION, 42L, userId, 10L);
+        LegacyJournalTagMapping lowerMapping = LegacyJournalTagMapping.create(
+                JournalTagCategory.CONDITION, 21L, userId, 10L);
+        ArgumentCaptor<ConditionLog> logCaptor = ArgumentCaptor.forClass(ConditionLog.class);
+
+        when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
+        when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
+        when(mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(
+                userId, JournalTagCategory.CONDITION, 10L
+        )).thenReturn(List.of(higherMapping, lowerMapping));
+
+        checkService.check(10L);
+
+        verify(conditionLogRepository).save(logCaptor.capture());
+        assertThat(logCaptor.getValue().getConditionTagId()).isEqualTo(21L);
+        verifyNoInteractions(conditionTagRepository);
     }
 
     @Test

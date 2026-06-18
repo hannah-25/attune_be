@@ -44,4 +44,8 @@ public interface LegacyJournalTagMappingRepository
     List<LegacyJournalTagMapping> findAllByUserId(UUID userId);
 
     List<LegacyJournalTagMapping> findAllByUserIdAndLegacyCategory(UUID userId, JournalTagCategory category);
+
+    List<LegacyJournalTagMapping> findByUserIdAndLegacyCategoryAndJournalTagId(
+            UUID userId, JournalTagCategory legacyCategory, Long journalTagId
+    );
 }
