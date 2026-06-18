@@ -15,6 +15,7 @@ import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
+import attune.journal.domain.repository.LegacyJournalTagMappingRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class SideEffectTagService {
     private final JournalTagCatalogCheckService catalogCheckService;
     private final JournalTagRepository journalTagRepository;
     private final UserJournalTagPreferenceRepository preferenceRepository;
+    private final LegacyJournalTagMappingRepository legacyMappingRepository;
 
     @Transactional(readOnly = true)
     public List<SideEffectTagResponse> getActiveTags() {
@@ -49,12 +51,13 @@ public class SideEffectTagService {
     }
 
     @Transactional
-    public void deleteTag(Long catalogTagId, LocalDate journalDate) {
-        catalogService.deleteTag(catalogTagId, journalDate);
+    public void deleteTag(Long legacyTagId, LocalDate journalDate) {
+        catalogService.deleteTag(toCatalogTagId(legacyTagId), journalDate);
     }
 
     @Transactional
-    public SideEffectTagResponse toggleVisible(Long catalogTagId) {
+    public SideEffectTagResponse toggleVisible(Long legacyTagId) {
+        Long catalogTagId = toCatalogTagId(legacyTagId);
         UUID userId = SecurityUtils.getCurrentUserUuid();
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .filter(JournalTag::isActive)
@@ -69,8 +72,9 @@ public class SideEffectTagService {
 
     @Transactional
     public SideEffectCheckResponse check(CheckSideEffectRequest request) {
-        CatalogTagCheckResponse checkResponse = catalogCheckService.check(request.tagId());
-        JournalTag tag = journalTagRepository.findById(request.tagId())
+        Long catalogTagId = toCatalogTagId(request.tagId());
+        CatalogTagCheckResponse checkResponse = catalogCheckService.check(catalogTagId);
+        JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .orElseThrow(SideEffectTagNotFoundException::new);
         return new SideEffectCheckResponse(
                 checkResponse.catalogTagId(),
@@ -79,8 +83,15 @@ public class SideEffectTagService {
     }
 
     @Transactional
-    public void uncheckByDate(Long catalogTagId, LocalDate date) {
-        catalogCheckService.uncheck(catalogTagId, date);
+    public void uncheckByDate(Long legacyTagId, LocalDate date) {
+        catalogCheckService.uncheck(toCatalogTagId(legacyTagId), date);
+    }
+
+    private Long toCatalogTagId(Long legacyTagId) {
+        return legacyMappingRepository
+                .findByLegacyCategoryAndLegacyTagId(JournalTagCategory.SIDE_EFFECT, legacyTagId)
+                .map(m -> m.getJournalTagId())
+                .orElseThrow(SideEffectTagNotFoundException::new);
     }
 
     private SideEffectTagResponse toResponse(CatalogJournalTagResponse r) {

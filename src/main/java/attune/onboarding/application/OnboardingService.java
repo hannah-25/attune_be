@@ -8,7 +8,9 @@ import attune.journal.application.JournalTagCatalogService;
 import attune.journal.application.dto.response.CatalogJournalTagResponse;
 import attune.journal.domain.model.DailyGoal;
 import attune.journal.domain.model.DailyGoalType;
+import attune.journal.domain.model.OnboardingGoalSnapshot;
 import attune.journal.domain.repository.DailyGoalRepository;
+import attune.journal.domain.repository.OnboardingGoalSnapshotRepository;
 import attune.onboarding.application.dto.request.AsrsRequest;
 import attune.onboarding.application.dto.request.GoalRequest;
 import attune.onboarding.application.dto.request.SymptomRequest;
@@ -50,6 +52,7 @@ public class OnboardingService {
     private final AsrsAssessmentRepository asrsAssessmentRepository;
     private final OnboardingSymptomRepository onboardingSymptomRepository;
     private final DailyGoalRepository dailyGoalRepository;
+    private final OnboardingGoalSnapshotRepository onboardingGoalSnapshotRepository;
     private final OnboardingAiService onboardingAiService;
     private final JournalTagCatalogService journalTagCatalogService;
 
@@ -244,7 +247,7 @@ public class OnboardingService {
                     DailyGoal existingGoal = existingGoalsByTitle.get(item.title());
                     if (existingGoal != null) {
                         existingGoal.updateType(item.type());
-                        existingGoal.reactivate(now);
+                        existingGoal.reactivate();
                         return existingGoal;
                     }
                     return DailyGoal.builder()
@@ -257,6 +260,15 @@ public class OnboardingService {
                 })
                 .toList();
         List<DailyGoal> saved = dailyGoalRepository.saveAll(goals);
+
+        List<OnboardingGoalSnapshot> snapshots = saved.stream()
+                .map(g -> OnboardingGoalSnapshot.builder()
+                        .userId(userId)
+                        .dailyGoal(g)
+                        .onboardingTime(now)
+                        .build())
+                .toList();
+        onboardingGoalSnapshotRepository.saveAll(snapshots);
 
         // 2. 태그 visible 업데이트
         if (request.visibleCatalogTagIds() != null) {
@@ -347,8 +359,8 @@ public class OnboardingService {
                 .orElse(null);
 
         List<DailyGoal> goalsAtTime = nextAssessmentTime != null
-                ? dailyGoalRepository.findAllByUserIdAndSavedAtBetween(userId, assessmentTime, nextAssessmentTime)
-                : dailyGoalRepository.findAllByUserIdAndSavedAtFrom(userId, assessmentTime);
+                ? onboardingGoalSnapshotRepository.findGoalsByUserAndTimeBetween(userId, assessmentTime, nextAssessmentTime)
+                : onboardingGoalSnapshotRepository.findGoalsByUserAndTimeFrom(userId, assessmentTime);
 
         List<OnboardingHistoryDetailResponse.GoalItem> goals = goalsAtTime.stream()
                 .map(g -> new OnboardingHistoryDetailResponse.GoalItem(

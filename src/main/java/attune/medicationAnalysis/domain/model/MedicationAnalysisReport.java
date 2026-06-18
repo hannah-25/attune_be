@@ -57,6 +57,10 @@ public class MedicationAnalysisReport {
     @Column(nullable = false)
     private LocalDateTime generatedAt;
 
+    public void updateToPending() {
+        this.status = ReportStatus.PENDING;
+    }
+
     public void markOutdated() {
         this.status = ReportStatus.OUTDATED;
     }

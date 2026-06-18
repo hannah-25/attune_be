@@ -16,6 +16,7 @@ import attune.journal.domain.model.TroubleType;
 import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
+import attune.journal.domain.repository.LegacyJournalTagMappingRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class TroubleTagService {
     private final JournalTagCatalogCheckService catalogCheckService;
     private final JournalTagRepository journalTagRepository;
     private final UserJournalTagPreferenceRepository preferenceRepository;
+    private final LegacyJournalTagMappingRepository legacyMappingRepository;
 
     @Transactional(readOnly = true)
     public List<TroubleTagResponse> getActiveTags() {
@@ -48,12 +50,13 @@ public class TroubleTagService {
     }
 
     @Transactional
-    public void deleteTag(Long catalogTagId, LocalDate journalDate) {
-        catalogService.deleteTag(catalogTagId, journalDate);
+    public void deleteTag(Long legacyTagId, LocalDate journalDate) {
+        catalogService.deleteTag(toCatalogTagId(legacyTagId), journalDate);
     }
 
     @Transactional
-    public TroubleTagResponse toggleVisible(Long catalogTagId) {
+    public TroubleTagResponse toggleVisible(Long legacyTagId) {
+        Long catalogTagId = toCatalogTagId(legacyTagId);
         UUID userId = SecurityUtils.getCurrentUserUuid();
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .filter(JournalTag::isActive)
@@ -68,8 +71,9 @@ public class TroubleTagService {
 
     @Transactional
     public TroubleCheckResponse check(CheckTroubleRequest request) {
-        CatalogTagCheckResponse checkResponse = catalogCheckService.check(request.tagId());
-        JournalTag tag = journalTagRepository.findById(request.tagId())
+        Long catalogTagId = toCatalogTagId(request.tagId());
+        CatalogTagCheckResponse checkResponse = catalogCheckService.check(catalogTagId);
+        JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .orElseThrow(TroubleTagNotFoundException::new);
         return new TroubleCheckResponse(
                 checkResponse.catalogTagId(),
@@ -79,8 +83,15 @@ public class TroubleTagService {
     }
 
     @Transactional
-    public void uncheckByDate(Long catalogTagId, LocalDate date) {
-        catalogCheckService.uncheck(catalogTagId, date);
+    public void uncheckByDate(Long legacyTagId, LocalDate date) {
+        catalogCheckService.uncheck(toCatalogTagId(legacyTagId), date);
+    }
+
+    private Long toCatalogTagId(Long legacyTagId) {
+        return legacyMappingRepository
+                .findByLegacyCategoryAndLegacyTagId(JournalTagCategory.TROUBLE, legacyTagId)
+                .map(m -> m.getJournalTagId())
+                .orElseThrow(TroubleTagNotFoundException::new);
     }
 
     private TroubleTagResponse toResponse(CatalogJournalTagResponse r) {

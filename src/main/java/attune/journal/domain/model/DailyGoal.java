@@ -52,9 +52,4 @@ public class DailyGoal {
     public void reactivate() {
         this.isActive = true;
     }
-
-    public void reactivate(LocalDateTime savedAt) {
-        this.isActive = true;
-        this.savedAt = savedAt;
-    }
 }

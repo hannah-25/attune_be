@@ -84,13 +84,12 @@ public class MedicationAnalysisService {
                 .findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
                         userId, request.periodStart(), request.periodEnd(), hash);
         if (existing.isPresent()) {
-            Report report = existing.get();
+            MedicationAnalysisReport report = existing.get();
             if (report.getStatus() == ReportStatus.COMPLETED) {
                 return ReportDetailResponse.from(report, false);
             }
             report.updateToPending();
             reportRepository.save(report);
-        }
         }
 
         // 스냅샷 생성

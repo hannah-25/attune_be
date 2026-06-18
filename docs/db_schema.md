@@ -241,8 +241,22 @@
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
 | dailyGoal | VARCHAR(500) | NOT NULL | 일일 목표 내용 |
 | isActive | BOOLEAN | DEFAULT true | 목표 활성화 여부 |
-| savedAt | TIMESTAMP | NULLABLE | 온보딩 회차 저장 시각 (이력 조회 시 회차 구분용) |
+| savedAt | TIMESTAMP | NULLABLE | 최초 생성 시각 |
 | | | UNIQUE(user_id, dailyGoal) | 같은 일일 목표 중복 생성 방지 |
+
+---
+
+## OnboardingGoalSnapshot (온보딩 회차별 목표 스냅샷)
+
+온보딩 회차마다 선택된 목표를 기록하여 이력 조회 시 회차별 목표를 정확하게 재현한다.
+동일 목표가 여러 회차에 재사용되더라도 각 회차의 이력이 독립적으로 보존된다.
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, NOT NULL | 스냅샷 고유 식별자 |
+| user_id | UUID | NOT NULL | 사용자 ID |
+| daily_goal_id | BIGINT | FK → DailyGoal.id, NOT NULL | 해당 온보딩 회차에 선택된 목표 |
+| onboardingTime | TIMESTAMP | NOT NULL | 온보딩 목표 저장 시각 (회차 구분용) |
 
 ---
 

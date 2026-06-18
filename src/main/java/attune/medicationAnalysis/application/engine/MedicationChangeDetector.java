@@ -35,9 +35,8 @@ public class MedicationChangeDetector {
     private final DailyGoalLogRepository dailyGoalLogRepository;
 
     @Transactional(readOnly = true)
-    @Transactional(readOnly = true)
     public List<AnalysisSnapshot.MedicationChange> detect(
-            UUID userId, LocalDate startDate, LocalDate endDate, AnalysisRawData rawData) {
+            UUID userId, LocalDate startDate, LocalDate endDate) {
         // 사용자 전체 UserMedication 이력 (비교를 위해 분석 기간 외 이전 기록도 필요)
         List<UserMedication> allMedications = userMedicationRepository.findAllByUserIdWithDetails(userId);
 
