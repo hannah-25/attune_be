@@ -474,6 +474,7 @@ public class AnalysisEngine {
         Set<String> keywords = new HashSet<>();
         conditionTuples.forEach(t -> keywords.add(t.get("tag", ConditionTag.class).getCondition().toLowerCase()));
         sideEffectTuples.forEach(t -> keywords.add(t.get("tag", SideEffectTag.class).getSideEffect().toLowerCase()));
+        troubleTuples.forEach(t -> keywords.add(t.get("tag", TroubleTag.class).getTrouble().toLowerCase()));
 
         return memos.stream()
                 .filter(m -> m.getMemo() != null && !m.getMemo().isBlank())

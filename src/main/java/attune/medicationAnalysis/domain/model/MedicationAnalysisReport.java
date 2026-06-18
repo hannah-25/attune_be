@@ -80,6 +80,9 @@ public class MedicationAnalysisReport {
     }
 
     public void failAiResult() {
+        this.aiResultJson = null;
+        this.modelName = null;
+        this.promptVersion = null;
         this.status = ReportStatus.COMPLETED;
     }
 }

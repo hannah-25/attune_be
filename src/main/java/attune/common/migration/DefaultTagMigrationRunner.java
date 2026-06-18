@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -27,6 +29,7 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         List<User> allUsers = userRepository.findAll();
+        Set<UUID> usersWithPreferences = preferenceRepository.findDistinctUserIds();
         int count = 0;
 
         for (User user : allUsers) {
@@ -34,14 +37,10 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
                 continue;
             }
 
-            boolean copied = false;
-
-            if (preferenceRepository.findAllByUserId(user.getId()).isEmpty()) {
+            if (!usersWithPreferences.contains(user.getId())) {
                 defaultTagService.copyDefaultTagsForUser(user.getId());
-                copied = true;
+                count++;
             }
-
-            if (copied) count++;
         }
 
         if (count > 0) {
