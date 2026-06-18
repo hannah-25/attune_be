@@ -285,71 +285,33 @@ ON DUPLICATE KEY UPDATE
 COMMIT;
 
 -- 6) Backfill additive log columns. Existing legacy tag columns remain unchanged.
---    Runs outside the main transaction in 10,000-row batches to avoid long-held
---    table locks and replication lag on large log tables.
-DROP PROCEDURE IF EXISTS _backfill_condition_logs;
-DROP PROCEDURE IF EXISTS _backfill_side_effect_logs;
-DROP PROCEDURE IF EXISTS _backfill_trouble_logs;
+--    MySQL 8.4 does not support LIMIT on multi-table UPDATE, so run as plain UPDATE.
+UPDATE condition_logs legacy_log
+JOIN legacy_journal_tag_mapping mapping
+  ON mapping.legacy_category = 'CONDITION'
+ AND mapping.legacy_tag_id = legacy_log.condition_tag_id
+SET legacy_log.user_id = mapping.user_id,
+    legacy_log.journal_tag_id = mapping.journal_tag_id
+WHERE legacy_log.user_id IS NULL
+   OR legacy_log.journal_tag_id IS NULL;
 
-DELIMITER $$
+UPDATE side_effect_logs legacy_log
+JOIN legacy_journal_tag_mapping mapping
+  ON mapping.legacy_category = 'SIDE_EFFECT'
+ AND mapping.legacy_tag_id = legacy_log.side_effect_tag_id
+SET legacy_log.user_id = mapping.user_id,
+    legacy_log.journal_tag_id = mapping.journal_tag_id
+WHERE legacy_log.user_id IS NULL
+   OR legacy_log.journal_tag_id IS NULL;
 
-CREATE PROCEDURE _backfill_condition_logs()
-BEGIN
-  REPEAT
-    UPDATE condition_logs legacy_log
-    JOIN legacy_journal_tag_mapping mapping
-      ON mapping.legacy_category = 'CONDITION'
-     AND mapping.legacy_tag_id = legacy_log.condition_tag_id
-    SET legacy_log.user_id = mapping.user_id,
-        legacy_log.journal_tag_id = mapping.journal_tag_id
-    WHERE legacy_log.user_id IS NULL
-       OR legacy_log.journal_tag_id IS NULL
-    LIMIT 10000;
-  UNTIL ROW_COUNT() = 0
-  END REPEAT;
-END$$
-
-CREATE PROCEDURE _backfill_side_effect_logs()
-BEGIN
-  REPEAT
-    UPDATE side_effect_logs legacy_log
-    JOIN legacy_journal_tag_mapping mapping
-      ON mapping.legacy_category = 'SIDE_EFFECT'
-     AND mapping.legacy_tag_id = legacy_log.side_effect_tag_id
-    SET legacy_log.user_id = mapping.user_id,
-        legacy_log.journal_tag_id = mapping.journal_tag_id
-    WHERE legacy_log.user_id IS NULL
-       OR legacy_log.journal_tag_id IS NULL
-    LIMIT 10000;
-  UNTIL ROW_COUNT() = 0
-  END REPEAT;
-END$$
-
-CREATE PROCEDURE _backfill_trouble_logs()
-BEGIN
-  REPEAT
-    UPDATE trouble_logs legacy_log
-    JOIN legacy_journal_tag_mapping mapping
-      ON mapping.legacy_category = 'TROUBLE'
-     AND mapping.legacy_tag_id = legacy_log.trouble_tag_id
-    SET legacy_log.user_id = mapping.user_id,
-        legacy_log.journal_tag_id = mapping.journal_tag_id
-    WHERE legacy_log.user_id IS NULL
-       OR legacy_log.journal_tag_id IS NULL
-    LIMIT 10000;
-  UNTIL ROW_COUNT() = 0
-  END REPEAT;
-END$$
-
-DELIMITER ;
-
-CALL _backfill_condition_logs();
-CALL _backfill_side_effect_logs();
-CALL _backfill_trouble_logs();
-
-DROP PROCEDURE IF EXISTS _backfill_condition_logs;
-DROP PROCEDURE IF EXISTS _backfill_side_effect_logs;
-DROP PROCEDURE IF EXISTS _backfill_trouble_logs;
+UPDATE trouble_logs legacy_log
+JOIN legacy_journal_tag_mapping mapping
+  ON mapping.legacy_category = 'TROUBLE'
+ AND mapping.legacy_tag_id = legacy_log.trouble_tag_id
+SET legacy_log.user_id = mapping.user_id,
+    legacy_log.journal_tag_id = mapping.journal_tag_id
+WHERE legacy_log.user_id IS NULL
+   OR legacy_log.journal_tag_id IS NULL;
 
 -- Verification: every legacy user tag and log must be mapped.
 SELECT 'condition_tags' AS source, COUNT(*) AS unmapped_count

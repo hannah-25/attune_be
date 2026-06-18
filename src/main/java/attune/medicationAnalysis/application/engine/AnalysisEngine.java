@@ -363,9 +363,9 @@ public class AnalysisEngine {
                 if (cnt > 0) sleepDist.put(q.name(), (int) cnt);
             }
 
-            double breakfastRate = mealRate(groupStatus, s -> Boolean.TRUE.equals(s.getAteBreakfast()));
-            double lunchRate = mealRate(groupStatus, s -> Boolean.TRUE.equals(s.getAteLunch()));
-            double dinnerRate = mealRate(groupStatus, s -> Boolean.TRUE.equals(s.getAteDinner()));
+            Double breakfastRate = mealRate(groupStatus, s -> Boolean.TRUE.equals(s.getAteBreakfast()));
+            Double lunchRate = mealRate(groupStatus, s -> Boolean.TRUE.equals(s.getAteLunch()));
+            Double dinnerRate = mealRate(groupStatus, s -> Boolean.TRUE.equals(s.getAteDinner()));
 
             result.add(new AnalysisSnapshot.DayGroupComparison(
                     group, days.size(), true,
