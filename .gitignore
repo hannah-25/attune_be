@@ -37,6 +37,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Local agent settings ###
+.claude/settings.local.json
+
 *.md
 !docs/journal-tag-catalog-migration.md
 !docs/frontend-journal-tag-catalog-migration.md

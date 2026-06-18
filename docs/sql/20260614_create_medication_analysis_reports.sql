@@ -12,6 +12,8 @@ CREATE TABLE medication_analysis_reports
     model_name       VARCHAR(100),
     prompt_version   VARCHAR(20),
     generated_at     DATETIME     NOT NULL,
+    KEY idx_mar_user_generated_at (user_id, generated_at DESC),
+    UNIQUE KEY uk_mar_user_period_source (user_id, period_start, period_end, source_data_hash),
     CONSTRAINT fk_mar_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
