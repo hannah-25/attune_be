@@ -76,7 +76,7 @@ public class ConditionTagService {
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .orElseThrow(ConditionTagNotFoundException::new);
         return new ConditionCheckResponse(
-                checkResponse.catalogTagId(),
+                request.tagId(),
                 tag.getName(),
                 ConditionType.valueOf(tag.getTagType()),
                 checkResponse.checkedAt());
@@ -96,6 +96,6 @@ public class ConditionTagService {
 
     private ConditionTagResponse toResponse(CatalogJournalTagResponse r) {
         return new ConditionTagResponse(
-                r.catalogTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible());
+                r.legacyTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible());
     }
 }

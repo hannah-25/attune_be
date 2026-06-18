@@ -2,13 +2,15 @@ package attune.medicationAnalysis.infrastructure;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class GeminiResponseValidatorTest {
 
     private final GeminiResponseValidator validator = new GeminiResponseValidator();
 
-    private static final String VALID_SNAPSHOT = "{\"evidenceId\":\"TIME_WINDOW_01\"}";
+    private static final List<String> VALID_EVIDENCE_IDS = List.of("TIME_WINDOW_01");
 
     private static final String VALID_JSON = """
             {
@@ -30,13 +32,13 @@ class GeminiResponseValidatorTest {
 
     @Test
     void validate_passes_validResponse() {
-        assertDoesNotThrow(() -> validator.validate(VALID_JSON, VALID_SNAPSHOT));
+        assertDoesNotThrow(() -> validator.validate(VALID_JSON, VALID_EVIDENCE_IDS));
     }
 
     @Test
     void validate_throws_whenJsonIsMalformed() {
         assertThrows(GeminiValidationException.class,
-                () -> validator.validate("not-json", VALID_SNAPSHOT));
+                () -> validator.validate("not-json", VALID_EVIDENCE_IDS));
     }
 
     @Test
@@ -44,7 +46,7 @@ class GeminiResponseValidatorTest {
         String jsonWithBadId = VALID_JSON.replace("TIME_WINDOW_01", "NONEXISTENT_ID");
 
         assertThrows(GeminiValidationException.class,
-                () -> validator.validate(jsonWithBadId, VALID_SNAPSHOT));
+                () -> validator.validate(jsonWithBadId, VALID_EVIDENCE_IDS));
     }
 
     @Test
@@ -52,7 +54,7 @@ class GeminiResponseValidatorTest {
         String forbidden = VALID_JSON.replace("복용 패턴", "약효가 떨어졌어요");
 
         assertThrows(GeminiValidationException.class,
-                () -> validator.validate(forbidden, VALID_SNAPSHOT));
+                () -> validator.validate(forbidden, VALID_EVIDENCE_IDS));
     }
 
     @Test
@@ -61,14 +63,14 @@ class GeminiResponseValidatorTest {
                 "복용량을 늘리세요.");
 
         assertThrows(GeminiValidationException.class,
-                () -> validator.validate(forbidden, VALID_SNAPSHOT));
+                () -> validator.validate(forbidden, VALID_EVIDENCE_IDS));
     }
 
     @Test
     void validate_stripsMarkdownFence_beforeParsing() {
         String fenced = "```json\n" + VALID_JSON + "\n```";
 
-        assertDoesNotThrow(() -> validator.validate(fenced, VALID_SNAPSHOT));
+        assertDoesNotThrow(() -> validator.validate(fenced, VALID_EVIDENCE_IDS));
     }
 
     @Test
@@ -82,6 +84,6 @@ class GeminiResponseValidatorTest {
                 }
                 """;
 
-        assertDoesNotThrow(() -> validator.validate(noInsights, VALID_SNAPSHOT));
+        assertDoesNotThrow(() -> validator.validate(noInsights, VALID_EVIDENCE_IDS));
     }
 }

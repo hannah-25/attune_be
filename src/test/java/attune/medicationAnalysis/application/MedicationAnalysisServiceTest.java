@@ -105,13 +105,13 @@ class MedicationAnalysisServiceTest {
 
     @Test
     void createReport_throwsBadRequest_whenRecordedDaysInsufficient() {
-        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.loadRawData(USER_ID, START, END, false)).thenReturn(rawData);
         when(analysisEngine.countRecordedDays(rawData)).thenReturn(3);
 
         CreateReportRequest request = new CreateReportRequest(START, END, false);
 
         assertThrows(BadRequestException.class, () -> service.createReport(USER_ID, request));
-        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END);
+        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END, false);
         verifyNoInteractions(snapshotSerializer);
     }
 
@@ -124,16 +124,16 @@ class MedicationAnalysisServiceTest {
         String hash = "same-hash";
         MedicationAnalysisReport cached = completedReport(hash);
 
-        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.loadRawData(USER_ID, START, END, false)).thenReturn(rawData);
         when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
         when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
-        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(USER_ID, START, END, hash))
+        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEnd(USER_ID, START, END))
                 .thenReturn(Optional.of(cached));
 
         ReportDetailResponse response = service.createReport(USER_ID, new CreateReportRequest(START, END, false));
 
         assertEquals(ReportStatus.COMPLETED, response.status());
-        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END);
+        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END, false);
         verify(analysisEngine, never()).build(any(AnalysisRawData.class), anyBoolean());
         verify(geminiReportClient, never()).generate(any(), any());
         verify(reportRepository, never()).save(any());
@@ -150,10 +150,10 @@ class MedicationAnalysisServiceTest {
         String aiJson = "{\"summary\":\"요약\"}";
         AnalysisSnapshot snapshot = minimalSnapshot(START, END);
 
-        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.loadRawData(USER_ID, START, END, false)).thenReturn(rawData);
         when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
         when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
-        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
+        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEnd(any(), any(), any()))
                 .thenReturn(Optional.empty());
         when(analysisEngine.build(rawData, false)).thenReturn(snapshot);
         when(snapshotSerializer.toJson(snapshot)).thenReturn(snapshotJson);
@@ -167,7 +167,7 @@ class MedicationAnalysisServiceTest {
 
         assertEquals(ReportStatus.COMPLETED, response.status());
         assertEquals(aiJson, response.aiResultJson());
-        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END);
+        verify(analysisEngine, times(1)).loadRawData(USER_ID, START, END, false);
         verify(analysisEngine).countRecordedDays(same(rawData));
         verify(snapshotSerializer).computeHash(same(rawData));
         verify(analysisEngine).build(same(rawData), eq(false));
@@ -184,10 +184,10 @@ class MedicationAnalysisServiceTest {
         String snapshotJson = "{\"period\":{}}";
         AnalysisSnapshot snapshot = minimalSnapshot(START, END);
 
-        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.loadRawData(USER_ID, START, END, false)).thenReturn(rawData);
         when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
         when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
-        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
+        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEnd(any(), any(), any()))
                 .thenReturn(Optional.empty());
         when(analysisEngine.build(rawData, false)).thenReturn(snapshot);
         when(snapshotSerializer.toJson(snapshot)).thenReturn(snapshotJson);
@@ -212,10 +212,10 @@ class MedicationAnalysisServiceTest {
         String snapshotJson = "{\"period\":{}}";
         AnalysisSnapshot snapshot = minimalSnapshot(START, END);
 
-        when(analysisEngine.loadRawData(USER_ID, START, END)).thenReturn(rawData);
+        when(analysisEngine.loadRawData(USER_ID, START, END, false)).thenReturn(rawData);
         when(analysisEngine.countRecordedDays(rawData)).thenReturn(10);
         when(snapshotSerializer.computeHash(rawData)).thenReturn(hash);
-        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(any(), any(), any(), any()))
+        when(reportRepository.findByUser_IdAndPeriodStartAndPeriodEnd(any(), any(), any()))
                 .thenReturn(Optional.empty());
         when(analysisEngine.build(rawData, false)).thenReturn(snapshot);
         when(snapshotSerializer.toJson(snapshot)).thenReturn(snapshotJson);

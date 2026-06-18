@@ -129,6 +129,8 @@ when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(
 
 when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
+        when(mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(userId, JournalTagCategory.CONDITION, 10L))
+                .thenReturn(List.of(mapping));
         when(mappingRepository.findAllByUserIdAndLegacyCategory(userId, JournalTagCategory.CONDITION)).thenReturn(List.of(mapping));
         when(conditionTagRepository.findAllById(List.of(42L))).thenReturn(List.of(legacyTag));
 
@@ -273,7 +275,8 @@ when(journalTagRepository.findByScopeAndCategoryAndNameAndTagType(
 
 when(journalTagRepository.findById(10L)).thenReturn(Optional.of(userTag));
         when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
-        when(mappingRepository.findAllByUserIdAndLegacyCategory(userId, JournalTagCategory.CONDITION)).thenReturn(List.of());
+        when(mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(userId, JournalTagCategory.CONDITION, 10L))
+                .thenReturn(List.of());
 
         catalogService.deleteTag(10L, journalDate);
 

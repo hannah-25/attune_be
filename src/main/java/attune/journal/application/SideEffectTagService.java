@@ -77,7 +77,7 @@ public class SideEffectTagService {
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .orElseThrow(SideEffectTagNotFoundException::new);
         return new SideEffectCheckResponse(
-                checkResponse.catalogTagId(),
+                request.tagId(),
                 tag.getName(),
                 checkResponse.checkedAt());
     }
@@ -95,6 +95,6 @@ public class SideEffectTagService {
     }
 
     private SideEffectTagResponse toResponse(CatalogJournalTagResponse r) {
-        return new SideEffectTagResponse(r.catalogTagId(), r.name(), r.visible());
+        return new SideEffectTagResponse(r.legacyTagId(), r.name(), r.visible());
     }
 }

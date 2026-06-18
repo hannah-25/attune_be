@@ -76,7 +76,7 @@ public class TroubleTagService {
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .orElseThrow(TroubleTagNotFoundException::new);
         return new TroubleCheckResponse(
-                checkResponse.catalogTagId(),
+                request.tagId(),
                 tag.getName(),
                 TroubleType.valueOf(tag.getTagType()),
                 checkResponse.checkedAt());
@@ -96,6 +96,6 @@ public class TroubleTagService {
 
     private TroubleTagResponse toResponse(CatalogJournalTagResponse r) {
         return new TroubleTagResponse(
-                r.catalogTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible());
+                r.legacyTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible());
     }
 }

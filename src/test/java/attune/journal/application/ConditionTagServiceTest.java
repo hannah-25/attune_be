@@ -13,6 +13,7 @@ import attune.journal.domain.model.ConditionType;
 import attune.journal.domain.model.JournalTag;
 import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.JournalTagScope;
+import attune.journal.domain.model.LegacyJournalTagMapping;
 import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
@@ -77,7 +78,7 @@ class ConditionTagServiceTest {
     @Test
     void getActiveTagsDelegatesToCatalogService() {
         CatalogJournalTagResponse catalogResponse = new CatalogJournalTagResponse(
-                10L, null, JournalTagCategory.CONDITION, "calm", "CALM",
+                10L, 10L, JournalTagCategory.CONDITION, "calm", "CALM",
                 JournalTagScope.SYSTEM, true, true);
         when(catalogService.getTags(JournalTagCategory.CONDITION)).thenReturn(List.of(catalogResponse));
 
@@ -95,7 +96,7 @@ class ConditionTagServiceTest {
     void createTagDelegatesToCatalogService() {
         CreateConditionTagRequest request = new CreateConditionTagRequest("calm", ConditionType.CALM, LocalDate.now());
         CatalogJournalTagResponse catalogResponse = new CatalogJournalTagResponse(
-                10L, null, JournalTagCategory.CONDITION, "calm", "CALM",
+                10L, 10L, JournalTagCategory.CONDITION, "calm", "CALM",
                 JournalTagScope.USER, true, true);
         when(catalogService.createTag(any(CreateCatalogJournalTagRequest.class))).thenReturn(catalogResponse);
 
@@ -108,6 +109,8 @@ class ConditionTagServiceTest {
     @Test
     void deleteTagDelegatesToCatalogService() {
         LocalDate journalDate = LocalDate.of(2026, 6, 16);
+        when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 7L))
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 7L, null, 7L)));
 
         conditionTagService.deleteTag(7L, journalDate);
 
@@ -126,8 +129,10 @@ class ConditionTagServiceTest {
                 .defaultVisible(true)
                 .build();
         CatalogJournalTagResponse toggled = new CatalogJournalTagResponse(
-                10L, null, JournalTagCategory.CONDITION, "calm", "CALM",
+                10L, 10L, JournalTagCategory.CONDITION, "calm", "CALM",
                 JournalTagScope.SYSTEM, true, false);
+        when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 10L))
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 10L, null, 10L)));
 
         when(journalTagRepository.findById(10L)).thenReturn(Optional.of(tag));
         when(preferenceRepository.findById(new UserJournalTagPreferenceId(userId, 10L)))
@@ -153,6 +158,8 @@ class ConditionTagServiceTest {
                 .isActive(true)
                 .build();
         LocalDateTime checkedAt = LocalDateTime.now();
+        when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 10L))
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 10L, null, 10L)));
         when(catalogCheckService.check(10L))
                 .thenReturn(new CatalogTagCheckResponse(10L, JournalTagCategory.CONDITION, checkedAt));
         when(journalTagRepository.findById(10L)).thenReturn(Optional.of(tag));
@@ -168,6 +175,8 @@ class ConditionTagServiceTest {
     @Test
     void uncheckByDateDelegatesToCatalogCheckService() {
         LocalDate date = LocalDate.of(2026, 6, 16);
+        when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 10L))
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 10L, null, 10L)));
 
         conditionTagService.uncheckByDate(10L, date);
 

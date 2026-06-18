@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -32,7 +33,7 @@ class GeminiReportClientTest {
 
         when(snapshot.timeWindowPatterns()).thenReturn(List.of(pattern));
         when(aiTextGenerator.generateJson(anyString())).thenReturn("{}");
-        when(validator.validate("{}", snapshotJson))
+        when(validator.validate(anyString(), anyList()))
                 .thenReturn(new GeminiReportResponse("요약", List.of(), List.of(), "안내"));
 
         GeminiReportClient.GeminiReportResult result = client.generate(snapshotJson, snapshot);

@@ -4,7 +4,6 @@ import attune.journal.domain.model.JournalTag;
 import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.JournalTagScope;
 import attune.journal.domain.model.UserJournalTagPreference;
-import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
 import org.junit.jupiter.api.Test;
@@ -17,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,17 +47,19 @@ class DefaultTagServiceTest {
                 .thenReturn(List.of());
         when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE))
                 .thenReturn(List.of());
-        when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
+        when(preferenceRepository.findAllByUserIdAndJournalTagIdIn(any(), any())).thenReturn(List.of());
 
         defaultTagService.copyDefaultTagsForUser(userId);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<UserJournalTagPreference> captor = ArgumentCaptor.forClass(UserJournalTagPreference.class);
-        verify(preferenceRepository, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getUserId()).isEqualTo(userId);
-        assertThat(captor.getValue().getJournalTagId()).isEqualTo(1L);
-        assertThat(captor.getValue().isEnabled()).isTrue();
-        assertThat(captor.getValue().isVisible()).isTrue();
+        ArgumentCaptor<List<UserJournalTagPreference>> captor = ArgumentCaptor.forClass(List.class);
+        verify(preferenceRepository, times(1)).saveAll(captor.capture());
+        List<UserJournalTagPreference> saved = captor.getValue();
+        assertThat(saved).hasSize(1);
+        assertThat(saved.get(0).getUserId()).isEqualTo(userId);
+        assertThat(saved.get(0).getJournalTagId()).isEqualTo(1L);
+        assertThat(saved.get(0).isEnabled()).isTrue();
+        assertThat(saved.get(0).isVisible()).isTrue();
     }
 
     @Test
@@ -74,12 +74,14 @@ class DefaultTagServiceTest {
                 .thenReturn(List.of());
         when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE))
                 .thenReturn(List.of());
-        when(preferenceRepository.findById(new UserJournalTagPreferenceId(userId, 1L)))
-                .thenReturn(Optional.of(existingPref));
+        when(preferenceRepository.findAllByUserIdAndJournalTagIdIn(any(), any())).thenReturn(List.of(existingPref));
 
         defaultTagService.copyDefaultTagsForUser(userId);
 
-        verify(preferenceRepository, never()).save(any());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<UserJournalTagPreference>> captor = ArgumentCaptor.forClass(List.class);
+        verify(preferenceRepository, times(1)).saveAll(captor.capture());
+        assertThat(captor.getValue()).isEmpty();
     }
 
     @Test
@@ -96,14 +98,15 @@ class DefaultTagServiceTest {
                 .thenReturn(List.of());
         when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE))
                 .thenReturn(List.of());
-        when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
+        when(preferenceRepository.findAllByUserIdAndJournalTagIdIn(any(), any())).thenReturn(List.of());
 
         defaultTagService.copyDefaultTagsForUser(userId);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<UserJournalTagPreference> captor = ArgumentCaptor.forClass(UserJournalTagPreference.class);
-        verify(preferenceRepository, times(7)).save(captor.capture());
-        List<UserJournalTagPreference> saved = captor.getAllValues();
+        ArgumentCaptor<List<UserJournalTagPreference>> captor = ArgumentCaptor.forClass(List.class);
+        verify(preferenceRepository, times(1)).saveAll(captor.capture());
+        List<UserJournalTagPreference> saved = captor.getValue();
+        assertThat(saved).hasSize(7);
         long visibleCount = saved.stream().filter(UserJournalTagPreference::isVisible).count();
         long hiddenCount = saved.stream().filter(p -> !p.isVisible()).count();
         assertThat(visibleCount).isEqualTo(5);
@@ -120,11 +123,11 @@ class DefaultTagServiceTest {
                 .thenReturn(List.of(systemTag(2L, JournalTagCategory.SIDE_EFFECT, true)));
         when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE))
                 .thenReturn(List.of(systemTag(3L, JournalTagCategory.TROUBLE, true)));
-        when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
+        when(preferenceRepository.findAllByUserIdAndJournalTagIdIn(any(), any())).thenReturn(List.of());
 
         defaultTagService.copyDefaultTagsForUser(userId);
 
-        verify(preferenceRepository, times(3)).save(any());
+        verify(preferenceRepository, times(3)).saveAll(any());
     }
 
     private JournalTag systemTag(Long id, JournalTagCategory category, boolean defaultVisible) {
