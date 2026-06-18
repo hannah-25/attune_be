@@ -38,7 +38,7 @@ public class GeminiReportClient {
         String prompt = buildPrompt(snapshotJson, validEvidenceIds);
         try {
             String rawJson = aiTextGenerator.generateJson(prompt);
-            GeminiReportResponse parsed = validator.validate(rawJson, snapshotJson);
+            GeminiReportResponse parsed = validator.validate(rawJson, validEvidenceIds);
             String cleanJson = objectMapper.writeValueAsString(parsed);
             return GeminiReportResult.success(cleanJson, geminiProperties.model(), PROMPT_VERSION);
         } catch (GeminiValidationException e) {
