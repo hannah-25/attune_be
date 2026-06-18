@@ -65,8 +65,9 @@ public class GeminiResponseValidator {
 
     private String cleanMarkdownFence(String raw) {
         String trimmed = raw.strip();
-        if (trimmed.startsWith("```")) {
-            int firstNewline = trimmed.indexOf('\n');
+        int firstFence = trimmed.indexOf("```");
+        if (firstFence >= 0) {
+            int firstNewline = trimmed.indexOf('\n', firstFence);
             int lastFence = trimmed.lastIndexOf("```");
             if (firstNewline > 0 && lastFence > firstNewline) {
                 return trimmed.substring(firstNewline + 1, lastFence).strip();
