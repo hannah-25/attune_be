@@ -342,7 +342,7 @@ public class OnboardingService {
 
         LocalDateTime assessmentTime = assessment.getCompletedAt();
         LocalDateTime nextAssessmentTime = asrsAssessmentRepository
-                .findNextByUserIdAndCompletedAtAfter(userId, assessmentTime)
+                .findFirstByUser_IdAndCompletedAtAfterOrderByCompletedAtAsc(userId, assessmentTime)
                 .map(AsrsAssessment::getCompletedAt)
                 .orElse(null);
 
