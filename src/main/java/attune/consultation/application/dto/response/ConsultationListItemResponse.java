@@ -5,14 +5,18 @@ import attune.consultation.domain.model.Consultation;
 import java.time.LocalDateTime;
 
 public record ConsultationListItemResponse(
+        Long consultationId,
         LocalDateTime consultationDate,
         String place,
+        String doctorName,
         String prescriptionNote
 ) {
     public static ConsultationListItemResponse from(Consultation consultation) {
         return new ConsultationListItemResponse(
+                consultation.getId(),
                 consultation.getConsultationDate(),
                 consultation.getPlace(),
+                consultation.getDoctorName(),
                 consultation.getPrescriptionNote()
         );
     }

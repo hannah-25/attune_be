@@ -1,10 +1,11 @@
 package attune.onboarding.application;
 
 import attune.common.error.badrequest.InvalidOnboardingRequestException;
+import attune.journal.application.JournalTagCatalogService;
 import attune.journal.domain.model.DailyGoal;
 import attune.journal.domain.model.DailyGoalType;
 import attune.journal.domain.repository.DailyGoalRepository;
-import attune.journal.domain.repository.TroubleTagRepository;
+import attune.journal.domain.repository.OnboardingGoalSnapshotRepository;
 import attune.onboarding.application.dto.request.GoalRequest;
 import attune.onboarding.application.dto.request.SymptomRequest;
 import attune.onboarding.application.dto.response.GoalResponse;
@@ -44,9 +45,11 @@ class OnboardingServiceTest {
     @Mock
     private DailyGoalRepository dailyGoalRepository;
     @Mock
-    private TroubleTagRepository troubleTagRepository;
+    private OnboardingGoalSnapshotRepository onboardingGoalSnapshotRepository;
     @Mock
     private OnboardingAiService onboardingAiService;
+    @Mock
+    private JournalTagCatalogService journalTagCatalogService;
 
     @InjectMocks
     private OnboardingService onboardingService;

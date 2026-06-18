@@ -15,6 +15,19 @@ import java.util.UUID;
 public interface TroubleLogRepository extends JpaRepository<TroubleLog, Long> {
 
     @Query("""
+            SELECT COUNT(l) FROM TroubleLog l, TroubleTag t
+            WHERE l.troubleTagId = t.id
+              AND t.userId = :userId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    long countInRangeWithTag(
+            @Param("userId") UUID userId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Query("""
             SELECT l AS log, t AS tag FROM TroubleLog l, TroubleTag t
             WHERE l.troubleTagId = t.id
               AND t.userId = :userId
@@ -76,5 +89,33 @@ public interface TroubleLogRepository extends JpaRepository<TroubleLog, Long> {
             @Param("tagId") Long tagId,
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt
+    );
+
+    @Modifying
+    @Query("""
+            DELETE FROM TroubleLog l
+            WHERE l.userId = :userId
+              AND l.journalTagId = :journalTagId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    int deleteAllByCatalogTagAndDate(
+            @Param("userId") UUID userId,
+            @Param("journalTagId") Long journalTagId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Modifying
+    @Query("""
+            DELETE FROM TroubleLog l
+            WHERE l.userId = :userId
+              AND l.journalTagId = :journalTagId
+              AND l.checkedAt >= :startAt
+            """)
+    int deleteAllByCatalogTagFromDate(
+            @Param("userId") UUID userId,
+            @Param("journalTagId") Long journalTagId,
+            @Param("startAt") LocalDateTime startAt
     );
 }

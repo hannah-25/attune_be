@@ -24,6 +24,7 @@ public class SideEffectTag {
     private String sideEffect;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isActive = true;
 
     @Column(nullable = false)
@@ -36,5 +37,10 @@ public class SideEffectTag {
 
     public void toggleVisible() {
         this.visible = !this.visible;
+    }
+
+    public void changePreference(boolean active, boolean visible) {
+        this.isActive = active;
+        this.visible = visible;
     }
 }

@@ -110,7 +110,6 @@ public class AccountService {
         emailVerificationTokenRepository.delete(verificationToken);
         eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
         eventPublisher.publishEvent(new WelcomeEmailEvent(user.getEmail(), user.getNickname()));
-        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
     }
 
 

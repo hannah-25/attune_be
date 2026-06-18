@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -19,6 +20,10 @@ public class ConditionLog {
 
     @Column(nullable = false)
     private Long conditionTagId;
+
+    private UUID userId;
+
+    private Long journalTagId;
 
     @Column(nullable = false)
     private LocalDateTime checkedAt;

@@ -15,6 +15,19 @@ import java.util.UUID;
 public interface SideEffectLogRepository extends JpaRepository<SideEffectLog, Long> {
 
     @Query("""
+            SELECT COUNT(l) FROM SideEffectLog l, SideEffectTag t
+            WHERE l.sideEffectTagId = t.id
+              AND t.userId = :userId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    long countInRangeWithTag(
+            @Param("userId") UUID userId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Query("""
             SELECT l AS log, t AS tag FROM SideEffectLog l, SideEffectTag t
             WHERE l.sideEffectTagId = t.id
               AND t.userId = :userId
@@ -76,5 +89,33 @@ public interface SideEffectLogRepository extends JpaRepository<SideEffectLog, Lo
             @Param("tagId") Long tagId,
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt
+    );
+
+    @Modifying
+    @Query("""
+            DELETE FROM SideEffectLog l
+            WHERE l.userId = :userId
+              AND l.journalTagId = :journalTagId
+              AND l.checkedAt >= :startAt
+              AND l.checkedAt < :endAt
+            """)
+    int deleteAllByCatalogTagAndDate(
+            @Param("userId") UUID userId,
+            @Param("journalTagId") Long journalTagId,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt
+    );
+
+    @Modifying
+    @Query("""
+            DELETE FROM SideEffectLog l
+            WHERE l.userId = :userId
+              AND l.journalTagId = :journalTagId
+              AND l.checkedAt >= :startAt
+            """)
+    int deleteAllByCatalogTagFromDate(
+            @Param("userId") UUID userId,
+            @Param("journalTagId") Long journalTagId,
+            @Param("startAt") LocalDateTime startAt
     );
 }

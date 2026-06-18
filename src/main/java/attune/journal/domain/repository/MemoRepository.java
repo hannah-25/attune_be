@@ -15,7 +15,11 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
 
     Optional<Memo> findByUserIdAndJournalDate(UUID userId, LocalDate journalDate);
 
+    List<Memo> findByUserIdAndJournalDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
+
     boolean existsByUserIdAndJournalDate(UUID userId, LocalDate journalDate);
+
+    long countByUserIdAndJournalDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
 
     @Query("""
             SELECT DISTINCT m.journalDate FROM Memo m

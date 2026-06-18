@@ -62,4 +62,18 @@ public interface UserMedicationLogRepository extends JpaRepository<UserMedicatio
             @Param("userId") UUID userId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
+
+    @Query("""
+            SELECT COUNT(l) FROM UserMedicationLog l
+            JOIN l.userMedicationSchedule s
+            JOIN s.userMedication um
+            WHERE um.user.id = :userId
+              AND l.takenAt >= :from
+              AND l.takenAt < :to
+              AND l.isActive = true
+            """)
+    long countByUserIdAndTakenAtBetween(
+            @Param("userId") UUID userId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
 }

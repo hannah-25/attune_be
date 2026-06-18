@@ -40,9 +40,6 @@ public class Consultation {
     private String summaryReport;  // 확인
 
     @Column(columnDefinition = "TEXT")
-    private String preConsultationNote;
-
-    @Column(columnDefinition = "TEXT")
     private String doctorAdvice;
 
     @Column(columnDefinition = "TEXT")
@@ -66,11 +63,6 @@ public class Consultation {
         if (consultationDate != null) this.consultationDate = consultationDate;
         if (place != null) this.place = place;
         if (alarmSettings != null) this.alarmSettings = alarmSettings;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public void updatePreparation(String preConsultationNote) {
-        if (preConsultationNote != null) this.preConsultationNote = preConsultationNote;
         this.updatedAt = LocalDateTime.now();
     }
 
