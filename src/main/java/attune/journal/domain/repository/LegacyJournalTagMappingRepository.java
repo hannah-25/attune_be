@@ -23,12 +23,13 @@ public interface LegacyJournalTagMappingRepository
                    t.name AS name,
                    t.tagType AS tagType,
                    p.visible AS visible
-            FROM LegacyJournalTagMapping m, JournalTag t, UserJournalTagPreference p
+            FROM LegacyJournalTagMapping m
+            JOIN JournalTag t ON t.id = m.journalTagId
+            JOIN UserJournalTagPreference p
+              ON p.userId = :userId
+             AND p.journalTagId = t.id
             WHERE m.userId = :userId
               AND m.legacyCategory = :category
-              AND t.id = m.journalTagId
-              AND p.userId = :userId
-              AND p.journalTagId = t.id
               AND t.isActive = true
               AND p.enabled = true
               AND (:visibleOnly = false OR p.visible = true)

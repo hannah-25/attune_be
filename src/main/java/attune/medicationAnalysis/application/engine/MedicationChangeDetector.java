@@ -51,17 +51,15 @@ public class MedicationChangeDetector {
         List<AnalysisSnapshot.MedicationChange> changes = new ArrayList<>();
 
         for (UserMedication current : changedInPeriod) {
-            // 동일 약(medicationId)의 직전 레코드 탐색
+            // 전체 복약 이력에서 시작일 기준 직전 레코드 탐색
             Optional<UserMedication> previous = allMedications.stream()
                     .filter(m -> !m.getId().equals(current.getId())
-                            && m.getMedicationDosage().getMedication().getId()
-                               .equals(current.getMedicationDosage().getMedication().getId())
                             && m.getStartedAt() != null
                             && m.getStartedAt().isBefore(current.getStartedAt()))
                     .max(Comparator.comparing(UserMedication::getStartedAt));
 
             // 직전 레코드와 비교하여 변경 유형 판정
-            String changeType = determineChangeType(current, previous.orElse(null), allMedications);
+            String changeType = determineChangeType(current, previous.orElse(null));
             boolean confirmed = current.getConsultation() != null;
             Long consultationId = current.getConsultation() != null ? current.getConsultation().getId() : null;
 
@@ -87,7 +85,7 @@ public class MedicationChangeDetector {
         return changes;
     }
 
-    private String determineChangeType(UserMedication current, UserMedication previous, List<UserMedication> all) {
+    private String determineChangeType(UserMedication current, UserMedication previous) {
         if (previous == null) return "ADD";
 
         boolean sameMedication = previous.getMedicationDosage().getMedication().getId()
