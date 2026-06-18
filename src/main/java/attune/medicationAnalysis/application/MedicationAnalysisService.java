@@ -69,7 +69,7 @@ public class MedicationAnalysisService {
         validatePeriod(request.periodStart(), request.periodEnd());
 
         AnalysisRawData rawData = analysisEngine.loadRawData(
-                userId, request.periodStart(), request.periodEnd());
+                userId, request.periodStart(), request.periodEnd(), request.includeMemoExcerpts());
 
         // 데이터 품질 검사
         int recordedDays = analysisEngine.countRecordedDays(rawData);
