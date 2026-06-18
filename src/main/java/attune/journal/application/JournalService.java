@@ -141,7 +141,7 @@ public class JournalService {
         return catalogService.getTags(JournalTagCategory.CONDITION).stream()
                 .filter(CatalogJournalTagResponse::visible)
                 .map(r -> new ConditionTagResponse(
-                        r.catalogTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible()))
+                        r.legacyTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible()))
                 .toList();
     }
 
