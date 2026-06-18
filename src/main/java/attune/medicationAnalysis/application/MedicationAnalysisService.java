@@ -83,9 +83,14 @@ public class MedicationAnalysisService {
         Optional<MedicationAnalysisReport> existing = reportRepository
                 .findByUser_IdAndPeriodStartAndPeriodEndAndSourceDataHash(
                         userId, request.periodStart(), request.periodEnd(), hash);
-
-        if (existing.isPresent() && existing.get().getStatus() == ReportStatus.COMPLETED) {
-            return ReportDetailResponse.from(existing.get(), false);
+        if (existing.isPresent()) {
+            Report report = existing.get();
+            if (report.getStatus() == ReportStatus.COMPLETED) {
+                return ReportDetailResponse.from(report, false);
+            }
+            report.updateToPending();
+            reportRepository.save(report);
+        }
         }
 
         // 스냅샷 생성
