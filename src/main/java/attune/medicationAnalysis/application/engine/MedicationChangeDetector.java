@@ -225,8 +225,8 @@ public class MedicationChangeDetector {
         return tagDays.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
     }
 
-    private double mealRate(List<DailyStatusLog> logs, java.util.function.Predicate<DailyStatusLog> pred) {
-        if (logs.isEmpty()) return 0.0;
+    private Double mealRate(List<DailyStatusLog> logs, java.util.function.Predicate<DailyStatusLog> pred) {
+        if (logs.isEmpty()) return null;
         return Math.round((double) logs.stream().filter(pred).count() / logs.size() * 1000) / 10.0;
     }
 }
