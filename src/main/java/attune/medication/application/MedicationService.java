@@ -174,7 +174,9 @@ public class MedicationService {
         boolean active = request.isActive() != null ? request.isActive() : um.getIsActive();
         boolean updateEndAt = request.endAt().isPresent();
         LocalDate endAt = updateEndAt ? request.endAt().get() : um.getEndAt();
-        if (active) validateActiveMedicationEndAt(endAt);
+        if (active && (updateEndAt || Boolean.TRUE.equals(request.isActive()))) {
+            validateActiveMedicationEndAt(endAt);
+        }
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
         um.update(updateEndAt ? endAt : null, updateEndAt, request.isActive(), request.alarmActive());
         return UpdateMedicationResponse.from(um);
