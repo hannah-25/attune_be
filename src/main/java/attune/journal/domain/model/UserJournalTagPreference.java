@@ -4,11 +4,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,7 +24,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserJournalTagPreference {
+public class UserJournalTagPreference implements Persistable<UserJournalTagPreferenceId> {
 
     @Id
     private UUID userId;
@@ -40,6 +44,10 @@ public class UserJournalTagPreference {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Transient
+    @Builder.Default
+    private boolean newEntity = true;
+
     public static UserJournalTagPreference create(UUID userId, Long journalTagId, boolean enabled, boolean visible) {
         LocalDateTime now = LocalDateTime.now();
         return UserJournalTagPreference.builder()
@@ -56,5 +64,21 @@ public class UserJournalTagPreference {
         this.enabled = enabled;
         this.visible = visible;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @Override
+    public UserJournalTagPreferenceId getId() {
+        return new UserJournalTagPreferenceId(userId, journalTagId);
+    }
+
+    @Override
+    public boolean isNew() {
+        return newEntity;
+    }
+
+    @PostLoad
+    @PostPersist
+    private void markNotNew() {
+        this.newEntity = false;
     }
 }

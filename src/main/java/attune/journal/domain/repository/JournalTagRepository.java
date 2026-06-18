@@ -21,7 +21,11 @@ public interface JournalTagRepository extends JpaRepository<JournalTag, Long> {
 
     List<JournalTag> findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope scope, JournalTagCategory category);
 
+    List<JournalTag> findAllByScopeAndIsActiveTrue(JournalTagScope scope);
+
     List<JournalTag> findAllByScopeAndOwnerUserIdAndCategoryAndIsActiveTrue(
             JournalTagScope scope, UUID ownerUserId, JournalTagCategory category
     );
+
+    List<JournalTag> findAllByScopeAndOwnerUserIdAndIsActiveTrue(JournalTagScope scope, UUID ownerUserId);
 }

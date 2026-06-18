@@ -13,6 +13,9 @@ import attune.journal.domain.model.JournalTag;
 import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.JournalTagScope;
 import attune.journal.domain.model.LegacyJournalTagMapping;
+import attune.journal.domain.model.TroubleTag;
+import attune.journal.domain.model.TroubleType;
+import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.repository.ConditionTagRepository;
 import attune.journal.domain.repository.ConditionLogRepository;
 import attune.journal.domain.repository.JournalTagRepository;
@@ -36,13 +39,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -137,6 +143,68 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
     }
 
     @Test
+    void onboardingVisibilityIsCalculatedInMemoryAndPersistedInBulk() {
+        JournalTag visibleSystemTag = catalogTag(10L, JournalTagCategory.CONDITION, JournalTagScope.SYSTEM, null, false);
+        JournalTag hiddenUserTag = catalogTag(20L, JournalTagCategory.TROUBLE, JournalTagScope.USER, userId, true);
+        UserJournalTagPreference existingPreference =
+                UserJournalTagPreference.create(userId, hiddenUserTag.getId(), false, true);
+        ConditionTag conditionTag = ConditionTag.builder()
+                .id(101L)
+                .userId(userId)
+                .condition("calm")
+                .conditionType(ConditionType.CALM)
+                .isActive(false)
+                .visible(false)
+                .build();
+        TroubleTag troubleTag = TroubleTag.builder()
+                .id(201L)
+                .userId(userId)
+                .trouble("inattention")
+                .type(TroubleType.INATTENTION)
+                .isActive(false)
+                .visible(true)
+                .build();
+        LegacyJournalTagMapping conditionMapping = LegacyJournalTagMapping.create(
+                JournalTagCategory.CONDITION, conditionTag.getId(), userId, visibleSystemTag.getId());
+        LegacyJournalTagMapping troubleMapping = LegacyJournalTagMapping.create(
+                JournalTagCategory.TROUBLE, troubleTag.getId(), userId, hiddenUserTag.getId());
+        List<UserJournalTagPreference> savedPreferences = new ArrayList<>();
+
+        when(journalTagRepository.findAllByScopeAndIsActiveTrue(JournalTagScope.SYSTEM))
+                .thenReturn(List.of(visibleSystemTag));
+        when(journalTagRepository.findAllByScopeAndOwnerUserIdAndIsActiveTrue(JournalTagScope.USER, userId))
+                .thenReturn(List.of(hiddenUserTag));
+        when(preferenceRepository.findAllByUserId(userId)).thenReturn(List.of(existingPreference));
+        when(preferenceRepository.saveAll(any())).thenAnswer(invocation -> {
+            Iterable<UserJournalTagPreference> preferences = invocation.getArgument(0);
+            preferences.forEach(savedPreferences::add);
+            return savedPreferences;
+        });
+        when(mappingRepository.findAllByUserId(userId))
+                .thenReturn(List.of(conditionMapping, troubleMapping));
+        when(conditionTagRepository.findAllById(Set.of(conditionTag.getId()))).thenReturn(List.of(conditionTag));
+        when(troubleTagRepository.findAllById(Set.of(troubleTag.getId()))).thenReturn(List.of(troubleTag));
+
+        catalogService.bulkSetVisibilityForOnboarding(userId, Set.of(visibleSystemTag.getId()));
+
+        assertThat(savedPreferences).hasSize(2);
+        assertThat(savedPreferences).anySatisfy(preference -> {
+            assertThat(preference.getJournalTagId()).isEqualTo(visibleSystemTag.getId());
+            assertThat(preference.isEnabled()).isTrue();
+            assertThat(preference.isVisible()).isTrue();
+        });
+        assertThat(existingPreference.isEnabled()).isTrue();
+        assertThat(existingPreference.isVisible()).isFalse();
+        assertThat(conditionTag.isActive()).isTrue();
+        assertThat(conditionTag.isVisible()).isTrue();
+        assertThat(troubleTag.isActive()).isTrue();
+        assertThat(troubleTag.isVisible()).isFalse();
+        verify(preferenceRepository, never()).findById(any());
+        verify(preferenceRepository, never()).save(any());
+        verify(mappingRepository).findAllByUserId(userId);
+    }
+
+    @Test
     void createUserTagAlsoCreatesLegacyCompatibilityMapping() {
         JournalTag userTag = catalogTag(10L, JournalTagScope.USER, userId, false);
         ConditionTag legacyTag = ConditionTag.builder()
@@ -216,11 +284,21 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(userTag));
     }
 
     private JournalTag catalogTag(Long id, JournalTagScope scope, UUID ownerUserId, boolean defaultVisible) {
+        return catalogTag(id, JournalTagCategory.CONDITION, scope, ownerUserId, defaultVisible);
+    }
+
+    private JournalTag catalogTag(
+            Long id,
+            JournalTagCategory category,
+            JournalTagScope scope,
+            UUID ownerUserId,
+            boolean defaultVisible
+    ) {
         return JournalTag.builder()
                 .id(id)
-                .category(JournalTagCategory.CONDITION)
+                .category(category)
                 .name("calm")
-                .tagType("CALM")
+                .tagType(category == JournalTagCategory.TROUBLE ? "INATTENTION" : "CALM")
                 .scope(scope)
                 .ownerUserId(ownerUserId)
                 .ownerKey(ownerUserId != null ? ownerUserId : JournalTag.SYSTEM_OWNER_KEY)

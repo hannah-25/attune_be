@@ -69,20 +69,33 @@ public class JournalTagCatalogService {
 
     @Transactional
     public void bulkSetVisibilityForOnboarding(UUID userId, Set<Long> visibleCatalogTagIds) {
-        for (JournalTagCategory category : JournalTagCategory.values()) {
-            Stream.concat(
-                    journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category).stream(),
-                    journalTagRepository.findAllByScopeAndOwnerUserIdAndCategoryAndIsActiveTrue(JournalTagScope.USER, userId, category).stream()
-            ).forEach(tag -> {
-                boolean visible = visibleCatalogTagIds.contains(tag.getId());
-                UserJournalTagPreferenceId prefId = new UserJournalTagPreferenceId(userId, tag.getId());
-                UserJournalTagPreference pref = preferenceRepository.findById(prefId)
-                        .orElseGet(() -> UserJournalTagPreference.create(userId, tag.getId(), true, visible));
-                pref.update(true, visible);
-                preferenceRepository.save(pref);
-                syncLegacyTags(userId, category, tag.getId(), true, visible);
-            });
-        }
+        List<JournalTag> catalogTags = Stream.concat(
+                journalTagRepository.findAllByScopeAndIsActiveTrue(JournalTagScope.SYSTEM).stream(),
+                journalTagRepository.findAllByScopeAndOwnerUserIdAndIsActiveTrue(
+                        JournalTagScope.USER, userId).stream()
+        ).toList();
+        Map<Long, UserJournalTagPreference> preferencesByTagId = preferenceRepository.findAllByUserId(userId).stream()
+                .collect(Collectors.toMap(UserJournalTagPreference::getJournalTagId, Function.identity()));
+
+        List<UserJournalTagPreference> preferences = catalogTags.stream()
+                .map(tag -> {
+                    boolean visible = visibleCatalogTagIds.contains(tag.getId());
+                    UserJournalTagPreference preference = preferencesByTagId.get(tag.getId());
+                    if (preference == null) {
+                        preference = UserJournalTagPreference.create(userId, tag.getId(), true, visible);
+                    }
+                    preference.update(true, visible);
+                    return preference;
+                })
+                .toList();
+        preferenceRepository.saveAll(preferences);
+
+        Map<Long, Boolean> visibilityByCatalogTagId = catalogTags.stream()
+                .collect(Collectors.toMap(
+                        JournalTag::getId,
+                        tag -> visibleCatalogTagIds.contains(tag.getId())
+                ));
+        syncLegacyTagsForOnboarding(userId, visibilityByCatalogTagId);
     }
 
     private List<CatalogJournalTagResponse> buildTagResponse(UUID userId, JournalTagCategory category) {
@@ -224,6 +237,77 @@ public class JournalTagCatalogService {
                     .forEach(tag -> tag.changePreference(enabled, visible));
         }
         return legacyIds;
+    }
+
+    private void syncLegacyTagsForOnboarding(UUID userId, Map<Long, Boolean> visibilityByCatalogTagId) {
+        Map<JournalTagCategory, Map<Long, Long>> catalogTagIdsByLegacyId = mappingRepository.findAllByUserId(userId)
+                .stream()
+                .filter(mapping -> visibilityByCatalogTagId.containsKey(mapping.getJournalTagId()))
+                .collect(Collectors.groupingBy(
+                        LegacyJournalTagMapping::getLegacyCategory,
+                        Collectors.toMap(
+                                LegacyJournalTagMapping::getLegacyTagId,
+                                LegacyJournalTagMapping::getJournalTagId
+                        )
+                ));
+
+        syncConditionTags(
+                userId,
+                catalogTagIdsByLegacyId.getOrDefault(JournalTagCategory.CONDITION, Map.of()),
+                visibilityByCatalogTagId
+        );
+        syncSideEffectTags(
+                userId,
+                catalogTagIdsByLegacyId.getOrDefault(JournalTagCategory.SIDE_EFFECT, Map.of()),
+                visibilityByCatalogTagId
+        );
+        syncTroubleTags(
+                userId,
+                catalogTagIdsByLegacyId.getOrDefault(JournalTagCategory.TROUBLE, Map.of()),
+                visibilityByCatalogTagId
+        );
+    }
+
+    private void syncConditionTags(
+            UUID userId, Map<Long, Long> catalogTagIdsByLegacyId, Map<Long, Boolean> visibilityByCatalogTagId
+    ) {
+        if (catalogTagIdsByLegacyId.isEmpty()) {
+            return;
+        }
+        conditionTagRepository.findAllById(catalogTagIdsByLegacyId.keySet()).stream()
+                .filter(tag -> userId.equals(tag.getUserId()))
+                .forEach(tag -> tag.changePreference(
+                        true,
+                        visibilityByCatalogTagId.get(catalogTagIdsByLegacyId.get(tag.getId()))
+                ));
+    }
+
+    private void syncSideEffectTags(
+            UUID userId, Map<Long, Long> catalogTagIdsByLegacyId, Map<Long, Boolean> visibilityByCatalogTagId
+    ) {
+        if (catalogTagIdsByLegacyId.isEmpty()) {
+            return;
+        }
+        sideEffectTagRepository.findAllById(catalogTagIdsByLegacyId.keySet()).stream()
+                .filter(tag -> userId.equals(tag.getUserId()))
+                .forEach(tag -> tag.changePreference(
+                        true,
+                        visibilityByCatalogTagId.get(catalogTagIdsByLegacyId.get(tag.getId()))
+                ));
+    }
+
+    private void syncTroubleTags(
+            UUID userId, Map<Long, Long> catalogTagIdsByLegacyId, Map<Long, Boolean> visibilityByCatalogTagId
+    ) {
+        if (catalogTagIdsByLegacyId.isEmpty()) {
+            return;
+        }
+        troubleTagRepository.findAllById(catalogTagIdsByLegacyId.keySet()).stream()
+                .filter(tag -> userId.equals(tag.getUserId()))
+                .forEach(tag -> tag.changePreference(
+                        true,
+                        visibilityByCatalogTagId.get(catalogTagIdsByLegacyId.get(tag.getId()))
+                ));
     }
 
     private Long createLegacyCompatibilityTag(UUID userId, JournalTag tag, boolean visible) {
