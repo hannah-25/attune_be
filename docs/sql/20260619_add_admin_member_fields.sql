@@ -3,7 +3,7 @@ ALTER TABLE users
     ADD COLUMN last_login_at DATETIME(6) NULL;
 
 UPDATE users
-SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP(6));
+SET created_at = COALESCE(created_at, UTC_TIMESTAMP(6));
 
 ALTER TABLE users
     MODIFY COLUMN created_at DATETIME(6) NOT NULL,
