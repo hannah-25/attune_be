@@ -33,8 +33,10 @@ public class AdminAuditLogService implements AdminAuditLogRecorder {
             String adminEmail,
             String reason
     ) {
-        save(AuditAction.WITHDRAWAL_CANCELLED, plainMemberReference(memberId),
-                requireText(memberNickname, "memberNickname", 200),
+        String label = (memberNickname != null && !memberNickname.isBlank())
+                ? memberNickname.trim()
+                : null;
+        save(AuditAction.WITHDRAWAL_CANCELLED, plainMemberReference(memberId), label,
                 adminId, adminEmail, reason);
     }
 
