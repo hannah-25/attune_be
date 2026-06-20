@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Getter
@@ -44,6 +45,18 @@ public class User {
 
     private LocalDateTime withdrawalAt;
 
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    private LocalDateTime lastLoginAt;
+
+    @PrePersist
+    void initializeCreatedAt() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now(ZoneOffset.UTC);
+        }
+    }
+
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
@@ -75,12 +88,20 @@ public class User {
 
     public void withdraw() {
         this.userStatus = UserStatus.WITHDRAWAL;
-        this.withdrawalAt = LocalDateTime.now();
+        this.withdrawalAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void restore() {
         this.userStatus = UserStatus.ACTIVE;
         this.withdrawalAt = null;
+    }
+
+    public void suspend() {
+        this.userStatus = UserStatus.SUSPENDED;
+    }
+
+    public void recordLogin(LocalDateTime loggedInAt) {
+        this.lastLoginAt = loggedInAt;
     }
 
     public void linkSocialProvider(OAuthProvider provider, String providerId) {

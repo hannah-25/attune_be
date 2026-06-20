@@ -96,3 +96,7 @@ notification:
       # subject는 비밀이 아니므로 공통 기본값으로 둔다 (public/private key만 secret에서 주입)
       subject: mailto:support@attune-me.com
 
+admin:
+  audit:
+    hmac-secret: ${ADMIN_AUDIT_HMAC_SECRET}
+

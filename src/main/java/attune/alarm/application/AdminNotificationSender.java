@@ -47,6 +47,31 @@ public class AdminNotificationSender {
         log.info("[MARKETING PUSH] noticeId={} completed", noticeId);
     }
 
+    @Async
+    public void sendMarketingPush(String title, String body, String targetUrl, Long campaignId, LocalDateTime scheduledAt) {
+        String url = targetUrl != null ? targetUrl : "/";
+        PushMessage message = new PushMessage(title, body, url);
+
+        log.info("[MARKETING PUSH] campaignId={} title=\"{}\"", campaignId, title);
+
+        int page = 0;
+        List<UserSetting> batch;
+        do {
+            batch = loadBatch(page++);
+            for (UserSetting setting : batch) {
+                notificationService.sendToUser(
+                        setting.getId(),
+                        NotificationAlarmType.MARKETING,
+                        campaignId,
+                        scheduledAt,
+                        message
+                );
+            }
+        } while (batch.size() == BATCH_SIZE);
+
+        log.info("[MARKETING PUSH] campaignId={} completed", campaignId);
+    }
+
     private List<UserSetting> loadBatch(int page) {
         return userSettingRepository.findAllByMarketingNotificationTrue(PageRequest.of(page, BATCH_SIZE, Sort.by("id").ascending()));
     }

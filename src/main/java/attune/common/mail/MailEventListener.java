@@ -1,6 +1,7 @@
 package attune.common.mail;
 
 import attune.common.mail.event.InquiryCreatedEvent;
+import attune.common.mail.event.NoticePublishedEvent;
 import attune.common.mail.event.TermsUpdatedEvent;
 import attune.common.mail.event.WelcomeEmailEvent;
 import attune.user.domain.model.User;
@@ -45,6 +46,19 @@ public class MailEventListener {
             page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, pageable);
             page.getContent().forEach(user ->
                     mailService.sendTermsUpdateEmail(user.getEmail(), event.title(), event.htmlContent()));
+            pageable = pageable.next();
+        } while (page.hasNext());
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleNoticePublished(NoticePublishedEvent event) {
+        Pageable pageable = PageRequest.of(0, BATCH_SIZE);
+        Page<User> page;
+        do {
+            page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, pageable);
+            page.getContent().forEach(user ->
+                    mailService.sendTermsUpdateEmail(user.getEmail(), event.title(), event.content()));
             pageable = pageable.next();
         } while (page.hasNext());
     }

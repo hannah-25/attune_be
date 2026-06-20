@@ -53,3 +53,7 @@ oauth:
     client-ids: test-google-client-id
   apple:
     app-id: com.example.attune.test
+
+admin:
+  audit:
+    hmac-secret: test-admin-audit-hmac-secret

@@ -25,4 +25,12 @@ public interface UserSettingRepository extends JpaRepository<UserSetting, UUID> 
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
             """)
     List<UserSetting> findAllByMarketingNotificationTrue(Pageable pageable);
+
+    @Query("""
+            SELECT COUNT(us) FROM UserSetting us
+            JOIN us.user u
+            WHERE us.marketingNotification = true
+              AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
+            """)
+    long countMarketingTargets();
 }

@@ -1,12 +1,15 @@
 package attune.notice.application;
 
+import attune.alarm.application.AdminNotificationSender;
 import attune.common.error.notfound.NoticeNotFoundException;
+import attune.common.mail.event.NoticePublishedEvent;
 import attune.notice.application.dto.request.CreateNoticeRequest;
 import attune.notice.application.dto.request.UpdateNoticeRequest;
 import attune.notice.application.dto.response.*;
 import attune.notice.domain.model.Notice;
 import attune.notice.domain.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +24,8 @@ import java.time.LocalDateTime;
 public class NoticeService {
 
     private final NoticeRepository noticeRepository;
+    private final AdminNotificationSender adminNotificationSender;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public NoticeListResponse getNotices(int page, int size, String q) {
@@ -54,7 +59,16 @@ public class NoticeService {
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
-        return CreateNoticeResponse.from(noticeRepository.save(notice));
+        Notice saved = noticeRepository.save(notice);
+
+        if (request.sendNotification()) {
+            adminNotificationSender.sendNoticeToAll(saved.getId(), saved.getTitle(), saved.getContent(), saved.getCreatedAt());
+        }
+        if (request.sendEmail()) {
+            eventPublisher.publishEvent(new NoticePublishedEvent(saved.getTitle(), saved.getContent()));
+        }
+
+        return CreateNoticeResponse.from(saved);
     }
 
     @Transactional

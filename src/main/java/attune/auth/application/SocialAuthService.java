@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Service
 @Transactional
@@ -50,6 +52,7 @@ public class SocialAuthService {
 
         OAuthUserInfo info = verifier.verify(request.token());
         User user = findOrCreateUser(request.provider(), info);
+        user.recordLogin(LocalDateTime.now(ZoneOffset.UTC));
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), user.getUserStatus());
         String refreshToken = jwtProvider.generateRefreshToken();
@@ -105,6 +108,7 @@ public class SocialAuthService {
         }
 
         user.restore();
+        user.recordLogin(LocalDateTime.now(ZoneOffset.UTC));
         eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);

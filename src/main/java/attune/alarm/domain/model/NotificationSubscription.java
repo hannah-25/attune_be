@@ -44,7 +44,7 @@ public class NotificationSubscription {
     @Column(length = 255)
     private String auth;
 
-    @Column(length = 2048, columnDefinition = "VARCHAR(2048) CHARACTER SET ascii")
+    @Column(length = 2048)
     private String token;
 
     @Column(nullable = false)

@@ -4,6 +4,7 @@ import attune.common.error.notfound.TermNotFoundException;
 import attune.common.mail.event.TermsUpdatedEvent;
 import attune.common.util.SecurityUtils;
 import attune.term.application.dto.request.CreateTermRequest;
+import attune.term.application.dto.response.AdminTermResponse;
 import attune.term.application.dto.response.CreateTermResponse;
 import attune.term.application.dto.response.TermResponse;
 import attune.term.domain.model.Term;
@@ -49,6 +50,13 @@ public class TermService {
         }
 
         return CreateTermResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminTermResponse> getAllTermsForAdmin() {
+        return termRepository.findAllByOrderByCreatedAtDesc().stream()
+                .map(AdminTermResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
