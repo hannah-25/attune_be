@@ -60,6 +60,7 @@ jobs:
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
           script_stop: true
+          command_timeout: 12m
           script: |
             set -eu
 
