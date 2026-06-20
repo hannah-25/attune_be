@@ -3,6 +3,7 @@ name: Attune Backend Prod Deploy
 on:
   push:
     branches: [ "main" ] # main 브랜치에 푸시될 때 작동
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -58,16 +59,50 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          script_stop: true
           script: |
+            set -eu
+
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             docker stop attune-prod-apps || true
             docker rm attune-prod-apps || true
             docker image prune -f
             docker pull hannah098/attune-be:prod
             docker run -d --name attune-prod-apps --network host \
+              --restart unless-stopped \
               -e SPRING_PROFILES_ACTIVE=prod \
-              -e VAPID_PUBLIC_KEY="${{ secrets.VAPID_PUBLIC_KEY }}" \
-              -e VAPID_PRIVATE_KEY="${{ secrets.VAPID_PRIVATE_KEY }}" \
+              -e APP_MIGRATION_DEFAULTTAGS_ENABLED=false \
               hannah098/attune-be:prod
-            sleep 20
-            curl -f http://localhost:8080/actuator/health || exit 1
+
+            for attempt in $(seq 1 120); do
+              health_status="$(curl --silent --output /tmp/attune-prod-health.json \
+                --write-out '%{http_code}' http://localhost:8080/actuator/health || true)"
+
+              if [ "$health_status" = "200" ]; then
+                cat /tmp/attune-prod-health.json
+                echo
+                echo "Prod application is healthy."
+                exit 0
+              fi
+
+              if [ "$(docker inspect --format '{{.State.Running}}' attune-prod-apps 2>/dev/null || true)" != "true" ]; then
+                echo "Prod application container exited before becoming healthy."
+                docker inspect attune-prod-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+                docker logs --tail 300 attune-prod-apps
+                exit 1
+              fi
+
+              if [ $((attempt % 12)) -eq 0 ]; then
+                echo "Waiting for readiness: attempt=${attempt}/120, httpStatus=${health_status}"
+                cat /tmp/attune-prod-health.json 2>/dev/null || true
+                echo
+                docker logs --tail 100 attune-prod-apps
+              fi
+
+              sleep 5
+            done
+
+            echo "Prod application did not become healthy within 600 seconds."
+            docker inspect attune-prod-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+            docker logs --tail 300 attune-prod-apps
+            exit 1
