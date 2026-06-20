@@ -114,7 +114,12 @@ class AdminMemberServiceTest {
                 .withdrawalAt(LocalDateTime.of(2026, 6, 1, 12, 0))
                 .build();
         when(repository.findByIdForUpdate(memberId)).thenReturn(Optional.of(member));
-        when(repository.findEmailById(adminId)).thenReturn(Optional.of("admin@attune.test"));
+        User admin = User.builder()
+                .id(adminId)
+                .email("admin@attune.test")
+                .userType(UserType.ADMIN)
+                .build();
+        when(repository.findById(adminId)).thenReturn(Optional.of(admin));
         when(withdrawalPolicy.retentionDays()).thenReturn(30);
 
         AdminMemberResponse response = service.cancelWithdrawal(
