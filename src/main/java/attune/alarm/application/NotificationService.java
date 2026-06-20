@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ public class NotificationService {
 
     private final NotificationTxOperations txOps;
     private final PushSenderRouter pushSenderRouter;
+    private final Clock clock;
 
     /**
      * 사용자에게 푸시 알람을 발송한다.
@@ -48,7 +50,7 @@ public class NotificationService {
                     alarmType,
                     referenceId,
                     scheduledAt,
-                    LocalDateTime.now().minusMinutes(STALE_SENDING_MINUTES)
+                    LocalDateTime.now(clock).minusMinutes(STALE_SENDING_MINUTES)
             ).orElse(null);
             if (claimed == null) {
                 log.debug("[ALARM SKIP] duplicate userId={} type={} refId={} at={}",

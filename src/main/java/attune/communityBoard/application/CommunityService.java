@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -28,6 +29,7 @@ public class CommunityService {
 
     private final UserRepository userRepository;
     private final CommunityBoardRepository communityBoardRepository;
+    private final Clock clock;
 
 
     @Transactional
@@ -39,7 +41,7 @@ public class CommunityService {
         }
         User user = userRepository.findById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         CommunityBoard communityBoard = CommunityBoard.builder()
                 .user(user)
@@ -86,7 +88,7 @@ public class CommunityService {
             throw new AccessDeniedException("수정 권한이 없습니다.");
         }
 
-        board.update(request.title(), request.content(), request.postCategory());
+        board.update(request.title(), request.content(), request.postCategory(), LocalDateTime.now(clock));
         return PostResponse.from(board, userId);
     }
 

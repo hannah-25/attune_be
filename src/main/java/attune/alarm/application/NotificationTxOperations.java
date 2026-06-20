@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -26,6 +27,7 @@ public class NotificationTxOperations {
 
     private final NotificationHistoryRepository historyRepository;
     private final NotificationSubscriptionRepository subscriptionRepository;
+    private final Clock clock;
 
     record ClaimResult(NotificationHistory history, List<NotificationSubscription> subscriptions) {}
 
@@ -40,7 +42,7 @@ public class NotificationTxOperations {
                                                   Long referenceId,
                                                   LocalDateTime scheduledAt,
                                                   PushMessage message) {
-        LocalDateTime claimedAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        LocalDateTime claimedAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
         NotificationHistory history = historyRepository.saveAndFlush(
                 NotificationHistory.builder()
                         .userId(userId)
@@ -63,7 +65,7 @@ public class NotificationTxOperations {
                                                              Long referenceId,
                                                              LocalDateTime scheduledAt,
                                                              LocalDateTime staleBefore) {
-        LocalDateTime claimedAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        LocalDateTime claimedAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MICROS);
         int reclaimed = historyRepository.reclaimForRetry(
                 userId,
                 alarmType,
@@ -105,7 +107,8 @@ public class NotificationTxOperations {
     @Transactional
     public void disableSubscriptions(List<Long> subscriptionIds) {
         List<NotificationSubscription> targets = subscriptionRepository.findAllById(subscriptionIds);
-        targets.forEach(NotificationSubscription::disable);
+        LocalDateTime now = LocalDateTime.now(clock);
+        targets.forEach(subscription -> subscription.disable(now));
         log.info("[ALARM SUBSCRIPTION DISABLED] ids={}", subscriptionIds);
     }
 }

@@ -20,6 +20,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -33,6 +34,7 @@ public class CommentService {
     private final CommunityBoardRepository communityBoardRepository;
     private final CommentRepository commentRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(Long postId) {
@@ -58,7 +60,7 @@ public class CommentService {
         CommunityBoard post = communityBoardRepository.findByIdAndIsDeletedFalse(postId)
                 .orElseThrow(() -> new NoSuchElementException("게시글을 찾을 수 없습니다."));
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         Comment comment = Comment.builder()
                 .user(user)
                 .communityBoard(post)
@@ -89,7 +91,7 @@ public class CommentService {
             throw new AccessDeniedException("수정 권한이 없습니다.");
         }
 
-        comment.update(request.isAnonymous(), request.content());
+        comment.update(request.isAnonymous(), request.content(), LocalDateTime.now(clock));
         return UpdateCommentResponse.from(comment);
     }
 

@@ -4,8 +4,11 @@ import attune.medication.domain.repository.UserMedicationScheduleRepository;
 import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,11 +18,14 @@ import static org.mockito.Mockito.when;
 
 class MedicationAlarmSchedulerTest {
 
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2024-01-01T01:00:00Z"), ZoneId.of("Asia/Seoul"));
     private final UserMedicationScheduleRepository scheduleRepository = mock(UserMedicationScheduleRepository.class);
     private final MedicationAlarmScheduler scheduler = new MedicationAlarmScheduler(
             scheduleRepository,
             mock(UserSettingRepository.class),
-            mock(NotificationService.class)
+            mock(NotificationService.class),
+            FIXED_CLOCK
     );
 
     @Test

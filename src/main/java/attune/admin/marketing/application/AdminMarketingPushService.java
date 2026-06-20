@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 @RequiredArgsConstructor
 @Service
@@ -18,6 +18,7 @@ public class AdminMarketingPushService {
 
     private final UserSettingRepository userSettingRepository;
     private final AdminNotificationSender adminNotificationSender;
+    private final Clock clock;
 
     public MarketingPushResponse send(MarketingPushRequest request) {
         long targetCount = userSettingRepository.countMarketingTargets();
@@ -25,9 +26,9 @@ public class AdminMarketingPushService {
             throw new NoMarketingTargetsException();
         }
 
-        Instant sentAt = Instant.now();
+        Instant sentAt = Instant.now(clock);
         Long campaignId = sentAt.toEpochMilli();
-        LocalDateTime scheduledAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        LocalDateTime scheduledAt = LocalDateTime.now(clock);
 
         adminNotificationSender.sendMarketingPush(
                 request.title(),

@@ -11,9 +11,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,10 +32,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DefaultTagServiceTest {
 
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 21, 0, 0);
+
     @Mock
     private JournalTagRepository journalTagRepository;
     @Mock
     private UserJournalTagPreferenceRepository preferenceRepository;
+    @Spy
+    private Clock clock = Clock.fixed(
+            Instant.parse("2026-06-20T15:00:00Z"), ZoneId.of("Asia/Seoul"));
 
     @InjectMocks
     private DefaultTagService defaultTagService;
@@ -66,7 +75,8 @@ class DefaultTagServiceTest {
     void copyForUserSkipsExistingPreferences() {
         UUID userId = UUID.randomUUID();
         JournalTag tag = systemTag(1L, JournalTagCategory.CONDITION, true);
-        UserJournalTagPreference existingPref = UserJournalTagPreference.create(userId, 1L, true, true);
+        UserJournalTagPreference existingPref =
+                UserJournalTagPreference.create(userId, 1L, true, true, NOW);
 
         when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.CONDITION))
                 .thenReturn(List.of(tag));

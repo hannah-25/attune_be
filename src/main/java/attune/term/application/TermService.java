@@ -19,6 +19,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -33,6 +34,7 @@ public class TermService {
     private final UserTermAgreementRepository userTermAgreementRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional
     public CreateTermResponse createTerm(CreateTermRequest request) {
@@ -77,7 +79,7 @@ public class TermService {
                 TermType.MARKETING_CONSENT, marketingConsent
         );
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<UserTermAgreement> agreements = Arrays.stream(TermType.values())
                 .filter(type -> type != TermType.AI_ANALYSIS_CONSENT)
                 .map(type -> {
@@ -119,7 +121,7 @@ public class TermService {
         User user = userRepository.getReferenceById(userId);
         Term term = termRepository.findTopByTypeOrderByVersionDesc(TermType.AI_ANALYSIS_CONSENT)
                 .orElseThrow(TermNotFoundException::new);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         userTermAgreementRepository.save(UserTermAgreement.builder()
                 .user(user)
                 .term(term)

@@ -16,7 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +30,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AccountServiceTest {
+
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.parse("2026-06-06T01:00:00Z"), ZoneId.of("Asia/Seoul"));
 
     @Test
     void verifyEmailPublishesUserActivatedEventOnce() {
@@ -45,7 +51,8 @@ class AccountServiceTest {
                 mock(MailService.class),
                 mock(TermService.class),
                 eventPublisher,
-                mock(UserAuthCacheRepository.class)
+                mock(UserAuthCacheRepository.class),
+                FIXED_CLOCK
         );
         User user = User.builder()
                 .id(userId)
@@ -56,7 +63,7 @@ class AccountServiceTest {
         EmailVerificationToken verificationToken = EmailVerificationToken.builder()
                 .userId(userId)
                 .token(token)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(FIXED_CLOCK))
                 .build();
 
         when(emailVerificationTokenRepository.findByToken(token)).thenReturn(Optional.of(verificationToken));

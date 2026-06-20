@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -48,13 +49,15 @@ public class JournalTagCatalogCheckService {
     private final ConditionLogRepository conditionLogRepository;
     private final SideEffectLogRepository sideEffectLogRepository;
     private final TroubleLogRepository troubleLogRepository;
+    private final Clock clock;
 
     @Transactional
     public CatalogTagCheckResponse check(Long catalogTagId) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime now = LocalDateTime.now(clock);
         JournalTag tag = requireEnabledTag(userId, catalogTagId);
-        Long legacyTagId = findOrCreateLegacyTag(userId, tag);
-        LocalDateTime checkedAt = LocalDateTime.now();
+        Long legacyTagId = findOrCreateLegacyTag(userId, tag, now);
+        LocalDateTime checkedAt = now;
 
         switch (tag.getCategory()) {
             case CONDITION -> conditionLogRepository.save(ConditionLog.builder()
@@ -115,16 +118,16 @@ public class JournalTagCatalogCheckService {
                 .orElseThrow(JournalTagNotFoundException::new);
     }
 
-    private Long findOrCreateLegacyTag(UUID userId, JournalTag tag) {
+    private Long findOrCreateLegacyTag(UUID userId, JournalTag tag, LocalDateTime now) {
         return mappingRepository.findByUserIdAndLegacyCategoryAndJournalTagId(
                         userId, tag.getCategory(), tag.getId()
                 ).stream()
                 .map(LegacyJournalTagMapping::getLegacyTagId)
                 .min(Long::compareTo)
-                .orElseGet(() -> createLegacyCompatibilityTag(userId, tag));
+                .orElseGet(() -> createLegacyCompatibilityTag(userId, tag, now));
     }
 
-    private Long createLegacyCompatibilityTag(UUID userId, JournalTag tag) {
+    private Long createLegacyCompatibilityTag(UUID userId, JournalTag tag, LocalDateTime now) {
         boolean visible = effectiveVisible(userId, tag);
         Long legacyTagId = switch (tag.getCategory()) {
             case CONDITION -> conditionTagRepository.save(ConditionTag.builder()
@@ -148,16 +151,17 @@ public class JournalTagCatalogCheckService {
                     .visible(visible)
                     .build()).getId();
         };
-        mappingRepository.save(LegacyJournalTagMapping.create(tag.getCategory(), legacyTagId, userId, tag.getId()));
-        ensurePreference(userId, tag.getId(), visible);
+        mappingRepository.save(LegacyJournalTagMapping.create(
+                tag.getCategory(), legacyTagId, userId, tag.getId(), now));
+        ensurePreference(userId, tag.getId(), visible, now);
         return legacyTagId;
     }
 
-    private void ensurePreference(UUID userId, Long journalTagId, boolean visible) {
+    private void ensurePreference(UUID userId, Long journalTagId, boolean visible, LocalDateTime now) {
         UserJournalTagPreferenceId id = new UserJournalTagPreferenceId(userId, journalTagId);
         UserJournalTagPreference preference = preferenceRepository.findById(id)
-                .orElseGet(() -> UserJournalTagPreference.create(userId, journalTagId, true, visible));
-        preference.update(true, visible);
+                .orElseGet(() -> UserJournalTagPreference.create(userId, journalTagId, true, visible, now));
+        preference.update(true, visible, now);
         preferenceRepository.save(preference);
     }
 

@@ -28,11 +28,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,6 +50,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JournalTagCatalogCheckServiceTest {
+
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 21, 0, 0);
 
     @Mock
     private JournalTagRepository journalTagRepository;
@@ -65,6 +71,9 @@ class JournalTagCatalogCheckServiceTest {
     private SideEffectLogRepository sideEffectLogRepository;
     @Mock
     private TroubleLogRepository troubleLogRepository;
+    @Spy
+    private Clock clock = Clock.fixed(
+            Instant.parse("2026-06-20T15:00:00Z"), ZoneId.of("Asia/Seoul"));
     @InjectMocks
     private JournalTagCatalogCheckService checkService;
 
@@ -148,9 +157,9 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
                 .updatedAt(LocalDateTime.now())
                 .build();
         LegacyJournalTagMapping higherMapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.CONDITION, 42L, userId, 10L);
+                JournalTagCategory.CONDITION, 42L, userId, 10L, NOW);
         LegacyJournalTagMapping lowerMapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.CONDITION, 21L, userId, 10L);
+                JournalTagCategory.CONDITION, 21L, userId, 10L, NOW);
         ArgumentCaptor<ConditionLog> logCaptor = ArgumentCaptor.forClass(ConditionLog.class);
 
         when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
@@ -183,7 +192,8 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
 
 when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         when(preferenceRepository.findById(any())).thenReturn(Optional.of(
-                attune.journal.domain.model.UserJournalTagPreference.create(userId, 10L, false, false)));
+                attune.journal.domain.model.UserJournalTagPreference.create(
+                        userId, 10L, false, false, NOW)));
 
         assertThatThrownBy(() -> checkService.check(10L))
                 .isInstanceOf(BadRequestException.class);

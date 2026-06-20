@@ -41,11 +41,11 @@ public class CommunityBoard {
 
     private Boolean isDeleted;
 
-    public void update(String title, String content, PostCategory postCategory) {
+    public void update(String title, String content, PostCategory postCategory, LocalDateTime now) {
         this.title = title;
         this.content = content;
         this.postCategory = postCategory;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     public void delete() {

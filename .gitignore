@@ -41,5 +41,6 @@ out/
 .claude/settings.local.json
 
 *.md
+!PLAN.md
 !docs/journal-tag-catalog-migration.md
 !docs/frontend-journal-tag-catalog-migration.md

@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class TodoService {
 
     private final TodoRepository todoRepository;
+    private final Clock clock;
 
     @Transactional
     public void createTodo(CreateTodoRequest request) {
@@ -38,7 +40,7 @@ public class TodoService {
                 .isAllDay(request.isAllDay())
                 .isCompleted(false)
                 .isDeleted(false)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(clock))
                 .build();
 
         todoRepository.save(todo);

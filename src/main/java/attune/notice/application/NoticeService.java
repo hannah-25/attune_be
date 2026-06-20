@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class NoticeService {
     private final NoticeRepository noticeRepository;
     private final AdminNotificationSender adminNotificationSender;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public NoticeListResponse getNotices(int page, int size, String q) {
@@ -50,7 +52,7 @@ public class NoticeService {
 
     @Transactional
     public CreateNoticeResponse createNotice(CreateNoticeRequest request) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         Notice notice = Notice.builder()
                 .title(request.title())
                 .content(request.content())
@@ -75,7 +77,7 @@ public class NoticeService {
     public UpdateNoticeResponse updateNotice(Long noticeId, UpdateNoticeRequest request) {
         Notice notice = noticeRepository.findByIdAndIsDeletedFalse(noticeId)
                 .orElseThrow(NoticeNotFoundException::new);
-        notice.update(request.title(), request.content(), request.isPinned());
+        notice.update(request.title(), request.content(), request.isPinned(), LocalDateTime.now(clock));
         return UpdateNoticeResponse.from(notice);
     }
 

@@ -66,8 +66,8 @@ public class CalendarConnection {
                                             String accountEmail,
                                             String accessToken,
                                             String refreshToken,
-                                            LocalDateTime tokenExpiresAt) {
-        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul"));
+                                            LocalDateTime tokenExpiresAt,
+                                            LocalDateTime now) {
         return CalendarConnection.builder()
                 .userId(userId)
                 .provider(CalendarProvider.GOOGLE)
@@ -85,7 +85,8 @@ public class CalendarConnection {
     public void reconnect(String accountEmail,
                           String accessToken,
                           String refreshToken,
-                          LocalDateTime tokenExpiresAt) {
+                          LocalDateTime tokenExpiresAt,
+                          LocalDateTime now) {
         this.accountEmail = accountEmail;
         this.accessToken = accessToken;
         if (refreshToken != null && !refreshToken.isBlank()) {
@@ -93,7 +94,7 @@ public class CalendarConnection {
         }
         this.tokenExpiresAt = tokenExpiresAt;
         this.isActive = true;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
         if (this.selectedCalendarIds == null || this.selectedCalendarIds.isBlank()) {
             this.selectedCalendarIds = "primary";
         }
@@ -109,15 +110,15 @@ public class CalendarConnection {
                 .toList();
     }
 
-    public void updateSelectedCalendarIds(List<String> calendarIds) {
+    public void updateSelectedCalendarIds(List<String> calendarIds, LocalDateTime now) {
         this.selectedCalendarIds = String.join(",", calendarIds);
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void updateAccessToken(String accessToken, LocalDateTime tokenExpiresAt) {
+    public void updateAccessToken(String accessToken, LocalDateTime tokenExpiresAt, LocalDateTime now) {
         this.accessToken = accessToken;
         this.tokenExpiresAt = tokenExpiresAt;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     public void markSynced(LocalDateTime syncedAt) {
@@ -125,8 +126,8 @@ public class CalendarConnection {
         this.updatedAt = syncedAt;
     }
 
-    public void deactivate() {
+    public void deactivate(LocalDateTime now) {
         this.isActive = false;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 }

@@ -39,14 +39,14 @@ public class Comment {
 
     private LocalDateTime updatedAt;
 
-    public void update(Boolean isAnonymous, String content) {
+    public void update(Boolean isAnonymous, String content, LocalDateTime now) {
         if (isAnonymous != null) {
             this.isAnonymous = isAnonymous;
         }
         if (content != null) {
             this.content = content;
         }
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     public void delete() {

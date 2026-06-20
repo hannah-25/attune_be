@@ -48,8 +48,7 @@ public class UserJournalTagPreference implements Persistable<UserJournalTagPrefe
     @Builder.Default
     private boolean newEntity = true;
 
-    public static UserJournalTagPreference create(UUID userId, Long journalTagId, boolean enabled, boolean visible) {
-        LocalDateTime now = LocalDateTime.now();
+    public static UserJournalTagPreference create(UUID userId, Long journalTagId, boolean enabled, boolean visible, LocalDateTime now) {
         return UserJournalTagPreference.builder()
                 .userId(userId)
                 .journalTagId(journalTagId)
@@ -60,10 +59,10 @@ public class UserJournalTagPreference implements Persistable<UserJournalTagPrefe
                 .build();
     }
 
-    public void update(boolean enabled, boolean visible) {
+    public void update(boolean enabled, boolean visible, LocalDateTime now) {
         this.enabled = enabled;
         this.visible = visible;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     @Override

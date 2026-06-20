@@ -10,6 +10,7 @@ import attune.admin.member.domain.repository.projection.MemberStatusCount;
 import attune.common.error.ConflictException;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
+import attune.user.domain.model.UserType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -135,26 +136,38 @@ class AdminMemberServiceTest {
 
     @Test
     void cancelWithdrawalReturnsNotFoundWhenMemberDoesNotExist() {
+        UUID adminId = UUID.randomUUID();
         UUID memberId = UUID.randomUUID();
+        when(repository.findById(adminId)).thenReturn(Optional.of(admin(adminId)));
         when(repository.findByIdForUpdate(memberId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.cancelWithdrawal(
-                UUID.randomUUID(), memberId, new CancelWithdrawalRequest("관리자 취소 요청")
+                adminId, memberId, new CancelWithdrawalRequest("관리자 취소 요청")
         )).isInstanceOf(AdminMemberNotFoundException.class);
         verifyNoInteractions(auditRecorder);
     }
 
     @Test
     void cancelWithdrawalReturnsConflictForActiveMember() {
+        UUID adminId = UUID.randomUUID();
         UUID memberId = UUID.randomUUID();
+        when(repository.findById(adminId)).thenReturn(Optional.of(admin(adminId)));
         when(repository.findByIdForUpdate(memberId)).thenReturn(Optional.of(
                 User.builder().id(memberId).userStatus(UserStatus.ACTIVE).build()
         ));
 
         assertThatThrownBy(() -> service.cancelWithdrawal(
-                UUID.randomUUID(), memberId, new CancelWithdrawalRequest("관리자 취소 요청")
+                adminId, memberId, new CancelWithdrawalRequest("관리자 취소 요청")
         )).isInstanceOf(ConflictException.class);
         verify(auditRecorder, never()).recordWithdrawalCancelled(any(), any(), any(), any(), any());
+    }
+
+    private User admin(UUID adminId) {
+        return User.builder()
+                .id(adminId)
+                .email("admin@attune.test")
+                .userType(UserType.ADMIN)
+                .build();
     }
 
     private MemberStatusCount statusCount(UserStatus status, long count) {

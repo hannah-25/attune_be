@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class UserMedicationTest {
 
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 21, 0, 0);
+
     @Test
     void updateClearsEndAtWhenEndAtFieldIsProvidedAsNull() {
         UserMedication userMedication = UserMedication.builder()
@@ -19,10 +21,11 @@ class UserMedicationTest {
                 .updatedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build();
 
-        userMedication.update(null, true, true, null);
+        userMedication.update(null, true, true, null, NOW);
 
         assertNull(userMedication.getEndAt());
         assertEquals(true, userMedication.getIsActive());
+        assertEquals(NOW, userMedication.getUpdatedAt());
     }
 
     @Test
@@ -35,10 +38,11 @@ class UserMedicationTest {
                 .updatedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build();
 
-        userMedication.update(null, false, true, null);
+        userMedication.update(null, false, true, null, NOW);
 
         assertEquals(existingEndAt, userMedication.getEndAt());
         assertEquals(true, userMedication.getIsActive());
+        assertEquals(NOW, userMedication.getUpdatedAt());
     }
 
     @Test
@@ -51,9 +55,10 @@ class UserMedicationTest {
                 .updatedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build();
 
-        userMedication.update(null, false, null, null);
+        userMedication.update(null, false, null, null, NOW);
 
         assertEquals(existingEndAt, userMedication.getEndAt());
         assertEquals(false, userMedication.getIsActive());
+        assertEquals(NOW, userMedication.getUpdatedAt());
     }
 }

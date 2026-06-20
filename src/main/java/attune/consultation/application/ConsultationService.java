@@ -26,6 +26,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -39,13 +40,14 @@ public class ConsultationService {
     private final ConsultationRepository consultationRepository;
     private final ConsultationQuestionRepository consultationQuestionRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     @Transactional
     public CreateConsultationResponse createConsultation(CreateConsultationRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         User userRef = userRepository.getReferenceById(userId);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         Consultation consultation = Consultation.builder()
                 .user(userRef)
                 .consultationDate(request.consultationDate())
@@ -63,13 +65,13 @@ public class ConsultationService {
     @Transactional
     public void deleteConsultation(Long consultationId) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.delete();
+        consultation.delete(LocalDateTime.now(clock));
     }
 
     @Transactional
     public void deleteResult(Long consultationId) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.clearResult();
+        consultation.clearResult(LocalDateTime.now(clock));
     }
 
     @Transactional(readOnly = true)
@@ -93,7 +95,7 @@ public class ConsultationService {
         ConsultationQuestion question = ConsultationQuestion.builder()
                 .consultation(consultation)
                 .text(request.text())
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(clock))
                 .build();
         return ConsultationQuestionResponse.from(consultationQuestionRepository.save(question));
     }
@@ -111,7 +113,12 @@ public class ConsultationService {
     public ConsultationUpdateResponse updateResult(Long consultationId,
                                                    UpdateConsultationResultRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateResult(request.doctorAdvice(), request.prescriptionNote(), request.nextTreatmentGoal());
+        consultation.updateResult(
+                request.doctorAdvice(),
+                request.prescriptionNote(),
+                request.nextTreatmentGoal(),
+                LocalDateTime.now(clock)
+        );
         return ConsultationUpdateResponse.from(consultation);
     }
 
@@ -136,7 +143,12 @@ public class ConsultationService {
     public ConsultationScheduleResponse updateSchedule(Long consultationId,
                                                        UpdateConsultationScheduleRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateSchedule(request.consultationDate(), request.place(), request.alarmSettings());
+        consultation.updateSchedule(
+                request.consultationDate(),
+                request.place(),
+                request.alarmSettings(),
+                LocalDateTime.now(clock)
+        );
         return ConsultationScheduleResponse.from(consultation);
     }
 

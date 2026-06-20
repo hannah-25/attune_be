@@ -56,21 +56,21 @@ public class NotificationSubscription {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public void updateKeys(String p256dh, String auth) {
+    public void updateKeys(String p256dh, String auth, LocalDateTime now) {
         this.p256dh = p256dh;
         this.auth = auth;
         this.enabled = true;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void updateToken(String token) {
+    public void updateToken(String token, LocalDateTime now) {
         this.token = token;
         this.enabled = true;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void disable() {
+    public void disable(LocalDateTime now) {
         this.enabled = false;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 }

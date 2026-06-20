@@ -41,9 +41,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,8 +54,6 @@ import java.util.stream.Collectors;
 @Service
 public class MedicationService {
 
-    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
-
     private final UserMedicationRepository userMedicationRepository;
     private final MedicationRepository medicationRepository;
     private final MedicationDosageRepository medicationDosageRepository;
@@ -63,6 +61,7 @@ public class MedicationService {
     private final UserMedicationLogRepository logRepository;
     private final UserRepository userRepository;
     private final ConsultationRepository consultationRepository;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
@@ -135,7 +134,7 @@ public class MedicationService {
         validateEndAtNotBeforeStartedAt(request.startedAt(), request.endAt());
         validateActiveMedicationEndAt(request.endAt());
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         UserMedication um = UserMedication.builder()
                 .user(userRef)
                 .consultation(consultation)
@@ -178,7 +177,13 @@ public class MedicationService {
             validateActiveMedicationEndAt(endAt);
         }
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
-        um.update(updateEndAt ? endAt : null, updateEndAt, request.isActive(), request.alarmActive());
+        um.update(
+                updateEndAt ? endAt : null,
+                updateEndAt,
+                request.isActive(),
+                request.alarmActive(),
+                LocalDateTime.now(clock)
+        );
         return UpdateMedicationResponse.from(um);
     }
 
@@ -223,7 +228,7 @@ public class MedicationService {
     public QuickLogResponse quickLog(Long userMedicationId, QuickLogRequest request) {
         getOwnedUserMedicationOrThrow(userMedicationId);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         if (request.action() == null) {
             throw new InvalidQuickLogRequestException();
         }
@@ -343,7 +348,7 @@ public class MedicationService {
     }
 
     private void validateActiveMedicationEndAt(LocalDate endAt) {
-        if (endAt != null && endAt.isBefore(LocalDate.now(SERVICE_ZONE))) {
+        if (endAt != null && endAt.isBefore(LocalDate.now(clock))) {
             throw new BadRequestException("활성화된 복약 정보의 종료일은 오늘보다 이전일 수 없습니다.");
         }
     }

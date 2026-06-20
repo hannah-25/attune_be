@@ -51,10 +51,10 @@ public class UserMedication {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void update(LocalDate endAt, boolean updateEndAt, Boolean isActive, Boolean alarmActive) {
+    public void update(LocalDate endAt, boolean updateEndAt, Boolean isActive, Boolean alarmActive, LocalDateTime now) {
         if (updateEndAt) this.endAt = endAt;
         if (isActive != null) this.isActive = isActive;
         if (alarmActive != null) this.alarmActive = alarmActive;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 }
