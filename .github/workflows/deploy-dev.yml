@@ -3,6 +3,7 @@ name: Attune Backend Dev Deploy
 on:
   push:
     branches: [ "develop" ] # develop 브랜치에 푸시될 때 작동
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -59,17 +60,50 @@ jobs:
           username: ${{ secrets.DEV_EC2_USERNAME }}
           key: ${{ secrets.DEV_EC2_SSH_KEY }}
           debug: true
+          script_stop: true
           script: |
+            set -eu
+
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             docker stop attune-dev-apps || true
             docker rm attune-dev-apps || true
             docker image prune -f
             docker pull hannah098/attune-be:dev
             docker run -d --name attune-dev-apps --network host \
+              --restart unless-stopped \
               -e SPRING_PROFILES_ACTIVE=dev \
-              -e PUSH_PROVIDER=web-push \
-              -e VAPID_PUBLIC_KEY="${{ secrets.VAPID_PUBLIC_KEY }}" \
-              -e VAPID_PRIVATE_KEY="${{ secrets.VAPID_PRIVATE_KEY }}" \
+              -e APP_MIGRATION_DEFAULTTAGS_ENABLED=false \
               hannah098/attune-be:dev
-            sleep 40
-            curl -f http://localhost:8080/actuator/health || exit 1
+
+            for attempt in $(seq 1 120); do
+              health_status="$(curl --silent --output /tmp/attune-dev-health.json \
+                --write-out '%{http_code}' http://localhost:8080/actuator/health || true)"
+
+              if [ "$health_status" = "200" ]; then
+                cat /tmp/attune-dev-health.json
+                echo
+                echo "Dev application is healthy."
+                exit 0
+              fi
+
+              if [ "$(docker inspect --format '{{.State.Running}}' attune-dev-apps 2>/dev/null || true)" != "true" ]; then
+                echo "Dev application container exited before becoming healthy."
+                docker inspect attune-dev-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+                docker logs --tail 300 attune-dev-apps
+                exit 1
+              fi
+
+              if [ $((attempt % 12)) -eq 0 ]; then
+                echo "Waiting for readiness: attempt=${attempt}/120, httpStatus=${health_status}"
+                cat /tmp/attune-dev-health.json 2>/dev/null || true
+                echo
+                docker logs --tail 100 attune-dev-apps
+              fi
+
+              sleep 5
+            done
+
+            echo "Dev application did not become healthy within 600 seconds."
+            docker inspect attune-dev-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+            docker logs --tail 300 attune-dev-apps
+            exit 1
