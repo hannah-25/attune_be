@@ -17,7 +17,9 @@ public record MemberStatusSummary(
     public static MemberStatusSummary from(List<MemberStatusCount> counts) {
         Map<UserStatus, Long> countByStatus = new EnumMap<>(UserStatus.class);
         for (MemberStatusCount count : counts) {
-            countByStatus.put(count.getStatus(), count.getCount());
+            if (count.getStatus() != null) {
+                countByStatus.put(count.getStatus(), count.getCount());
+            }
         }
         long pending = countByStatus.getOrDefault(UserStatus.PENDING, 0L);
         long active = countByStatus.getOrDefault(UserStatus.ACTIVE, 0L);
