@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @RequiredArgsConstructor
 @Service
@@ -26,7 +27,7 @@ public class AdminMarketingPushService {
 
         Instant sentAt = Instant.now();
         Long campaignId = sentAt.toEpochMilli();
-        LocalDateTime scheduledAt = LocalDateTime.now();
+        LocalDateTime scheduledAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
 
         adminNotificationSender.sendMarketingPush(
                 request.title(),
