@@ -1,7 +1,7 @@
 package attune.user.application;
 
 import attune.admin.audit.application.AdminAuditLogRecorder;
-import attune.auth.domain.repository.UserAuthCacheRepository;
+import attune.auth.application.UserAuthCacheEvictor;
 import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.common.error.notfound.UserNotFoundException;
@@ -12,8 +12,6 @@ import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 import java.time.LocalDateTime;
@@ -25,7 +23,7 @@ public class UserPermanentDeletionService {
     private final UserRepository userRepository;
     private final UserDataDeletionExecutor deletionExecutor;
     private final AdminAuditLogRecorder auditLogRecorder;
-    private final UserAuthCacheRepository userAuthCacheRepository;
+    private final UserAuthCacheEvictor userAuthCacheEvictor;
 
     @Transactional
     public void completeWithdrawalByAdmin(UUID adminId, UUID memberId, String rawReason) {
@@ -50,7 +48,7 @@ public class UserPermanentDeletionService {
 
         auditLogRecorder.recordMemberDeleted(memberId, adminId, admin.getEmail(), reason);
         deletionExecutor.deleteAllUserData(memberId);
-        evictAuthenticationAfterCommit(memberId);
+        userAuthCacheEvictor.evictAfterCommit(memberId);
     }
 
     @Transactional
@@ -64,7 +62,7 @@ public class UserPermanentDeletionService {
         }
 
         deletionExecutor.deleteAllUserData(memberId);
-        evictAuthenticationAfterCommit(memberId);
+        userAuthCacheEvictor.evictAfterCommit(memberId);
         return true;
     }
 
@@ -79,16 +77,4 @@ public class UserPermanentDeletionService {
         return reason;
     }
 
-    private void evictAuthenticationAfterCommit(UUID memberId) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            userAuthCacheRepository.delete(memberId);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                userAuthCacheRepository.delete(memberId);
-            }
-        });
-    }
 }

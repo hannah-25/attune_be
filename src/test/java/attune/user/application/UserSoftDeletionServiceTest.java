@@ -1,7 +1,7 @@
 package attune.user.application;
 
 import attune.admin.audit.application.AdminAuditLogRecorder;
-import attune.auth.domain.repository.UserAuthCacheRepository;
+import attune.auth.application.UserAuthCacheEvictor;
 import attune.common.error.BadRequestException;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
@@ -36,7 +36,7 @@ class UserSoftDeletionServiceTest {
         UserSoftDeletionService service = new UserSoftDeletionService(
                 repository,
                 auditLogRecorder,
-                mock(UserAuthCacheRepository.class)
+                mock(UserAuthCacheEvictor.class)
         );
 
         assertThatThrownBy(() ->

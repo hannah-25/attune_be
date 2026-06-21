@@ -1,7 +1,7 @@
 package attune.user.application;
 
 import attune.admin.audit.application.AdminAuditLogRecorder;
-import attune.auth.domain.repository.UserAuthCacheRepository;
+import attune.auth.application.UserAuthCacheEvictor;
 import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.user.domain.model.User;
@@ -27,7 +27,7 @@ class UserPermanentDeletionServiceTest {
                 mock(UserRepository.class),
                 mock(UserDataDeletionExecutor.class),
                 mock(AdminAuditLogRecorder.class),
-                mock(UserAuthCacheRepository.class)
+                mock(UserAuthCacheEvictor.class)
         );
         UUID adminId = UUID.randomUUID();
 
@@ -55,7 +55,7 @@ class UserPermanentDeletionServiceTest {
         when(repository.findById(adminId)).thenReturn(Optional.of(admin));
         when(repository.findByIdForUpdate(memberId)).thenReturn(Optional.of(member));
         UserPermanentDeletionService service =
-                service(repository, executor, recorder, mock(UserAuthCacheRepository.class));
+                service(repository, executor, recorder, mock(UserAuthCacheEvictor.class));
 
         service.completeWithdrawalByAdmin(adminId, memberId, "  개인정보 즉시 삭제 요청  ");
 
@@ -84,7 +84,7 @@ class UserPermanentDeletionServiceTest {
                 repository,
                 executor,
                 mock(AdminAuditLogRecorder.class),
-                mock(UserAuthCacheRepository.class)
+                mock(UserAuthCacheEvictor.class)
         );
 
         assertThatThrownBy(() ->
@@ -110,7 +110,7 @@ class UserPermanentDeletionServiceTest {
                 repository,
                 executor,
                 mock(AdminAuditLogRecorder.class),
-                mock(UserAuthCacheRepository.class)
+                mock(UserAuthCacheEvictor.class)
         );
 
         assertThatThrownBy(() ->
@@ -123,8 +123,8 @@ class UserPermanentDeletionServiceTest {
             UserRepository repository,
             UserDataDeletionExecutor executor,
             AdminAuditLogRecorder recorder,
-            UserAuthCacheRepository cacheRepository
+            UserAuthCacheEvictor cacheEvictor
     ) {
-        return new UserPermanentDeletionService(repository, executor, recorder, cacheRepository);
+        return new UserPermanentDeletionService(repository, executor, recorder, cacheEvictor);
     }
 }

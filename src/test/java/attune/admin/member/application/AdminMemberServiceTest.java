@@ -7,7 +7,7 @@ import attune.admin.member.application.dto.response.AdminMemberResponse;
 import attune.admin.member.application.error.AdminMemberNotFoundException;
 import attune.admin.member.domain.repository.AdminMemberRepository;
 import attune.admin.member.domain.repository.projection.MemberStatusCount;
-import attune.auth.domain.repository.UserAuthCacheRepository;
+import attune.auth.application.UserAuthCacheEvictor;
 import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.user.domain.model.User;
@@ -45,7 +45,7 @@ class AdminMemberServiceTest {
     @Mock AdminMemberRepository repository;
     @Mock AdminAuditLogRecorder auditRecorder;
     @Mock AdminMemberWithdrawalPolicy withdrawalPolicy;
-    @Mock UserAuthCacheRepository userAuthCacheRepository;
+    @Mock UserAuthCacheEvictor userAuthCacheEvictor;
     @InjectMocks AdminMemberService service;
 
     @Test
@@ -133,7 +133,7 @@ class AdminMemberServiceTest {
 
         assertThat(response.status()).isEqualTo(UserStatus.ACTIVE);
         assertThat(response.withdrawalRequestedAt()).isNull();
-        verify(userAuthCacheRepository).delete(memberId);
+        verify(userAuthCacheEvictor).evictAfterCommit(memberId);
         verify(auditRecorder).recordWithdrawalCancelled(
                 memberId, "회원", adminId, "admin@attune.test", "회원 본인 복구 요청"
         );
