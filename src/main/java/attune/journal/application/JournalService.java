@@ -1,5 +1,6 @@
 package attune.journal.application;
 
+import attune.common.error.BadRequestException;
 import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.response.*;
 import attune.journal.domain.model.*;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,23 +44,17 @@ public class JournalService {
 
         List<ConditionCheckResponse> conditions = conditionLogRepository
                 .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(tuple -> ConditionCheckResponse.of(
-                        tuple.get("tag", ConditionTag.class),
-                        tuple.get("log", ConditionLog.class)))
+                .map(JournalService::toConditionCheckResponse)
                 .toList();
 
         List<SideEffectCheckResponse> sideEffects = sideEffectLogRepository
                 .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(tuple -> SideEffectCheckResponse.of(
-                        tuple.get("tag", SideEffectTag.class),
-                        tuple.get("log", SideEffectLog.class)))
+                .map(JournalService::toSideEffectCheckResponse)
                 .toList();
 
         List<TroubleCheckResponse> troubles = troubleLogRepository
                 .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(tuple -> TroubleCheckResponse.of(
-                        tuple.get("tag", TroubleTag.class),
-                        tuple.get("log", TroubleLog.class)))
+                .map(JournalService::toTroubleCheckResponse)
                 .toList();
 
         DailyStatusLog status = dailyStatusLogRepository
@@ -67,9 +63,7 @@ public class JournalService {
 
         List<GoalCheckResponse> goals = dailyGoalLogRepository
                 .findAllInRangeWithGoal(userId, date, date).stream()
-                .map(row -> GoalCheckResponse.of(
-                        (DailyGoal) row[1],
-                        (DailyGoalLog) row[0]))
+                .map(JournalService::toGoalCheckResponse)
                 .toList();
 
         String memo = memoRepository
@@ -121,8 +115,8 @@ public class JournalService {
 
     @Transactional(readOnly = true)
     public JournalBulkResponse getJournalsBulk(LocalDate startDate, LocalDate endDate) {
-        if (startDate.until(endDate, java.time.temporal.ChronoUnit.DAYS) > 31) {
-            throw new attune.common.error.BadRequestException("조회 기간은 최대 31일까지 가능합니다.");
+        if (startDate.isAfter(endDate) || startDate.until(endDate, ChronoUnit.DAYS) > 30) {
+            throw new BadRequestException("조회 기간은 최대 31일까지 가능합니다.");
         }
         UUID userId = SecurityUtils.getCurrentUserUuid();
         LocalDateTime startAt = startDate.atStartOfDay();
@@ -134,36 +128,21 @@ public class JournalService {
                 conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt).stream()
                         .collect(Collectors.groupingBy(
                                 t -> t.get("log", ConditionLog.class).getCheckedAt().toLocalDate(),
-                                Collectors.mapping(
-                                        t -> ConditionCheckResponse.of(
-                                                t.get("tag", ConditionTag.class),
-                                                t.get("log", ConditionLog.class)),
-                                        Collectors.toList()
-                                )
+                                Collectors.mapping(JournalService::toConditionCheckResponse, Collectors.toList())
                         ));
 
         Map<LocalDate, List<SideEffectCheckResponse>> sideEffectsByDate =
                 sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt).stream()
                         .collect(Collectors.groupingBy(
                                 t -> t.get("log", SideEffectLog.class).getCheckedAt().toLocalDate(),
-                                Collectors.mapping(
-                                        t -> SideEffectCheckResponse.of(
-                                                t.get("tag", SideEffectTag.class),
-                                                t.get("log", SideEffectLog.class)),
-                                        Collectors.toList()
-                                )
+                                Collectors.mapping(JournalService::toSideEffectCheckResponse, Collectors.toList())
                         ));
 
         Map<LocalDate, List<TroubleCheckResponse>> troublesByDate =
                 troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt).stream()
                         .collect(Collectors.groupingBy(
                                 t -> t.get("log", TroubleLog.class).getCheckedAt().toLocalDate(),
-                                Collectors.mapping(
-                                        t -> TroubleCheckResponse.of(
-                                                t.get("tag", TroubleTag.class),
-                                                t.get("log", TroubleLog.class)),
-                                        Collectors.toList()
-                                )
+                                Collectors.mapping(JournalService::toTroubleCheckResponse, Collectors.toList())
                         ));
 
         Map<LocalDate, DailyStatusLog> statusByDate =
@@ -175,14 +154,14 @@ public class JournalService {
                         .collect(Collectors.groupingBy(
                                 row -> ((DailyGoalLog) row[0]).getDate(),
                                 Collectors.mapping(
-                                        row -> GoalCheckResponse.of((DailyGoal) row[1], (DailyGoalLog) row[0]),
+                                        JournalService::toGoalCheckResponse,
                                         Collectors.toList()
                                 )
                         ));
 
         Map<LocalDate, String> memoByDate =
                 memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate).stream()
-                        .collect(Collectors.toMap(Memo::getJournalDate, Memo::getMemo));
+                        .collect(Collectors.toMap(Memo::getJournalDate, m -> m.getMemo() != null ? m.getMemo() : ""));
 
         List<JournalDateResponse> journals = new ArrayList<>();
         for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
@@ -216,6 +195,22 @@ public class JournalService {
         total += dailyGoalLogRepository.deleteAllInRange(userId, startDate, endDate);
         total += memoRepository.deleteAllInRange(userId, startDate, endDate);
         return total;
+    }
+
+    private static GoalCheckResponse toGoalCheckResponse(Object[] row) {
+        return GoalCheckResponse.of((DailyGoal) row[1], (DailyGoalLog) row[0]);
+    }
+
+    private static ConditionCheckResponse toConditionCheckResponse(Tuple t) {
+        return ConditionCheckResponse.of(t.get("tag", ConditionTag.class), t.get("log", ConditionLog.class));
+    }
+
+    private static SideEffectCheckResponse toSideEffectCheckResponse(Tuple t) {
+        return SideEffectCheckResponse.of(t.get("tag", SideEffectTag.class), t.get("log", SideEffectLog.class));
+    }
+
+    private static TroubleCheckResponse toTroubleCheckResponse(Tuple t) {
+        return TroubleCheckResponse.of(t.get("tag", TroubleTag.class), t.get("log", TroubleLog.class));
     }
 
     private ActiveTagsResponse buildActiveTags(UUID userId) {
