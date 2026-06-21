@@ -29,6 +29,10 @@ class AdminMemberRepositoryTest {
                 "beta@example.com", "베타", UserStatus.WITHDRAWAL,
                 LocalDateTime.of(2026, 2, 1, 0, 0)
         ));
+        User deleted = repository.save(user(
+                "deleted@example.com", "deleted", UserStatus.DELETED,
+                LocalDateTime.of(2026, 3, 1, 0, 0)
+        ));
         PageRequest pageable = PageRequest.of(
                 0, 20, Sort.by(Sort.Direction.DESC, "createdAt")
         );
@@ -39,6 +43,12 @@ class AdminMemberRepositoryTest {
         assertThat(repository.search(older.getId(), null, null, pageable).getContent())
                 .extracting(User::getId)
                 .containsExactly(older.getId());
+        assertThat(repository.search(null, null, null, pageable).getContent())
+                .extracting(User::getId)
+                .containsExactly(newer.getId(), older.getId());
+        assertThat(repository.search(deleted.getId(), null, UserStatus.DELETED, pageable).getContent())
+                .extracting(User::getId)
+                .containsExactly(deleted.getId());
         assertThat(repository.countAllByStatus())
                 .extracting(count -> count.getStatus() + ":" + count.getCount())
                 .contains("ACTIVE:1", "WITHDRAWAL:1");

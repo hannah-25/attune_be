@@ -20,7 +20,10 @@ public interface AdminMemberRepository extends JpaRepository<User, UUID> {
     @Query("""
             SELECT u
             FROM User u
-            WHERE (:status IS NULL OR u.userStatus = :status)
+            WHERE (
+                    (:status IS NULL AND u.userStatus <> attune.user.domain.model.UserStatus.DELETED)
+                    OR u.userStatus = :status
+                  )
               AND (
                     (:uuidQuery IS NOT NULL AND u.id = :uuidQuery)
                     OR

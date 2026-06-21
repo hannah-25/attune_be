@@ -37,9 +37,7 @@ public record AdminMemberResponse(
         );
     }
 
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-
     private static Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.atZone(KST).toInstant();
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 }

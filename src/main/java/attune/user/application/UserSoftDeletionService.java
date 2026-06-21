@@ -37,6 +37,7 @@ public class UserSoftDeletionService {
 
         User admin = userRepository.findById(adminId)
                 .filter(user -> user.getUserType() == UserType.ADMIN)
+                .filter(user -> user.getUserStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new BadRequestException("유효한 관리자 계정이 아닙니다."));
         User member = userRepository.findByIdForUpdate(memberId)
                 .orElseThrow(UserNotFoundException::new);

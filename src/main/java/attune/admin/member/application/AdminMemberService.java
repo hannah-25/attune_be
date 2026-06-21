@@ -8,6 +8,7 @@ import attune.admin.member.application.dto.response.AdminMemberResponse;
 import attune.admin.member.application.dto.response.MemberStatusSummary;
 import attune.admin.member.application.error.AdminMemberNotFoundException;
 import attune.admin.member.domain.repository.AdminMemberRepository;
+import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.user.domain.model.User;
@@ -19,6 +20,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -34,6 +37,7 @@ public class AdminMemberService {
     private final AdminMemberRepository adminMemberRepository;
     private final AdminAuditLogRecorder adminAuditLogRecorder;
     private final AdminMemberWithdrawalPolicy withdrawalPolicy;
+    private final UserAuthCacheRepository userAuthCacheRepository;
 
     @Transactional(readOnly = true)
     public AdminMemberListResponse getMembers(String query, UserStatus status, int page, int size) {
@@ -73,6 +77,7 @@ public class AdminMemberService {
                 admin.getEmail(),
                 request.reason()
         );
+        evictAuthenticationAfterCommit(memberId);
         return AdminMemberResponse.from(member, withdrawalPolicy.retentionDays());
     }
 
@@ -108,6 +113,7 @@ public class AdminMemberService {
                 admin.getEmail(),
                 request.reason()
         );
+        evictAuthenticationAfterCommit(memberId);
 
         return AdminMemberResponse.from(member, withdrawalPolicy.retentionDays());
     }
@@ -118,11 +124,25 @@ public class AdminMemberService {
         }
         User admin = adminMemberRepository.findById(adminId)
                 .filter(u -> u.getUserType() == UserType.ADMIN)
+                .filter(u -> u.getUserStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new BadRequestException("유효한 관리자 계정이 아닙니다."));
         if (admin.getEmail() == null || admin.getEmail().isBlank()) {
             throw new BadRequestException("관리자 계정에 이메일 정보가 없습니다.");
         }
         return admin;
+    }
+
+    private void evictAuthenticationAfterCommit(UUID memberId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            userAuthCacheRepository.delete(memberId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                userAuthCacheRepository.delete(memberId);
+            }
+        });
     }
 
     private static boolean isAllowedTransition(UserStatus from, UserStatus to) {

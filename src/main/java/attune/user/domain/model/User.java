@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.UUID;
 
 @Getter
@@ -53,7 +52,7 @@ public class User {
     @PrePersist
     void initializeCreatedAt() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+            createdAt = LocalDateTime.now();
         }
     }
 
@@ -104,6 +103,10 @@ public class User {
         this.userStatus = UserStatus.DELETED;
         this.email = "deleted_" + UUID.randomUUID() + "@deleted.attune.me";
         this.nickname = "deleted_" + this.id.toString().replace("-", "").substring(0, 12);
+        this.password = null;
+        this.provider = null;
+        this.providerId = null;
+        this.profileImageUrl = null;
     }
 
     public void recordLogin(LocalDateTime loggedInAt) {

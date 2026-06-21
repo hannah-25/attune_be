@@ -255,11 +255,11 @@ public class GoogleCalendarClient {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDateTime();
+        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     private String toGoogleDateTime(LocalDateTime value) {
-        return value.atZone(ZoneId.of("Asia/Seoul")).toInstant().toString();
+        return value.atZone(ZoneId.systemDefault()).toInstant().toString();
     }
 
     private String resolveClientId() {

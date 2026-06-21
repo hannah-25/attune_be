@@ -7,6 +7,8 @@ import attune.admin.member.application.dto.response.AdminMemberResponse;
 import attune.admin.member.application.error.AdminMemberNotFoundException;
 import attune.admin.member.domain.repository.AdminMemberRepository;
 import attune.admin.member.domain.repository.projection.MemberStatusCount;
+import attune.auth.domain.repository.UserAuthCacheRepository;
+import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
@@ -43,6 +45,7 @@ class AdminMemberServiceTest {
     @Mock AdminMemberRepository repository;
     @Mock AdminAuditLogRecorder auditRecorder;
     @Mock AdminMemberWithdrawalPolicy withdrawalPolicy;
+    @Mock UserAuthCacheRepository userAuthCacheRepository;
     @InjectMocks AdminMemberService service;
 
     @Test
@@ -119,6 +122,7 @@ class AdminMemberServiceTest {
                 .id(adminId)
                 .email("admin@attune.test")
                 .userType(UserType.ADMIN)
+                .userStatus(UserStatus.ACTIVE)
                 .build();
         when(repository.findById(adminId)).thenReturn(Optional.of(admin));
         when(withdrawalPolicy.retentionDays()).thenReturn(30);
@@ -129,6 +133,7 @@ class AdminMemberServiceTest {
 
         assertThat(response.status()).isEqualTo(UserStatus.ACTIVE);
         assertThat(response.withdrawalRequestedAt()).isNull();
+        verify(userAuthCacheRepository).delete(memberId);
         verify(auditRecorder).recordWithdrawalCancelled(
                 memberId, "회원", adminId, "admin@attune.test", "회원 본인 복구 요청"
         );
@@ -162,11 +167,32 @@ class AdminMemberServiceTest {
         verify(auditRecorder, never()).recordWithdrawalCancelled(any(), any(), any(), any(), any());
     }
 
+    @Test
+    void rejectsSuspendedAdministrator() {
+        UUID adminId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        User suspendedAdmin = User.builder()
+                .id(adminId)
+                .email("admin@attune.test")
+                .userType(UserType.ADMIN)
+                .userStatus(UserStatus.SUSPENDED)
+                .build();
+        when(repository.findById(adminId)).thenReturn(Optional.of(suspendedAdmin));
+
+        assertThatThrownBy(() -> service.cancelWithdrawal(
+                adminId, memberId, new CancelWithdrawalRequest("suspended administrator request")
+        )).isInstanceOf(BadRequestException.class);
+
+        verify(repository, never()).findByIdForUpdate(memberId);
+        verifyNoInteractions(auditRecorder);
+    }
+
     private User admin(UUID adminId) {
         return User.builder()
                 .id(adminId)
                 .email("admin@attune.test")
                 .userType(UserType.ADMIN)
+                .userStatus(UserStatus.ACTIVE)
                 .build();
     }
 

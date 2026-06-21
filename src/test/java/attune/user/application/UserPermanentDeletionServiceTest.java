@@ -2,6 +2,7 @@ package attune.user.application;
 
 import attune.admin.audit.application.AdminAuditLogRecorder;
 import attune.auth.domain.repository.UserAuthCacheRepository;
+import attune.common.error.BadRequestException;
 import attune.common.error.ConflictException;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
@@ -89,6 +90,32 @@ class UserPermanentDeletionServiceTest {
         assertThatThrownBy(() ->
                 service.completeWithdrawalByAdmin(adminId, memberId, "개인정보 즉시 삭제 요청")
         ).isInstanceOf(ConflictException.class);
+        verify(executor, never()).deleteAllUserData(memberId);
+    }
+
+    @Test
+    void rejectsSuspendedAdministrator() {
+        UUID adminId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        UserRepository repository = mock(UserRepository.class);
+        UserDataDeletionExecutor executor = mock(UserDataDeletionExecutor.class);
+        User suspendedAdmin = User.builder()
+                .id(adminId)
+                .email("admin@attune.app")
+                .userType(UserType.ADMIN)
+                .userStatus(UserStatus.SUSPENDED)
+                .build();
+        when(repository.findById(adminId)).thenReturn(Optional.of(suspendedAdmin));
+        UserPermanentDeletionService service = service(
+                repository,
+                executor,
+                mock(AdminAuditLogRecorder.class),
+                mock(UserAuthCacheRepository.class)
+        );
+
+        assertThatThrownBy(() ->
+                service.completeWithdrawalByAdmin(adminId, memberId, "suspended administrator request")
+        ).isInstanceOf(BadRequestException.class);
         verify(executor, never()).deleteAllUserData(memberId);
     }
 

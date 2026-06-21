@@ -25,9 +25,9 @@ public class UserDataDeletionExecutor {
             "DELETE FROM schedule_categories WHERE user_id = ?",
             "DELETE FROM todos WHERE user_id = ?",
 
-            "DELETE FROM condition_logs WHERE user_id = ?",
-            "DELETE FROM side_effect_logs WHERE user_id = ?",
-            "DELETE FROM trouble_logs WHERE user_id = ?",
+            "DELETE FROM condition_logs WHERE condition_tag_id IN (SELECT id FROM condition_tags WHERE user_id = ?)",
+            "DELETE FROM side_effect_logs WHERE side_effect_tag_id IN (SELECT id FROM side_effect_tags WHERE user_id = ?)",
+            "DELETE FROM trouble_logs WHERE trouble_tag_id IN (SELECT id FROM trouble_tags WHERE user_id = ?)",
             "DELETE FROM daily_status_logs WHERE user_id = ?",
             "DELETE FROM memos WHERE user_id = ?",
             "DELETE FROM onboarding_goal_snapshots WHERE user_id = ?",
