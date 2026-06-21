@@ -115,7 +115,10 @@ public class JournalService {
 
     @Transactional(readOnly = true)
     public JournalBulkResponse getJournalsBulk(LocalDate startDate, LocalDate endDate) {
-        if (startDate.isAfter(endDate) || startDate.until(endDate, ChronoUnit.DAYS) > 30) {
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("시작 날짜는 종료 날짜보다 이전이어야 합니다.");
+        }
+        if (startDate.until(endDate, ChronoUnit.DAYS) > 30) {
             throw new BadRequestException("조회 기간은 최대 31일까지 가능합니다.");
         }
         UUID userId = SecurityUtils.getCurrentUserUuid();
