@@ -13,7 +13,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -24,7 +23,6 @@ public class SupportInquiryService {
     private final SupportInquiryRepository supportInquiryRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
-    private final Clock clock;
 
     @Transactional
     public void createInquiry(CreateSupportInquiryRequest request) {
@@ -38,7 +36,7 @@ public class SupportInquiryService {
                 .title(request.title())
                 .content(request.content())
                 .email(request.email())
-                .createdAt(LocalDateTime.now(clock))
+                .createdAt(LocalDateTime.now())
                 .build();
 
         supportInquiryRepository.save(inquiry);

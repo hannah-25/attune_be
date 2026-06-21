@@ -31,7 +31,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -49,12 +48,11 @@ public class JournalTagCatalogCheckService {
     private final ConditionLogRepository conditionLogRepository;
     private final SideEffectLogRepository sideEffectLogRepository;
     private final TroubleLogRepository troubleLogRepository;
-    private final Clock clock;
 
     @Transactional
     public CatalogTagCheckResponse check(Long catalogTagId) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         JournalTag tag = requireEnabledTag(userId, catalogTagId);
         Long legacyTagId = findOrCreateLegacyTag(userId, tag, now);
         LocalDateTime checkedAt = now;

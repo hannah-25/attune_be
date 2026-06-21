@@ -13,9 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,9 +26,6 @@ import static org.mockito.Mockito.when;
 
 class NotificationSubscriptionServiceTest {
 
-    private static final Clock FIXED_CLOCK =
-            Clock.fixed(Instant.parse("2026-06-06T01:00:00Z"), ZoneId.of("Asia/Seoul"));
-
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();
@@ -40,7 +34,7 @@ class NotificationSubscriptionServiceTest {
     @Test
     void fcmUsesTokenRegistrationEvenWhenEndpointIsPresent() {
         NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
-        NotificationSubscriptionService service = new NotificationSubscriptionService(repository, FIXED_CLOCK);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
         RegisterSubscriptionRequest request = new RegisterSubscriptionRequest(
                 NotificationPlatform.ANDROID,
                 NotificationProvider.FCM,
@@ -66,7 +60,7 @@ class NotificationSubscriptionServiceTest {
     @Test
     void webPushDisablesOtherUsersSubscriptionWithSameEndpoint() {
         NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
-        NotificationSubscriptionService service = new NotificationSubscriptionService(repository, FIXED_CLOCK);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
 
         UUID currentUserId = UUID.randomUUID();
         String sharedEndpoint = "https://push.example.com/shared-endpoint";
@@ -103,7 +97,7 @@ class NotificationSubscriptionServiceTest {
     @Test
     void webPushDoesNotDisableCurrentUsersOwnSubscription() {
         NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
-        NotificationSubscriptionService service = new NotificationSubscriptionService(repository, FIXED_CLOCK);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
 
         UUID currentUserId = UUID.randomUUID();
         String endpoint = "https://push.example.com/my-endpoint";

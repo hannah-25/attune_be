@@ -10,7 +10,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -26,11 +25,10 @@ public class ScheduleAlarmScheduler {
 
     private final ScheduleAlarmRepository scheduleAlarmRepository;
     private final NotificationService notificationService;
-    private final Clock clock;
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendScheduleAlarms() {
-        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         sendScheduleAlarms(now);
     }
 

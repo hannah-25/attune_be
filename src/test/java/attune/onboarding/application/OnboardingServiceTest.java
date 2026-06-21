@@ -19,12 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -54,9 +50,6 @@ class OnboardingServiceTest {
     private OnboardingAiService onboardingAiService;
     @Mock
     private JournalTagCatalogService journalTagCatalogService;
-    @Spy
-    private Clock clock = Clock.fixed(
-            Instant.parse("2026-06-20T15:00:00Z"), ZoneId.of("Asia/Seoul"));
 
     @InjectMocks
     private OnboardingService onboardingService;

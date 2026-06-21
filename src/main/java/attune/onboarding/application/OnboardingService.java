@@ -33,7 +33,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,7 +55,6 @@ public class OnboardingService {
     private final OnboardingGoalSnapshotRepository onboardingGoalSnapshotRepository;
     private final OnboardingAiService onboardingAiService;
     private final JournalTagCatalogService journalTagCatalogService;
-    private final Clock clock;
 
     @Transactional(readOnly = true)
     public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
@@ -100,7 +98,7 @@ public class OnboardingService {
                 .map(a -> new AsrsAnswer(a.questionId(), a.score()))
                 .toList();
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         AsrsAssessment assessment = AsrsAssessment.builder()
                 .user(user)
                 .partAScore(partAScore)
@@ -117,7 +115,7 @@ public class OnboardingService {
     public SymptomResponse saveSymptom(UUID userId, SymptomRequest request) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         OnboardingSymptom.OnboardingSymptomBuilder builder = OnboardingSymptom.builder()
                 .user(user)
                 .savedAt(now)
@@ -241,7 +239,7 @@ public class OnboardingService {
                         Function.identity(),
                         (existing, duplicate) -> existing));
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
 
         // 1. 치료 목표 저장
         List<DailyGoal> goals = request.goals().stream()
@@ -302,7 +300,7 @@ public class OnboardingService {
             throw new OnboardingNotCompleteException();
         }
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         user.completeOnboarding(now);
         return new CompleteOnboardingResponse(true, now);
     }

@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -19,7 +18,6 @@ import java.util.UUID;
 public class NotificationSubscriptionService {
 
     private final NotificationSubscriptionRepository subscriptionRepository;
-    private final Clock clock;
 
     @Transactional
     public SubscriptionResponse register(RegisterSubscriptionRequest request) {
@@ -32,7 +30,7 @@ public class NotificationSubscriptionService {
     }
 
     private SubscriptionResponse registerWebPush(UUID userId, RegisterSubscriptionRequest request) {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         subscriptionRepository.findAllByEndpointAndUserIdNotAndEnabledTrue(request.endpoint(), userId)
                 .forEach(subscription -> subscription.disable(now));
 
@@ -57,7 +55,7 @@ public class NotificationSubscriptionService {
     }
 
     private SubscriptionResponse registerTokenBased(UUID userId, RegisterSubscriptionRequest request) {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         subscriptionRepository.findAllByTokenAndUserIdNotAndEnabledTrue(request.token(), userId)
                 .forEach(subscription -> subscription.disable(now));
 
@@ -82,7 +80,7 @@ public class NotificationSubscriptionService {
     @Transactional
     public void unregister(String endpointOrToken) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
 
         subscriptionRepository.findByUserIdAndEndpoint(userId, endpointOrToken)
                 .ifPresentOrElse(

@@ -4,31 +4,21 @@ import attune.admin.audit.application.dto.AdminAuditLogResponse;
 import attune.admin.audit.domain.AdminAuditLog;
 import attune.admin.audit.domain.AdminAuditLogRepository;
 import attune.admin.audit.domain.AuditAction;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AdminAuditLogService implements AdminAuditLogRecorder {
 
     private final AdminAuditLogRepository repository;
     private final AuditTargetHasher targetHasher;
-    private final Clock clock;
-
-    public AdminAuditLogService(
-            AdminAuditLogRepository repository,
-            AuditTargetHasher targetHasher,
-            @Qualifier("adminAuditClock") Clock clock
-    ) {
-        this.repository = repository;
-        this.targetHasher = targetHasher;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional
@@ -113,7 +103,7 @@ public class AdminAuditLogService implements AdminAuditLogRecorder {
                 .adminId(adminId)
                 .adminEmail(normalizedEmail)
                 .reason(normalizedReason)
-                .createdAt(clock.instant())
+                .createdAt(Instant.now())
                 .build();
         repository.save(log);
     }

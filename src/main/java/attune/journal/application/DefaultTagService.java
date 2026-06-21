@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +25,6 @@ public class DefaultTagService {
 
     private final JournalTagRepository journalTagRepository;
     private final UserJournalTagPreferenceRepository preferenceRepository;
-    private final Clock clock;
 
     @Transactional
     public void copyDefaultTagsForUser(UUID userId) {
@@ -51,7 +49,7 @@ public class DefaultTagService {
     }
 
     private void copyForCategory(UUID userId, JournalTagCategory category) {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         List<JournalTag> systemTags = journalTagRepository
                 .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category);
         if (systemTags.isEmpty()) return;

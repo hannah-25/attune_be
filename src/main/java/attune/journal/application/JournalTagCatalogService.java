@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.function.Function;
@@ -57,7 +56,6 @@ public class JournalTagCatalogService {
     private final ConditionLogRepository conditionLogRepository;
     private final SideEffectLogRepository sideEffectLogRepository;
     private final TroubleLogRepository troubleLogRepository;
-    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<CatalogJournalTagResponse> getTags(JournalTagCategory category) {
@@ -71,7 +69,7 @@ public class JournalTagCatalogService {
 
     @Transactional
     public void bulkSetVisibilityForOnboarding(UUID userId, Set<Long> visibleCatalogTagIds) {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         List<JournalTag> catalogTags = Stream.concat(
                 journalTagRepository.findAllByScopeAndIsActiveTrue(JournalTagScope.SYSTEM).stream(),
                 journalTagRepository.findAllByScopeAndOwnerUserIdAndIsActiveTrue(
@@ -120,7 +118,7 @@ public class JournalTagCatalogService {
     @Transactional
     public CatalogJournalTagResponse createTag(CreateCatalogJournalTagRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         validateTagType(request.category(), request.tagType());
         journalTagRepository.findByScopeAndCategoryAndNameAndTagType(
                         JournalTagScope.SYSTEM, request.category(), request.name(), request.tagType())
@@ -159,7 +157,7 @@ public class JournalTagCatalogService {
     @Transactional
     public CatalogJournalTagResponse updatePreference(Long catalogTagId, UpdateCatalogTagPreferenceRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .filter(JournalTag::isActive)
                 .filter(found -> found.getScope() == JournalTagScope.SYSTEM || userId.equals(found.getOwnerUserId()))
@@ -180,7 +178,7 @@ public class JournalTagCatalogService {
     @Transactional
     public void deleteTag(Long catalogTagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .filter(JournalTag::isActive)
                 .filter(found -> found.getScope() == JournalTagScope.SYSTEM || userId.equals(found.getOwnerUserId()))

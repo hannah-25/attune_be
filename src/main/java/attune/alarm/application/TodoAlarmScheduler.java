@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -28,11 +27,10 @@ public class TodoAlarmScheduler {
     private final TodoRepository todoRepository;
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
-    private final Clock clock;
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendTodoAlarms() {
-        LocalDateTime now = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
         List<Todo> candidates = loadCandidates(now);
         if (candidates.isEmpty()) return;

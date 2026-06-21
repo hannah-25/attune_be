@@ -8,10 +8,7 @@ import attune.schedule.domain.repository.ScheduleAlarmRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,12 +20,10 @@ import static org.mockito.Mockito.when;
 
 class ScheduleAlarmSchedulerTest {
 
-    private static final Clock FIXED_CLOCK =
-            Clock.fixed(Instant.parse("2026-06-06T01:00:00Z"), ZoneId.of("Asia/Seoul"));
     private final ScheduleAlarmRepository scheduleAlarmRepository = mock(ScheduleAlarmRepository.class);
     private final NotificationService notificationService = mock(NotificationService.class);
     private final ScheduleAlarmScheduler scheduler =
-            new ScheduleAlarmScheduler(scheduleAlarmRepository, notificationService, FIXED_CLOCK);
+            new ScheduleAlarmScheduler(scheduleAlarmRepository, notificationService);
 
     @Test
     void sendsAllDueUnsentAlarmsAndMarksThemAsSent() {

@@ -16,8 +16,6 @@ import attune.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.time.Clock;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,8 +43,7 @@ class SocialAuthServiceTest {
                 mock(JwtProvider.class),
                 mock(JwtConfig.class),
                 mock(UserAuthCacheRepository.class),
-                mock(ApplicationEventPublisher.class),
-                Clock.system(ZoneId.of("Asia/Seoul"))
+                mock(ApplicationEventPublisher.class)
         );
         User existingUser = User.builder()
                 .email("user@example.com")
@@ -89,8 +86,7 @@ class SocialAuthServiceTest {
                 mock(JwtProvider.class),
                 mock(JwtConfig.class),
                 mock(UserAuthCacheRepository.class),
-                mock(ApplicationEventPublisher.class),
-                Clock.system(ZoneId.of("Asia/Seoul"))
+                mock(ApplicationEventPublisher.class)
         );
         User existingUser = User.builder()
                 .email("user@example.com")
@@ -134,8 +130,7 @@ class SocialAuthServiceTest {
                 mock(JwtProvider.class),
                 mock(JwtConfig.class),
                 mock(UserAuthCacheRepository.class),
-                eventPublisher,
-                Clock.system(ZoneId.of("Asia/Seoul"))
+                eventPublisher
         );
         User user = User.builder()
                 .id(userId)
@@ -170,8 +165,7 @@ class SocialAuthServiceTest {
                 mock(JwtProvider.class),
                 mock(JwtConfig.class),
                 mock(UserAuthCacheRepository.class),
-                eventPublisher,
-                Clock.system(ZoneId.of("Asia/Seoul"))
+                eventPublisher
         );
         User user = User.builder()
                 .id(userId)

@@ -19,10 +19,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,10 +30,6 @@ import static org.mockito.Mockito.when;
 
 class MedicationServiceTest {
 
-    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
-    private static final Clock CLOCK = Clock.fixed(
-            Instant.parse("2026-06-20T15:00:00Z"), SERVICE_ZONE);
-
     private final UserMedicationRepository userMedicationRepository = mock(UserMedicationRepository.class);
     private final MedicationService medicationService = new MedicationService(
             userMedicationRepository,
@@ -45,8 +38,7 @@ class MedicationServiceTest {
             mock(UserMedicationScheduleRepository.class),
             mock(UserMedicationLogRepository.class),
             mock(UserRepository.class),
-            mock(ConsultationRepository.class),
-            CLOCK
+            mock(ConsultationRepository.class)
     );
 
     @AfterEach
@@ -57,7 +49,7 @@ class MedicationServiceTest {
     @Test
     void updateMedicationAllowsFutureEndAtWhileActive() {
         UserMedication medication = ownedMedication(null, true);
-        LocalDate futureEndAt = LocalDate.now(CLOCK).plusDays(1);
+        LocalDate futureEndAt = LocalDate.now().plusDays(1);
         prepareOwnedMedication(medication);
 
         medicationService.updateMedication(
@@ -72,7 +64,7 @@ class MedicationServiceTest {
     @Test
     void updateMedicationAllowsTodayAsEndAtWhileActive() {
         UserMedication medication = ownedMedication(null, true);
-        LocalDate today = LocalDate.now(CLOCK);
+        LocalDate today = LocalDate.now();
         prepareOwnedMedication(medication);
 
         medicationService.updateMedication(
@@ -93,7 +85,7 @@ class MedicationServiceTest {
                 () -> medicationService.updateMedication(
                         medication.getId(),
                         new UpdateMedicationRequest(
-                                JsonNullable.of(LocalDate.now(CLOCK).minusDays(1)), null, null)
+                                JsonNullable.of(LocalDate.now().minusDays(1)), null, null)
                 )
         );
 
@@ -102,7 +94,7 @@ class MedicationServiceTest {
 
     @Test
     void updateMedicationKeepsFutureEndAtWhenMedicationIsActivated() {
-        LocalDate futureEndAt = LocalDate.now(CLOCK).plusDays(1);
+        LocalDate futureEndAt = LocalDate.now().plusDays(1);
         UserMedication medication = ownedMedication(futureEndAt, false);
         prepareOwnedMedication(medication);
 
@@ -119,7 +111,7 @@ class MedicationServiceTest {
         return UserMedication.builder()
                 .id(1L)
                 .isActive(active)
-                .startedAt(LocalDate.now(CLOCK).minusDays(10))
+                .startedAt(LocalDate.now().minusDays(10))
                 .endAt(endAt)
                 .build();
     }

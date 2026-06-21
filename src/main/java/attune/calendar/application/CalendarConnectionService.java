@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,7 +32,6 @@ public class CalendarConnectionService {
     private final CalendarConnectionRepository calendarConnectionRepository;
     private final ExternalCalendarEventRepository externalCalendarEventRepository;
     private final GoogleCalendarClient googleCalendarClient;
-    private final Clock clock;
 
     @Transactional(readOnly = true)
     public CalendarConnectionListResponse getConnections() {
@@ -54,7 +52,7 @@ public class CalendarConnectionService {
                 request.redirectUri()
         );
         String accountEmail = googleCalendarClient.fetchAccountEmail(token.accessToken());
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
 
         CalendarConnection connection = calendarConnectionRepository
                 .findByUserIdAndProvider(userId, CalendarProvider.GOOGLE)
@@ -91,13 +89,13 @@ public class CalendarConnectionService {
             throw new BadRequestException("Unsupported calendar provider");
         }
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         refreshTokenIfNeeded(connection, now);
 
         List<String> calendarIds = googleCalendarClient.listCalendarIds(connection);
         connection.updateSelectedCalendarIds(calendarIds, now);
 
-        LocalDate today = LocalDate.now(clock);
+        LocalDate today = LocalDate.now();
         LocalDateTime startAt = today.minusMonths(1).atStartOfDay();
         LocalDateTime endAt = today.plusMonths(3).plusDays(1).atStartOfDay();
         LocalDateTime syncedAt = now;
@@ -148,7 +146,7 @@ public class CalendarConnectionService {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         CalendarConnection connection = calendarConnectionRepository.findByIdAndUserIdAndIsActiveTrue(connectionId, userId)
                 .orElseThrow(() -> new NotFoundException("Calendar connection not found"));
-        connection.deactivate(LocalDateTime.now(clock));
+        connection.deactivate(LocalDateTime.now());
     }
 
     private void refreshTokenIfNeeded(CalendarConnection connection, LocalDateTime now) {

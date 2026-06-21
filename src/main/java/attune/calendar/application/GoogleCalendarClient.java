@@ -32,7 +32,6 @@ public class GoogleCalendarClient {
     private static final String EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events";
 
     private final RestClient oauthRestClient;
-    private final Clock clock;
 
     @Value("${oauth.google.calendar-client-id:${GOOGLE_CALENDAR_CLIENT_ID:}}")
     private String calendarClientId;
@@ -191,7 +190,7 @@ public class GoogleCalendarClient {
 
         String refreshToken = response.get("refresh_token") instanceof String value ? value : null;
         long expiresIn = response.get("expires_in") instanceof Number value ? value.longValue() : 3600L;
-        return new GoogleToken(accessToken, refreshToken, LocalDateTime.now(clock).plusSeconds(expiresIn));
+        return new GoogleToken(accessToken, refreshToken, LocalDateTime.now().plusSeconds(expiresIn));
     }
 
     private java.util.Optional<ExternalCalendarEventSnapshot> toSnapshot(String calendarId, Map<?, ?> event) {
@@ -256,11 +255,11 @@ public class GoogleCalendarClient {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return OffsetDateTime.parse(value).atZoneSameInstant(clock.getZone()).toLocalDateTime();
+        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDateTime();
     }
 
     private String toGoogleDateTime(LocalDateTime value) {
-        return value.atZone(clock.getZone()).toInstant().toString();
+        return value.atZone(ZoneId.of("Asia/Seoul")).toInstant().toString();
     }
 
     private String resolveClientId() {

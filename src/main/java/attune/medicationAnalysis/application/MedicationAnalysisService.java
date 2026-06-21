@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -44,7 +43,6 @@ public class MedicationAnalysisService {
     private final AnalysisEngine analysisEngine;
     private final SnapshotSerializer snapshotSerializer;
     private final GeminiReportClient geminiReportClient;
-    private final Clock clock;
 
     @Transactional(readOnly = true)
     public AvailabilityResponse checkAvailability(UUID userId, LocalDate startDate, LocalDate endDate) {
@@ -111,7 +109,7 @@ public class MedicationAnalysisService {
 
         // 저장: 기존 엔티티가 있으면 in-place 업데이트(unique constraint 방지), 없으면 신규 생성
         MedicationAnalysisReport saved;
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         if (existing.isPresent()) {
             MedicationAnalysisReport report = existing.get();
             report.updateSnapshot(snapshotJson, hash, countHash, now);
@@ -160,7 +158,7 @@ public class MedicationAnalysisService {
     // -------------------------------------------------------------------------
 
     private void validatePeriod(LocalDate startDate, LocalDate endDate) {
-        if (endDate.isAfter(LocalDate.now(clock))) {
+        if (endDate.isAfter(LocalDate.now())) {
             throw new BadRequestException("미래 날짜는 선택할 수 없습니다.");
         }
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;

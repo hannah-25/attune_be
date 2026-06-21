@@ -9,9 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.Pageable;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,8 +24,6 @@ class AdminAuditLogServiceTest {
             UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
     private static final UUID ADMIN_ID =
             UUID.fromString("123e4567-e89b-12d3-a456-426614174001");
-    private static final Instant NOW = Instant.parse("2026-06-19T01:02:03Z");
-
     private AdminAuditLogRepository repository;
     private AdminAuditLogService service;
 
@@ -39,8 +34,7 @@ class AdminAuditLogServiceTest {
                 new AuditTargetHasher(new AdminAuditProperties("test-secret"));
         service = new AdminAuditLogService(
                 repository,
-                hasher,
-                Clock.fixed(NOW, ZoneOffset.ofHours(9))
+                hasher
         );
     }
 
@@ -65,7 +59,7 @@ class AdminAuditLogServiceTest {
         assertThat(saved.getAdminId()).isEqualTo(ADMIN_ID);
         assertThat(saved.getAdminEmail()).isEqualTo("admin@attune.test");
         assertThat(saved.getReason()).isEqualTo("expired withdrawal retention period");
-        assertThat(saved.getCreatedAt()).isEqualTo(NOW);
+        assertThat(saved.getCreatedAt()).isNotNull();
     }
 
     @Test

@@ -11,7 +11,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -30,11 +29,10 @@ public class MedicationAlarmScheduler {
     private final UserMedicationScheduleRepository scheduleRepository;
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
-    private final Clock clock;
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendMedicationAlarms() {
-        LocalDateTime scheduledAt = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalTime now = scheduledAt.toLocalTime();
 
         LocalDateTime windowStart = scheduledAt.minusMinutes(RECOVERY_WINDOW_MINUTES);

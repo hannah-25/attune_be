@@ -18,11 +18,8 @@ import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,10 +31,8 @@ import static org.mockito.Mockito.*;
 
 class MedicationAnalysisServiceTest {
 
-    private static final Clock CLOCK = Clock.fixed(
-            Instant.parse("2026-06-20T15:00:00Z"), ZoneId.of("Asia/Seoul"));
     private static final UUID USER_ID = UUID.randomUUID();
-    private static final LocalDate TODAY = LocalDate.now(CLOCK);
+    private static final LocalDate TODAY = LocalDate.now();
     private static final LocalDate START = TODAY.minusDays(13);
     private static final LocalDate END = TODAY.minusDays(1);
 
@@ -51,7 +46,7 @@ class MedicationAnalysisServiceTest {
 
     private final MedicationAnalysisService service = new MedicationAnalysisService(
             reportRepository, termService, userRepository,
-            analysisEngine, snapshotSerializer, geminiReportClient, CLOCK
+            analysisEngine, snapshotSerializer, geminiReportClient
     );
 
     // -------------------------------------------------------------------------

@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.Clock;
 import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
@@ -18,7 +17,6 @@ public class AdminMarketingPushService {
 
     private final UserSettingRepository userSettingRepository;
     private final AdminNotificationSender adminNotificationSender;
-    private final Clock clock;
 
     public MarketingPushResponse send(MarketingPushRequest request) {
         long targetCount = userSettingRepository.countMarketingTargets();
@@ -26,9 +24,9 @@ public class AdminMarketingPushService {
             throw new NoMarketingTargetsException();
         }
 
-        Instant sentAt = Instant.now(clock);
+        Instant sentAt = Instant.now();
         Long campaignId = sentAt.toEpochMilli();
-        LocalDateTime scheduledAt = LocalDateTime.now(clock);
+        LocalDateTime scheduledAt = LocalDateTime.now();
 
         adminNotificationSender.sendMarketingPush(
                 request.title(),

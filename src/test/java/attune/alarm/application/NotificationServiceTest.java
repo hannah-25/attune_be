@@ -6,10 +6,7 @@ import attune.alarm.domain.model.NotificationSubscription;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,11 +22,9 @@ import static org.mockito.Mockito.when;
 
 class NotificationServiceTest {
 
-    private static final Clock FIXED_CLOCK =
-            Clock.fixed(Instant.parse("2026-06-06T01:00:00Z"), ZoneId.of("Asia/Seoul"));
     private final NotificationTxOperations txOps = mock(NotificationTxOperations.class);
     private final PushSenderRouter pushSenderRouter = mock(PushSenderRouter.class);
-    private final NotificationService service = new NotificationService(txOps, pushSenderRouter, FIXED_CLOCK);
+    private final NotificationService service = new NotificationService(txOps, pushSenderRouter);
 
     private static final UUID USER_ID = UUID.randomUUID();
     private static final NotificationAlarmType TYPE = NotificationAlarmType.SCHEDULE;
@@ -163,7 +158,7 @@ class NotificationServiceTest {
                 .title(MESSAGE.title())
                 .body(MESSAGE.body())
                 .status(NotificationStatus.SENDING)
-                .sentAt(LocalDateTime.now(FIXED_CLOCK))
+                .sentAt(LocalDateTime.now())
                 .build();
     }
 }

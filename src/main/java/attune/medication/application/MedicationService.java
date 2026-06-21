@@ -41,7 +41,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -61,7 +60,6 @@ public class MedicationService {
     private final UserMedicationLogRepository logRepository;
     private final UserRepository userRepository;
     private final ConsultationRepository consultationRepository;
-    private final Clock clock;
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
@@ -134,7 +132,7 @@ public class MedicationService {
         validateEndAtNotBeforeStartedAt(request.startedAt(), request.endAt());
         validateActiveMedicationEndAt(request.endAt());
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         UserMedication um = UserMedication.builder()
                 .user(userRef)
                 .consultation(consultation)
@@ -182,7 +180,7 @@ public class MedicationService {
                 updateEndAt,
                 request.isActive(),
                 request.alarmActive(),
-                LocalDateTime.now(clock)
+                LocalDateTime.now()
         );
         return UpdateMedicationResponse.from(um);
     }
@@ -228,7 +226,7 @@ public class MedicationService {
     public QuickLogResponse quickLog(Long userMedicationId, QuickLogRequest request) {
         getOwnedUserMedicationOrThrow(userMedicationId);
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         if (request.action() == null) {
             throw new InvalidQuickLogRequestException();
         }
@@ -348,7 +346,7 @@ public class MedicationService {
     }
 
     private void validateActiveMedicationEndAt(LocalDate endAt) {
-        if (endAt != null && endAt.isBefore(LocalDate.now(clock))) {
+        if (endAt != null && endAt.isBefore(LocalDate.now())) {
             throw new BadRequestException("활성화된 복약 정보의 종료일은 오늘보다 이전일 수 없습니다.");
         }
     }
