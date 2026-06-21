@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 public record JournalDateResponse(
         LocalDate date,
-        CheckedResponse checked,
-        ActiveTagsResponse activeTags
+        CheckedResponse checked
 ) {
 }
+

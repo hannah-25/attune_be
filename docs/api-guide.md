@@ -225,10 +225,18 @@
 | `startDate` | 필수 | 시작 날짜 (YYYY-MM-DD) |
 | `endDate` | 필수 | 종료 날짜 (YYYY-MM-DD) |
 
+최대 조회 기간은 **31일**이다. 초과 시 400 응답.
+
 **Response 200**
 
 ```json
 {
+  "activeTags": {
+    "conditions": [{ "tagId": 1, "condition": "집중 어려움", "conditionType": "INATTENTION", "visible": true }],
+    "sideEffects": [],
+    "troubles": [],
+    "goals": [{ "goalId": 3, "content": "알람 울리면 바로 시작하기" }]
+  },
   "journals": [
     {
       "date": "2026-06-21",
@@ -240,12 +248,6 @@
         "meal": { "ateBreakfast": true, "ateLunch": true, "ateDinner": false },
         "goals": [{ "goalId": 3, "content": "알람 울리면 바로 시작하기", "score": 1 }],
         "memo": "오늘은 집중이 잘 됐다."
-      },
-      "activeTags": {
-        "conditions": [{ "tagId": 1, "condition": "집중 어려움", "conditionType": "INATTENTION", "visible": true }],
-        "sideEffects": [],
-        "troubles": [],
-        "goals": [{ "goalId": 3, "content": "알람 울리면 바로 시작하기" }]
       }
     }
   ]

@@ -2,5 +2,8 @@ package attune.journal.application.dto.response;
 
 import java.util.List;
 
-public record JournalBulkResponse(List<JournalDateResponse> journals) {
+public record JournalBulkResponse(
+        ActiveTagsResponse activeTags,
+        List<JournalDateResponse> journals
+) {
 }

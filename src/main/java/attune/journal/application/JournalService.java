@@ -121,6 +121,9 @@ public class JournalService {
 
     @Transactional(readOnly = true)
     public JournalBulkResponse getJournalsBulk(LocalDate startDate, LocalDate endDate) {
+        if (startDate.until(endDate, java.time.temporal.ChronoUnit.DAYS) > 31) {
+            throw new attune.common.error.BadRequestException("조회 기간은 최대 31일까지 가능합니다.");
+        }
         UUID userId = SecurityUtils.getCurrentUserUuid();
         LocalDateTime startAt = startDate.atStartOfDay();
         LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
@@ -194,11 +197,10 @@ public class JournalService {
                             MealResponse.from(status),
                             goalsByDate.getOrDefault(d, List.of()),
                             memoByDate.get(d)
-                    ),
-                    activeTags
+                    )
             ));
         }
-        return new JournalBulkResponse(journals);
+        return new JournalBulkResponse(activeTags, journals);
     }
 
     private int deleteRange(LocalDate startDate, LocalDate endDate) {
