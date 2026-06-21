@@ -6,6 +6,7 @@ import attune.common.filter.JwtAuthenticationFilter;
 import attune.common.security.SecurityErrorResponseWriter;
 import attune.common.util.JwtProvider;
 import attune.user.application.UserPermanentDeletionService;
+import attune.user.application.UserSoftDeletionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -29,6 +30,8 @@ class AdminMemberSecurityTest {
     private AdminMemberService adminMemberService;
     @MockitoBean
     private UserPermanentDeletionService userPermanentDeletionService;
+    @MockitoBean
+    private UserSoftDeletionService userSoftDeletionService;
     @MockitoBean
     private JwtProvider jwtProvider;
 

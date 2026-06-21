@@ -89,7 +89,6 @@ public class UserDataDeletionExecutor {
 
         entityManager.remove(user);
         entityManager.flush();
-        entityManager.clear();
     }
 
     // Hibernate와 동일한 big-endian 16바이트 포맷으로 변환 (BINARY(16) 컬럼 매핑)

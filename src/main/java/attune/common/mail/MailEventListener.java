@@ -8,6 +8,7 @@ import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MailEventListener {
@@ -57,8 +59,13 @@ public class MailEventListener {
         Page<User> page;
         do {
             page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, pageable);
-            page.getContent().forEach(user ->
-                    mailService.sendNoticeEmail(user.getEmail(), event.title(), event.content()));
+            page.getContent().forEach(user -> {
+                try {
+                    mailService.sendNoticeEmail(user.getEmail(), event.title(), event.content());
+                } catch (Exception e) {
+                    log.error("공지 이메일 발송 실패 - email: {}", user.getEmail(), e);
+                }
+            });
             pageable = pageable.next();
         } while (page.hasNext());
     }

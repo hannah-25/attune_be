@@ -22,6 +22,13 @@ public interface AdminAuditLogRecorder {
             String reason
     );
 
+    void recordMemberSoftDeleted(
+            UUID memberId,
+            UUID adminId,
+            String adminEmail,
+            String reason
+    );
+
     void recordStatusChanged(
             UUID memberId,
             String memberNickname,

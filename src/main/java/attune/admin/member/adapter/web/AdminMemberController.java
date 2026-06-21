@@ -9,6 +9,7 @@ import attune.admin.member.application.dto.response.AdminMemberResponse;
 import attune.common.ApiVersion;
 import attune.common.util.SecurityUtils;
 import attune.user.application.UserPermanentDeletionService;
+import attune.user.application.UserSoftDeletionService;
 import attune.user.domain.model.UserStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -34,6 +35,7 @@ public class AdminMemberController {
 
     private final AdminMemberService adminMemberService;
     private final UserPermanentDeletionService userPermanentDeletionService;
+    private final UserSoftDeletionService userSoftDeletionService;
 
     @GetMapping
     public ResponseEntity<AdminMemberListResponse> getMembers(
@@ -75,6 +77,19 @@ public class AdminMemberController {
             @Valid @RequestBody CompleteWithdrawalRequest request
     ) {
         userPermanentDeletionService.completeWithdrawalByAdmin(
+                SecurityUtils.getCurrentUserUuid(),
+                memberId,
+                request.reason()
+        );
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{memberId}/withdrawal/soft-delete")
+    public ResponseEntity<Void> softDeleteMember(
+            @PathVariable UUID memberId,
+            @Valid @RequestBody CompleteWithdrawalRequest request
+    ) {
+        userSoftDeletionService.softDeleteByAdmin(
                 SecurityUtils.getCurrentUserUuid(),
                 memberId,
                 request.reason()

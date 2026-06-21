@@ -78,6 +78,9 @@ public class AdminMemberService {
 
     @Transactional
     public AdminMemberResponse changeStatus(UUID adminId, UUID memberId, ChangeStatusRequest request) {
+        if (adminId == null) {
+            throw new BadRequestException("관리자 정보가 없습니다.");
+        }
         if (adminId.equals(memberId)) {
             throw new ConflictException("본인 계정의 상태는 변경할 수 없습니다.");
         }
@@ -110,6 +113,9 @@ public class AdminMemberService {
     }
 
     private User loadAdmin(UUID adminId) {
+        if (adminId == null) {
+            throw new BadRequestException("관리자 정보가 없습니다.");
+        }
         User admin = adminMemberRepository.findById(adminId)
                 .filter(u -> u.getUserType() == UserType.ADMIN)
                 .orElseThrow(() -> new BadRequestException("유효한 관리자 계정이 아닙니다."));

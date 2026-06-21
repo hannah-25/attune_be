@@ -528,6 +528,40 @@ Query Params: `startDate` (ISO date), `endDate` (ISO date)
 
 ---
 
+### POST /v1/admin/members/{memberId}/withdrawal/soft-delete
+
+탈퇴 요청 중인 회원을 소프트 삭제한다. 데이터는 유지하고 상태만 `DELETED`로 변경하며, 해당 계정으로 더 이상 로그인할 수 없다.
+
+**Path Parameters**
+
+| 파라미터 | 타입 | 설명 |
+|---------|------|------|
+| `memberId` | UUID string | 소프트 삭제할 회원 ID |
+
+**Request Body**
+
+```json
+{
+  "reason": "개인정보 보관 필요에 의한 소프트 삭제"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `reason` | string | 필수 | 처리 사유 (공백 제외 5자 이상) |
+
+**Response 204** — 본문 없음
+
+**Error Cases**
+
+| 상태 코드 | 설명 |
+|-----------|------|
+| `400` | `reason` 누락 또는 5자 미만 |
+| `404` | 해당 회원 없음 |
+| `409` | `WITHDRAWAL` 상태가 아닌 회원에게 요청, 또는 관리자 본인 계정 |
+
+---
+
 ### GET /v1/admin/audit-logs
 
 관리자 작업 감사 로그를 최신순으로 조회한다.

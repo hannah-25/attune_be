@@ -4,7 +4,6 @@ import attune.admin.audit.application.dto.AdminAuditLogResponse;
 import attune.admin.audit.domain.AdminAuditLog;
 import attune.admin.audit.domain.AdminAuditLogRepository;
 import attune.admin.audit.domain.AuditAction;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -15,14 +14,21 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class AdminAuditLogService implements AdminAuditLogRecorder {
 
     private final AdminAuditLogRepository repository;
     private final AuditTargetHasher targetHasher;
-
-    @Qualifier("adminAuditClock")
     private final Clock clock;
+
+    public AdminAuditLogService(
+            AdminAuditLogRepository repository,
+            AuditTargetHasher targetHasher,
+            @Qualifier("adminAuditClock") Clock clock
+    ) {
+        this.repository = repository;
+        this.targetHasher = targetHasher;
+        this.clock = clock;
+    }
 
     @Override
     @Transactional
@@ -49,6 +55,18 @@ public class AdminAuditLogService implements AdminAuditLogRecorder {
             String reason
     ) {
         save(AuditAction.MEMBER_DELETED, targetHasher.hashMember(memberId), null,
+                adminId, adminEmail, reason);
+    }
+
+    @Override
+    @Transactional
+    public void recordMemberSoftDeleted(
+            UUID memberId,
+            UUID adminId,
+            String adminEmail,
+            String reason
+    ) {
+        save(AuditAction.MEMBER_SOFT_DELETED, targetHasher.hashMember(memberId), null,
                 adminId, adminEmail, reason);
     }
 

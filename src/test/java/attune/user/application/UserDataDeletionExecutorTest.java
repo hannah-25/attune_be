@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class UserDataDeletionExecutorTest {
 
     @Test
-    void deletesChildrenBeforeUserAndClearsPersistenceContext() {
+    void deletesChildrenBeforeUserAndFlushes() {
         JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
         EntityManager entityManager = mock(EntityManager.class);
         UUID userId = UUID.randomUUID();
@@ -32,6 +32,5 @@ class UserDataDeletionExecutorTest {
         verify(entityManager, times(2)).flush();
         verify(jdbcTemplate, atLeastOnce()).update(anyString(), any(Object[].class));
         verify(entityManager).remove(any(User.class));
-        verify(entityManager).clear();
     }
 }

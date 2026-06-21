@@ -100,6 +100,10 @@ public class User {
         this.userStatus = UserStatus.SUSPENDED;
     }
 
+    public void softDelete() {
+        this.userStatus = UserStatus.DELETED;
+    }
+
     public void recordLogin(LocalDateTime loggedInAt) {
         this.lastLoginAt = loggedInAt;
     }
