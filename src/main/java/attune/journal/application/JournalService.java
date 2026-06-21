@@ -151,7 +151,7 @@ public class JournalService {
 
         Map<LocalDate, DailyStatusLog> statusByDate =
                 dailyStatusLogRepository.findByUserIdAndDateBetween(userId, startDate, endDate).stream()
-                        .collect(Collectors.toMap(DailyStatusLog::getDate, s -> s));
+                        .collect(Collectors.toMap(DailyStatusLog::getDate, s -> s, (s1, s2) -> s1));
 
         Map<LocalDate, List<GoalCheckResponse>> goalsByDate =
                 dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate).stream()
