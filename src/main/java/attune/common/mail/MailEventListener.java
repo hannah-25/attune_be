@@ -58,7 +58,7 @@ public class MailEventListener {
         do {
             page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, pageable);
             page.getContent().forEach(user ->
-                    mailService.sendTermsUpdateEmail(user.getEmail(), event.title(), event.content()));
+                    mailService.sendNoticeEmail(user.getEmail(), event.title(), event.content()));
             pageable = pageable.next();
         } while (page.hasNext());
     }

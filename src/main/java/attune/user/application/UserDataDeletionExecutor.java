@@ -81,11 +81,10 @@ public class UserDataDeletionExecutor {
 
         byte[] userIdBytes = toBytes(userId);
         for (String sql : DELETE_STATEMENTS) {
-            if (sql.startsWith("DELETE FROM comments")) {
-                jdbcTemplate.update(sql, userIdBytes, userIdBytes);
-            } else {
-                jdbcTemplate.update(sql, userIdBytes);
-            }
+            int placeholderCount = (int) sql.chars().filter(ch -> ch == '?').count();
+            Object[] params = new Object[placeholderCount];
+            java.util.Arrays.fill(params, userIdBytes);
+            jdbcTemplate.update(sql, params);
         }
 
         entityManager.remove(user);

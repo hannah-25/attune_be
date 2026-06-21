@@ -78,6 +78,9 @@ public class AdminMemberService {
 
     @Transactional
     public AdminMemberResponse changeStatus(UUID adminId, UUID memberId, ChangeStatusRequest request) {
+        if (adminId.equals(memberId)) {
+            throw new ConflictException("본인 계정의 상태는 변경할 수 없습니다.");
+        }
         User admin = loadAdmin(adminId);
         User member = adminMemberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(AdminMemberNotFoundException::new);

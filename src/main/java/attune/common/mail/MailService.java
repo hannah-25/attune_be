@@ -55,6 +55,10 @@ public class MailService {
         sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent), null);
     }
 
+    public void sendNoticeEmail(String to, String title, String htmlContent) {
+        sendEmail(to, "[Attune 공지] " + title, wrapWithLayout(htmlContent), null);
+    }
+
     public void sendInquiryEmail(String replyTo, String type, String title, String content) {
         try {
             sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
