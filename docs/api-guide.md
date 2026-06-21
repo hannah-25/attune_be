@@ -210,6 +210,110 @@
 
 ---
 
+## Journal (일지)
+
+### GET /v1/journals?startDate=&endDate=
+
+기간 내 **모든 날짜**의 활성 태그와 체크 내역을 한 번에 반환한다. 홈 화면 초기 로드 시 개별 날짜 조회 7회 대신 이 API 1회로 대체한다.
+
+**인증:** 필요 (JWT)
+
+**Query Parameters**
+
+| 파라미터 | 필수 | 설명 |
+|---------|------|------|
+| `startDate` | 필수 | 시작 날짜 (YYYY-MM-DD) |
+| `endDate` | 필수 | 종료 날짜 (YYYY-MM-DD) |
+
+최대 조회 기간은 **31일**이다. 초과 시 400 응답.
+
+**Response 200**
+
+```json
+{
+  "activeTags": {
+    "conditions": [{ "tagId": 1, "condition": "집중 어려움", "conditionType": "INATTENTION", "visible": true }],
+    "sideEffects": [],
+    "troubles": [],
+    "goals": [{ "goalId": 3, "content": "알람 울리면 바로 시작하기" }]
+  },
+  "journals": [
+    {
+      "date": "2026-06-21",
+      "checked": {
+        "conditions": [{ "tagId": 1, "condition": "집중 어려움", "conditionType": "INATTENTION", "checkedAt": "2026-06-21T09:00:00" }],
+        "sideEffects": [],
+        "troubles": [],
+        "sleep": { "sleepHour": 7.5, "sleepQuality": "GOOD" },
+        "meal": { "ateBreakfast": true, "ateLunch": true, "ateDinner": false },
+        "goals": [{ "goalId": 3, "content": "알람 울리면 바로 시작하기", "score": 1 }],
+        "memo": "오늘은 집중이 잘 됐다."
+      }
+    }
+  ]
+}
+```
+
+날짜 범위 내 데이터가 없는 날도 `checked`가 모두 빈 값으로 포함된다.
+
+---
+
+### GET /v1/journals/dates?startDate=&endDate=
+
+기간 내 일지 데이터가 **존재하는 날짜 목록**만 반환한다. (구 `GET /v1/journals`)
+
+**인증:** 필요 (JWT)
+
+**Response 200**
+
+```json
+{ "dates": ["2026-06-19", "2026-06-21"] }
+```
+
+---
+
+### GET /v1/journals/{date}
+
+단일 날짜의 일지 상세를 조회한다.
+
+**인증:** 필요 (JWT)
+
+---
+
+## Notice (공지사항)
+
+### GET /v1/notices/{noticeId}
+
+공지 상세를 조회한다. `isPinned` 필드를 포함하므로 별도 목록 조회 불필요.
+
+**인증:** 필요 (JWT)
+
+**Response 200**
+
+```json
+{
+  "noticeId": 1,
+  "title": "5월 업데이트 안내",
+  "content": "새로운 기능이 추가되었습니다.",
+  "isPinned": true,
+  "createdAt": "2026-06-01T10:00:00",
+  "updatedAt": "2026-06-01T10:00:00"
+}
+```
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `noticeId` | number | 공지 고유 ID |
+| `title` | string | 공지 제목 |
+| `content` | string | 공지 내용 |
+| `isPinned` | boolean | 상단 고정 여부 |
+| `createdAt` | LocalDateTime | 등록 일시 |
+| `updatedAt` | LocalDateTime | 수정 일시 |
+
+**Response 404** — 해당 ID의 공지가 없거나 삭제된 경우
+
+---
+
 ## Alarm (알람 구독)
 
 ### POST /v1/alarm/subscriptions
