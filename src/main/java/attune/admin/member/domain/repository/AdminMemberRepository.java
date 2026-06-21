@@ -26,8 +26,8 @@ public interface AdminMemberRepository extends JpaRepository<User, UUID> {
                     OR
                     (:uuidQuery IS NULL AND (
                         :textQuery IS NULL
-                        OR LOWER(u.email) LIKE LOWER(CONCAT('%', :textQuery, '%'))
-                        OR LOWER(u.nickname) LIKE LOWER(CONCAT('%', :textQuery, '%'))
+                        OR u.email LIKE CONCAT('%', :textQuery, '%')
+                        OR u.nickname LIKE CONCAT('%', :textQuery, '%')
                     ))
               )
             """)

@@ -33,7 +33,7 @@ class AdminMemberRepositoryTest {
                 0, 20, Sort.by(Sort.Direction.DESC, "createdAt")
         );
 
-        assertThat(repository.search(null, "BETA", UserStatus.WITHDRAWAL, pageable).getContent())
+        assertThat(repository.search(null, "beta", UserStatus.WITHDRAWAL, pageable).getContent())
                 .extracting(User::getId)
                 .containsExactly(newer.getId());
         assertThat(repository.search(older.getId(), null, null, pageable).getContent())

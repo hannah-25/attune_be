@@ -102,6 +102,8 @@ public class User {
 
     public void softDelete() {
         this.userStatus = UserStatus.DELETED;
+        this.email = "deleted_" + UUID.randomUUID() + "@deleted.attune.me";
+        this.nickname = "deleted_" + this.id.toString().replace("-", "").substring(0, 12);
     }
 
     public void recordLogin(LocalDateTime loggedInAt) {
