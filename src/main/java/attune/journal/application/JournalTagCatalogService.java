@@ -69,6 +69,7 @@ public class JournalTagCatalogService {
 
     @Transactional
     public void bulkSetVisibilityForOnboarding(UUID userId, Set<Long> visibleCatalogTagIds) {
+        LocalDateTime now = LocalDateTime.now();
         List<JournalTag> catalogTags = Stream.concat(
                 journalTagRepository.findAllByScopeAndIsActiveTrue(JournalTagScope.SYSTEM).stream(),
                 journalTagRepository.findAllByScopeAndOwnerUserIdAndIsActiveTrue(
@@ -82,9 +83,9 @@ public class JournalTagCatalogService {
                     boolean visible = visibleCatalogTagIds.contains(tag.getId());
                     UserJournalTagPreference preference = preferencesByTagId.get(tag.getId());
                     if (preference == null) {
-                        preference = UserJournalTagPreference.create(userId, tag.getId(), true, visible);
+                        preference = UserJournalTagPreference.create(userId, tag.getId(), true, visible, now);
                     }
-                    preference.update(true, visible);
+                    preference.update(true, visible, now);
                     return preference;
                 })
                 .toList();
@@ -117,6 +118,7 @@ public class JournalTagCatalogService {
     @Transactional
     public CatalogJournalTagResponse createTag(CreateCatalogJournalTagRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime now = LocalDateTime.now();
         validateTagType(request.category(), request.tagType());
         journalTagRepository.findByScopeAndCategoryAndNameAndTagType(
                         JournalTagScope.SYSTEM, request.category(), request.name(), request.tagType())
@@ -131,21 +133,21 @@ public class JournalTagCatalogService {
                     if (existing.isActive()) {
                         throw new DuplicateTagException("journal catalog");
                     }
-                    existing.activate();
+                    existing.activate(now);
                     return existing;
                 })
                 .orElseGet(() -> journalTagRepository.save(JournalTag.userTag(
-                        userId, request.category(), request.name(), request.tagType())));
+                        userId, request.category(), request.name(), request.tagType(), now)));
 
         UserJournalTagPreferenceId preferenceId = new UserJournalTagPreferenceId(userId, tag.getId());
         UserJournalTagPreference preference = preferenceRepository.findById(preferenceId)
-                .orElseGet(() -> UserJournalTagPreference.create(userId, tag.getId(), true, request.visible()));
-        preference.update(true, request.visible());
+                .orElseGet(() -> UserJournalTagPreference.create(userId, tag.getId(), true, request.visible(), now));
+        preference.update(true, request.visible(), now);
         preferenceRepository.save(preference);
 
         Long legacyTagId = representativeLegacyIds(userId, request.category()).get(tag.getId());
         if (legacyTagId == null) {
-            legacyTagId = createLegacyCompatibilityTag(userId, tag, request.visible());
+            legacyTagId = createLegacyCompatibilityTag(userId, tag, request.visible(), now);
         } else {
             syncLegacyTags(userId, request.category(), tag.getId(), true, request.visible());
         }
@@ -155,6 +157,7 @@ public class JournalTagCatalogService {
     @Transactional
     public CatalogJournalTagResponse updatePreference(Long catalogTagId, UpdateCatalogTagPreferenceRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime now = LocalDateTime.now();
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .filter(JournalTag::isActive)
                 .filter(found -> found.getScope() == JournalTagScope.SYSTEM || userId.equals(found.getOwnerUserId()))
@@ -163,8 +166,8 @@ public class JournalTagCatalogService {
         UserJournalTagPreferenceId id = new UserJournalTagPreferenceId(userId, catalogTagId);
         UserJournalTagPreference preference = preferenceRepository.findById(id)
                 .orElseGet(() -> UserJournalTagPreference.create(
-                        userId, catalogTagId, request.enabled(), request.visible()));
-        preference.update(request.enabled(), request.visible());
+                        userId, catalogTagId, request.enabled(), request.visible(), now));
+        preference.update(request.enabled(), request.visible(), now);
         preferenceRepository.save(preference);
         syncLegacyTags(userId, tag.getCategory(), catalogTagId, request.enabled(), request.visible());
 
@@ -175,6 +178,7 @@ public class JournalTagCatalogService {
     @Transactional
     public void deleteTag(Long catalogTagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime now = LocalDateTime.now();
         JournalTag tag = journalTagRepository.findById(catalogTagId)
                 .filter(JournalTag::isActive)
                 .filter(found -> found.getScope() == JournalTagScope.SYSTEM || userId.equals(found.getOwnerUserId()))
@@ -182,14 +186,14 @@ public class JournalTagCatalogService {
 
         UserJournalTagPreferenceId id = new UserJournalTagPreferenceId(userId, catalogTagId);
         UserJournalTagPreference preference = preferenceRepository.findById(id)
-                .orElseGet(() -> UserJournalTagPreference.create(userId, catalogTagId, false, false));
-        preference.update(false, false);
+                .orElseGet(() -> UserJournalTagPreference.create(userId, catalogTagId, false, false, now));
+        preference.update(false, false, now);
         preferenceRepository.save(preference);
 
         List<Long> legacyTagIds = syncLegacyTags(userId, tag.getCategory(), catalogTagId, false, false);
 
         if (tag.getScope() == JournalTagScope.USER) {
-            tag.deactivate();
+            tag.deactivate(now);
         }
 
         LocalDateTime startAt = journalDate.atStartOfDay();
@@ -309,7 +313,9 @@ public class JournalTagCatalogService {
                 ));
     }
 
-    private Long createLegacyCompatibilityTag(UUID userId, JournalTag tag, boolean visible) {
+    private Long createLegacyCompatibilityTag(
+            UUID userId, JournalTag tag, boolean visible, LocalDateTime now
+    ) {
         Long legacyTagId = switch (tag.getCategory()) {
             case CONDITION -> conditionTagRepository.save(ConditionTag.builder()
                     .userId(userId)
@@ -332,7 +338,8 @@ public class JournalTagCatalogService {
                     .visible(visible)
                     .build()).getId();
         };
-        mappingRepository.save(LegacyJournalTagMapping.create(tag.getCategory(), legacyTagId, userId, tag.getId()));
+        mappingRepository.save(LegacyJournalTagMapping.create(
+                tag.getCategory(), legacyTagId, userId, tag.getId(), now));
         return legacyTagId;
     }
 

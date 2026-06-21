@@ -86,7 +86,7 @@ public class CommunityService {
             throw new AccessDeniedException("수정 권한이 없습니다.");
         }
 
-        board.update(request.title(), request.content(), request.postCategory());
+        board.update(request.title(), request.content(), request.postCategory(), LocalDateTime.now());
         return PostResponse.from(board, userId);
     }
 

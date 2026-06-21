@@ -4,5 +4,6 @@ public enum UserStatus {
     PENDING,
     ACTIVE,
     SUSPENDED,
-    WITHDRAWAL
+    WITHDRAWAL,
+    DELETED
 }

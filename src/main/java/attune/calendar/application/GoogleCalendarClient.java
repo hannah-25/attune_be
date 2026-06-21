@@ -190,7 +190,7 @@ public class GoogleCalendarClient {
 
         String refreshToken = response.get("refresh_token") instanceof String value ? value : null;
         long expiresIn = response.get("expires_in") instanceof Number value ? value.longValue() : 3600L;
-        return new GoogleToken(accessToken, refreshToken, LocalDateTime.now(SERVICE_ZONE).plusSeconds(expiresIn));
+        return new GoogleToken(accessToken, refreshToken, LocalDateTime.now().plusSeconds(expiresIn));
     }
 
     private java.util.Optional<ExternalCalendarEventSnapshot> toSnapshot(String calendarId, Map<?, ?> event) {
@@ -251,17 +251,15 @@ public class GoogleCalendarClient {
         return null;
     }
 
-    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
-
     private LocalDateTime parseDateTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return OffsetDateTime.parse(value).atZoneSameInstant(SERVICE_ZONE).toLocalDateTime();
+        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     private String toGoogleDateTime(LocalDateTime value) {
-        return value.atZone(SERVICE_ZONE).toInstant().toString();
+        return value.atZone(ZoneId.systemDefault()).toInstant().toString();
     }
 
     private String resolveClientId() {

@@ -28,7 +28,7 @@ public class ScheduleAlarmScheduler {
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendScheduleAlarms() {
-        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         sendScheduleAlarms(now);
     }
 

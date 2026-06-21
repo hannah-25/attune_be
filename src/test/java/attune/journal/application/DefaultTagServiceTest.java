@@ -28,6 +28,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DefaultTagServiceTest {
 
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 21, 0, 0);
+
     @Mock
     private JournalTagRepository journalTagRepository;
     @Mock
@@ -66,7 +68,8 @@ class DefaultTagServiceTest {
     void copyForUserSkipsExistingPreferences() {
         UUID userId = UUID.randomUUID();
         JournalTag tag = systemTag(1L, JournalTagCategory.CONDITION, true);
-        UserJournalTagPreference existingPref = UserJournalTagPreference.create(userId, 1L, true, true);
+        UserJournalTagPreference existingPref =
+                UserJournalTagPreference.create(userId, 1L, true, true, NOW);
 
         when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.CONDITION))
                 .thenReturn(List.of(tag));

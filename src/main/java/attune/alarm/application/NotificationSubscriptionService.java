@@ -30,13 +30,14 @@ public class NotificationSubscriptionService {
     }
 
     private SubscriptionResponse registerWebPush(UUID userId, RegisterSubscriptionRequest request) {
+        LocalDateTime now = LocalDateTime.now();
         subscriptionRepository.findAllByEndpointAndUserIdNotAndEnabledTrue(request.endpoint(), userId)
-                .forEach(NotificationSubscription::disable);
+                .forEach(subscription -> subscription.disable(now));
 
         NotificationSubscription subscription = subscriptionRepository
                 .findByUserIdAndEndpoint(userId, request.endpoint())
                 .map(existing -> {
-                    existing.updateKeys(request.p256dh(), request.auth());
+                    existing.updateKeys(request.p256dh(), request.auth(), now);
                     return existing;
                 })
                 .orElseGet(() -> subscriptionRepository.save(NotificationSubscription.builder()
@@ -47,20 +48,21 @@ public class NotificationSubscriptionService {
                         .p256dh(request.p256dh())
                         .auth(request.auth())
                         .enabled(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
+                        .createdAt(now)
+                        .updatedAt(now)
                         .build()));
         return SubscriptionResponse.from(subscription);
     }
 
     private SubscriptionResponse registerTokenBased(UUID userId, RegisterSubscriptionRequest request) {
+        LocalDateTime now = LocalDateTime.now();
         subscriptionRepository.findAllByTokenAndUserIdNotAndEnabledTrue(request.token(), userId)
-                .forEach(NotificationSubscription::disable);
+                .forEach(subscription -> subscription.disable(now));
 
         NotificationSubscription subscription = subscriptionRepository
                 .findByUserIdAndToken(userId, request.token())
                 .map(existing -> {
-                    existing.updateToken(request.token());
+                    existing.updateToken(request.token(), now);
                     return existing;
                 })
                 .orElseGet(() -> subscriptionRepository.save(NotificationSubscription.builder()
@@ -69,8 +71,8 @@ public class NotificationSubscriptionService {
                         .provider(request.provider())
                         .token(request.token())
                         .enabled(true)
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
+                        .createdAt(now)
+                        .updatedAt(now)
                         .build()));
         return SubscriptionResponse.from(subscription);
     }
@@ -78,12 +80,13 @@ public class NotificationSubscriptionService {
     @Transactional
     public void unregister(String endpointOrToken) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime now = LocalDateTime.now();
 
         subscriptionRepository.findByUserIdAndEndpoint(userId, endpointOrToken)
                 .ifPresentOrElse(
-                        NotificationSubscription::disable,
+                        subscription -> subscription.disable(now),
                         () -> subscriptionRepository.findByUserIdAndToken(userId, endpointOrToken)
-                                .ifPresent(NotificationSubscription::disable)
+                                .ifPresent(subscription -> subscription.disable(now))
                 );
     }
 }

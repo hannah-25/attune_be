@@ -61,8 +61,7 @@ public class JournalTag {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public static JournalTag userTag(UUID userId, JournalTagCategory category, String name, String tagType) {
-        LocalDateTime now = LocalDateTime.now();
+    public static JournalTag userTag(UUID userId, JournalTagCategory category, String name, String tagType, LocalDateTime now) {
         return JournalTag.builder()
                 .category(category)
                 .name(name)
@@ -78,9 +77,8 @@ public class JournalTag {
     }
 
     public static JournalTag systemTag(
-            JournalTagCategory category, String name, String tagType, boolean defaultVisible
+            JournalTagCategory category, String name, String tagType, boolean defaultVisible, LocalDateTime now
     ) {
-        LocalDateTime now = LocalDateTime.now();
         return JournalTag.builder()
                 .category(category)
                 .name(name)
@@ -94,13 +92,13 @@ public class JournalTag {
                 .build();
     }
 
-    public void deactivate() {
+    public void deactivate(LocalDateTime now) {
         this.isActive = false;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void activate() {
+    public void activate(LocalDateTime now) {
         this.isActive = true;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 }

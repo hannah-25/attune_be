@@ -89,7 +89,7 @@ public class CommentService {
             throw new AccessDeniedException("수정 권한이 없습니다.");
         }
 
-        comment.update(request.isAnonymous(), request.content());
+        comment.update(request.isAnonymous(), request.content(), LocalDateTime.now());
         return UpdateCommentResponse.from(comment);
     }
 

@@ -48,3 +48,7 @@ cors:
 
 app:
   frontend-url: http://localhost:3000
+
+admin:
+  audit:
+    hmac-secret: ${ADMIN_AUDIT_HMAC_SECRET:local-admin-audit-secret-change-me}

@@ -63,13 +63,13 @@ public class ConsultationService {
     @Transactional
     public void deleteConsultation(Long consultationId) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.delete();
+        consultation.delete(LocalDateTime.now());
     }
 
     @Transactional
     public void deleteResult(Long consultationId) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.clearResult();
+        consultation.clearResult(LocalDateTime.now());
     }
 
     @Transactional(readOnly = true)
@@ -111,7 +111,12 @@ public class ConsultationService {
     public ConsultationUpdateResponse updateResult(Long consultationId,
                                                    UpdateConsultationResultRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateResult(request.doctorAdvice(), request.prescriptionNote(), request.nextTreatmentGoal());
+        consultation.updateResult(
+                request.doctorAdvice(),
+                request.prescriptionNote(),
+                request.nextTreatmentGoal(),
+                LocalDateTime.now()
+        );
         return ConsultationUpdateResponse.from(consultation);
     }
 
@@ -136,7 +141,12 @@ public class ConsultationService {
     public ConsultationScheduleResponse updateSchedule(Long consultationId,
                                                        UpdateConsultationScheduleRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateSchedule(request.consultationDate(), request.place(), request.alarmSettings());
+        consultation.updateSchedule(
+                request.consultationDate(),
+                request.place(),
+                request.alarmSettings(),
+                LocalDateTime.now()
+        );
         return ConsultationScheduleResponse.from(consultation);
     }
 

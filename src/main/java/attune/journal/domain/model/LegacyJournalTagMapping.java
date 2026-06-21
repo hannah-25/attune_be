@@ -49,14 +49,14 @@ public class LegacyJournalTagMapping implements Persistable<LegacyJournalTagMapp
     private boolean newEntity = true;
 
     public static LegacyJournalTagMapping create(
-            JournalTagCategory category, Long legacyTagId, UUID userId, Long journalTagId
+            JournalTagCategory category, Long legacyTagId, UUID userId, Long journalTagId, LocalDateTime now
     ) {
         return LegacyJournalTagMapping.builder()
                 .legacyCategory(category)
                 .legacyTagId(legacyTagId)
                 .userId(userId)
                 .journalTagId(journalTagId)
-                .createdAt(LocalDateTime.now())
+                .createdAt(now)
                 .build();
     }
 

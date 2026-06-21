@@ -44,6 +44,18 @@ public class User {
 
     private LocalDateTime withdrawalAt;
 
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    private LocalDateTime lastLoginAt;
+
+    @PrePersist
+    void initializeCreatedAt() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
@@ -73,14 +85,32 @@ public class User {
         this.profileImageUrl = url;
     }
 
-    public void withdraw() {
+    public void withdraw(LocalDateTime now) {
         this.userStatus = UserStatus.WITHDRAWAL;
-        this.withdrawalAt = LocalDateTime.now();
+        this.withdrawalAt = now;
     }
 
     public void restore() {
         this.userStatus = UserStatus.ACTIVE;
         this.withdrawalAt = null;
+    }
+
+    public void suspend() {
+        this.userStatus = UserStatus.SUSPENDED;
+    }
+
+    public void softDelete() {
+        this.userStatus = UserStatus.DELETED;
+        this.email = "deleted_" + UUID.randomUUID() + "@deleted.attune.me";
+        this.nickname = "deleted_" + this.id.toString().replace("-", "");
+        this.password = null;
+        this.provider = null;
+        this.providerId = null;
+        this.profileImageUrl = null;
+    }
+
+    public void recordLogin(LocalDateTime loggedInAt) {
+        this.lastLoginAt = loggedInAt;
     }
 
     public void linkSocialProvider(OAuthProvider provider, String providerId) {

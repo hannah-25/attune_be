@@ -7,5 +7,6 @@ public record CreateNoticeRequest(
         @NotBlank String title,
         @NotBlank String content,
         boolean isPinned,
-        boolean sendNotification
+        boolean sendNotification,
+        boolean sendEmail
 ) {}

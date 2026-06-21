@@ -110,7 +110,8 @@ class ConditionTagServiceTest {
     void deleteTagDelegatesToCatalogService() {
         LocalDate journalDate = LocalDate.of(2026, 6, 16);
         when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 7L))
-                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 7L, null, 7L)));
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(
+                        JournalTagCategory.CONDITION, 7L, null, 7L, LocalDateTime.now())));
 
         conditionTagService.deleteTag(7L, journalDate);
 
@@ -132,11 +133,13 @@ class ConditionTagServiceTest {
                 10L, 10L, JournalTagCategory.CONDITION, "calm", "CALM",
                 JournalTagScope.SYSTEM, true, false);
         when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 10L))
-                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 10L, null, 10L)));
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(
+                        JournalTagCategory.CONDITION, 10L, null, 10L, LocalDateTime.now())));
 
         when(journalTagRepository.findById(10L)).thenReturn(Optional.of(tag));
         when(preferenceRepository.findById(new UserJournalTagPreferenceId(userId, 10L)))
-                .thenReturn(Optional.of(UserJournalTagPreference.create(userId, 10L, true, true)));
+                .thenReturn(Optional.of(UserJournalTagPreference.create(
+                        userId, 10L, true, true, LocalDateTime.now())));
         when(catalogService.updatePreference(eq(10L), any(UpdateCatalogTagPreferenceRequest.class)))
                 .thenReturn(toggled);
 
@@ -159,7 +162,8 @@ class ConditionTagServiceTest {
                 .build();
         LocalDateTime checkedAt = LocalDateTime.now();
         when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 10L))
-                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 10L, null, 10L)));
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(
+                        JournalTagCategory.CONDITION, 10L, null, 10L, LocalDateTime.now())));
         when(catalogCheckService.check(10L))
                 .thenReturn(new CatalogTagCheckResponse(10L, JournalTagCategory.CONDITION, checkedAt));
         when(journalTagRepository.findById(10L)).thenReturn(Optional.of(tag));
@@ -176,7 +180,8 @@ class ConditionTagServiceTest {
     void uncheckByDateDelegatesToCatalogCheckService() {
         LocalDate date = LocalDate.of(2026, 6, 16);
         when(legacyMappingRepository.findByLegacyCategoryAndLegacyTagId(JournalTagCategory.CONDITION, 10L))
-                .thenReturn(Optional.of(LegacyJournalTagMapping.create(JournalTagCategory.CONDITION, 10L, null, 10L)));
+                .thenReturn(Optional.of(LegacyJournalTagMapping.create(
+                        JournalTagCategory.CONDITION, 10L, null, 10L, LocalDateTime.now())));
 
         conditionTagService.uncheckByDate(10L, date);
 

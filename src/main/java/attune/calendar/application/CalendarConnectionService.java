@@ -52,6 +52,7 @@ public class CalendarConnectionService {
                 request.redirectUri()
         );
         String accountEmail = googleCalendarClient.fetchAccountEmail(token.accessToken());
+        LocalDateTime now = LocalDateTime.now();
 
         CalendarConnection connection = calendarConnectionRepository
                 .findByUserIdAndProvider(userId, CalendarProvider.GOOGLE)
@@ -67,11 +68,12 @@ public class CalendarConnectionService {
                     accountEmail,
                     token.accessToken(),
                     token.refreshToken(),
-                    token.expiresAt()
+                    token.expiresAt(),
+                    now
             );
             connection = calendarConnectionRepository.save(connection);
         } else {
-            connection.reconnect(accountEmail, token.accessToken(), token.refreshToken(), token.expiresAt());
+            connection.reconnect(accountEmail, token.accessToken(), token.refreshToken(), token.expiresAt(), now);
         }
 
         return CalendarConnectionResponse.from(connection);
@@ -87,15 +89,16 @@ public class CalendarConnectionService {
             throw new BadRequestException("Unsupported calendar provider");
         }
 
-        refreshTokenIfNeeded(connection);
+        LocalDateTime now = LocalDateTime.now();
+        refreshTokenIfNeeded(connection, now);
 
         List<String> calendarIds = googleCalendarClient.listCalendarIds(connection);
-        connection.updateSelectedCalendarIds(calendarIds);
+        connection.updateSelectedCalendarIds(calendarIds, now);
 
-        java.time.ZoneId serviceZone = java.time.ZoneId.of("Asia/Seoul");
-        LocalDateTime startAt = LocalDate.now(serviceZone).minusMonths(1).atStartOfDay();
-        LocalDateTime endAt = LocalDate.now(serviceZone).plusMonths(3).plusDays(1).atStartOfDay();
-        LocalDateTime syncedAt = LocalDateTime.now(serviceZone);
+        LocalDate today = LocalDate.now();
+        LocalDateTime startAt = today.minusMonths(1).atStartOfDay();
+        LocalDateTime endAt = today.plusMonths(3).plusDays(1).atStartOfDay();
+        LocalDateTime syncedAt = now;
 
         // Google에서 전체 스냅샷 수집
         List<ExternalCalendarEventSnapshot> allSnapshots = new ArrayList<>();
@@ -143,11 +146,11 @@ public class CalendarConnectionService {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         CalendarConnection connection = calendarConnectionRepository.findByIdAndUserIdAndIsActiveTrue(connectionId, userId)
                 .orElseThrow(() -> new NotFoundException("Calendar connection not found"));
-        connection.deactivate();
+        connection.deactivate(LocalDateTime.now());
     }
 
-    private void refreshTokenIfNeeded(CalendarConnection connection) {
-        if (connection.getTokenExpiresAt() != null && connection.getTokenExpiresAt().isAfter(LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).plusMinutes(5))) {
+    private void refreshTokenIfNeeded(CalendarConnection connection, LocalDateTime now) {
+        if (connection.getTokenExpiresAt() != null && connection.getTokenExpiresAt().isAfter(now.plusMinutes(5))) {
             return;
         }
         if (connection.getRefreshToken() == null || connection.getRefreshToken().isBlank()) {
@@ -155,6 +158,6 @@ public class CalendarConnectionService {
         }
 
         GoogleCalendarClient.GoogleToken token = googleCalendarClient.refresh(connection);
-        connection.updateAccessToken(token.accessToken(), token.expiresAt());
+        connection.updateAccessToken(token.accessToken(), token.expiresAt(), now);
     }
 }

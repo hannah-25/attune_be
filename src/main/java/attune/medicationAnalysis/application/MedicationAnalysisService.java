@@ -109,9 +109,10 @@ public class MedicationAnalysisService {
 
         // 저장: 기존 엔티티가 있으면 in-place 업데이트(unique constraint 방지), 없으면 신규 생성
         MedicationAnalysisReport saved;
+        LocalDateTime now = LocalDateTime.now();
         if (existing.isPresent()) {
             MedicationAnalysisReport report = existing.get();
-            report.updateSnapshot(snapshotJson, hash, countHash, LocalDateTime.now());
+            report.updateSnapshot(snapshotJson, hash, countHash, now);
             if (aiResultJson != null) {
                 report.completeWithAiResult(aiResultJson, modelName, promptVersion);
             } else {
@@ -131,7 +132,7 @@ public class MedicationAnalysisService {
                     .aiResultJson(aiResultJson)
                     .modelName(modelName)
                     .promptVersion(promptVersion)
-                    .generatedAt(LocalDateTime.now())
+                    .generatedAt(now)
                     .build());
         }
 

@@ -105,7 +105,8 @@ public class NotificationTxOperations {
     @Transactional
     public void disableSubscriptions(List<Long> subscriptionIds) {
         List<NotificationSubscription> targets = subscriptionRepository.findAllById(subscriptionIds);
-        targets.forEach(NotificationSubscription::disable);
+        LocalDateTime now = LocalDateTime.now();
+        targets.forEach(subscription -> subscription.disable(now));
         log.info("[ALARM SUBSCRIPTION DISABLED] ids={}", subscriptionIds);
     }
 }

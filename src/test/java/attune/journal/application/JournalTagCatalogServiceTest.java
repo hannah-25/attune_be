@@ -37,8 +37,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +54,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JournalTagCatalogServiceTest {
+
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 21, 0, 0);
 
     @Mock
     private JournalTagRepository journalTagRepository;
@@ -125,7 +127,7 @@ when(journalTagRepository.findAllByScopeAndCategoryAndIsActiveTrue(
                 .visible(true)
                 .build();
         LegacyJournalTagMapping mapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.CONDITION, 42L, userId, 10L);
+                JournalTagCategory.CONDITION, 42L, userId, 10L, NOW);
 
 when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         when(preferenceRepository.findById(any())).thenReturn(Optional.empty());
@@ -149,7 +151,7 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         JournalTag visibleSystemTag = catalogTag(10L, JournalTagCategory.CONDITION, JournalTagScope.SYSTEM, null, false);
         JournalTag hiddenUserTag = catalogTag(20L, JournalTagCategory.TROUBLE, JournalTagScope.USER, userId, true);
         UserJournalTagPreference existingPreference =
-                UserJournalTagPreference.create(userId, hiddenUserTag.getId(), false, true);
+                UserJournalTagPreference.create(userId, hiddenUserTag.getId(), false, true, NOW);
         ConditionTag conditionTag = ConditionTag.builder()
                 .id(101L)
                 .userId(userId)
@@ -167,9 +169,9 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
                 .visible(true)
                 .build();
         LegacyJournalTagMapping conditionMapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.CONDITION, conditionTag.getId(), userId, visibleSystemTag.getId());
+                JournalTagCategory.CONDITION, conditionTag.getId(), userId, visibleSystemTag.getId(), NOW);
         LegacyJournalTagMapping troubleMapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.TROUBLE, troubleTag.getId(), userId, hiddenUserTag.getId());
+                JournalTagCategory.TROUBLE, troubleTag.getId(), userId, hiddenUserTag.getId(), NOW);
         List<UserJournalTagPreference> savedPreferences = new ArrayList<>();
 
         when(journalTagRepository.findAllByScopeAndIsActiveTrue(JournalTagScope.SYSTEM))

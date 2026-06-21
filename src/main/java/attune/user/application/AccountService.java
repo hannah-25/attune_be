@@ -66,10 +66,11 @@ public class AccountService {
         termService.saveAgreement(user, request.termsOfService(), request.privacyPolicy(), request.marketingConsent());
 
         String token = UUID.randomUUID().toString();
+        LocalDateTime now = LocalDateTime.now();
         emailVerificationTokenRepository.save(EmailVerificationToken.builder()
                 .userId(user.getId())
                 .token(token)
-                .createdAt(LocalDateTime.now())
+                .createdAt(now)
                 .build());
 
         String verificationLink = frontendUrl + "/verify-email?token=" + token;
@@ -85,6 +86,7 @@ public class AccountService {
                 .nickname(request.nickname())
                 .userType(UserType.USER)
                 .userStatus(UserStatus.PENDING)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         userRepository.save(user);
@@ -98,7 +100,7 @@ public class AccountService {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
-        if (verificationToken.isExpired()) {
+        if (verificationToken.isExpired(LocalDateTime.now())) {
             emailVerificationTokenRepository.delete(verificationToken);
             throw new TokenException("만료된 링크입니다.");
         }
@@ -130,10 +132,11 @@ public class AccountService {
             passwordResetTokenRepository.deleteByUserId(user.getId());
 
             String token = UUID.randomUUID().toString();
+            LocalDateTime now = LocalDateTime.now();
             passwordResetTokenRepository.save(PasswordResetToken.builder()
                     .userId(user.getId())
                     .token(token)
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(now)
                     .build());
 
             String resetLink = frontendUrl + "/password/reset?token=" + token;
@@ -146,7 +149,7 @@ public class AccountService {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
-        if (resetToken.isExpired()) {
+        if (resetToken.isExpired(LocalDateTime.now())) {
             throw new TokenException("만료된 링크입니다.");
         }
     }
@@ -178,6 +181,7 @@ public class AccountService {
                 .nickname(finalNickname)
                 .userType(UserType.USER)
                 .userStatus(UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
                 .build();
         userRepository.save(user);
         userSettingRepository.save(UserSetting.createDefault(user));
@@ -207,7 +211,7 @@ public class AccountService {
             }
         }
 
-        user.withdraw();
+        user.withdraw(LocalDateTime.now());
         userAuthCacheRepository.delete(userId);
     }
 
@@ -216,7 +220,7 @@ public class AccountService {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.token())
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
-        if (resetToken.isExpired()) {
+        if (resetToken.isExpired(LocalDateTime.now())) {
             throw new TokenException("만료된 링크입니다.");
         }
 

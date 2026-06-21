@@ -32,7 +32,7 @@ public class MedicationAlarmScheduler {
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendMedicationAlarms() {
-        LocalDateTime scheduledAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Seoul")).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalTime now = scheduledAt.toLocalTime();
 
         LocalDateTime windowStart = scheduledAt.minusMinutes(RECOVERY_WINDOW_MINUTES);

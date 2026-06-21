@@ -11,7 +11,7 @@
 | profile_image_url | TEXT | | 프로필 이미지 URL |
 | provider | VARCHAR(50) | | 소셜 로그인 제공자 |
 | provider_id | VARCHAR(100) | | 소셜 로그인 provider id |
-| user_status | VARCHAR(50) | DEFAULT PENDING (PENDING, ACTIVE, SUSPENDED, WITHDRAWAL) | 계정 상태 |
+| user_status | VARCHAR(50) | DEFAULT PENDING (PENDING, ACTIVE, SUSPENDED, WITHDRAWAL, DELETED) | 계정 상태 |
 | user_type | VARCHAR(50) | DEFAULT USER (USER, ADMIN) | 사용자 유형 (Enum) |
 | onboarded_at | TIMESTAMP | | 온보딩 시점 |
 | onboarding_skipped | BOOLEAN | DEFAULT false | 온보딩 전체 건너뜀 여부 |

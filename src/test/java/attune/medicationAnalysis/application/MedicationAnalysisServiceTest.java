@@ -31,6 +31,11 @@ import static org.mockito.Mockito.*;
 
 class MedicationAnalysisServiceTest {
 
+    private static final UUID USER_ID = UUID.randomUUID();
+    private static final LocalDate TODAY = LocalDate.now();
+    private static final LocalDate START = TODAY.minusDays(13);
+    private static final LocalDate END = TODAY.minusDays(1);
+
     private final MedicationAnalysisReportRepository reportRepository = mock(MedicationAnalysisReportRepository.class);
     private final TermService termService = mock(TermService.class);
     private final UserRepository userRepository = mock(UserRepository.class);
@@ -43,11 +48,6 @@ class MedicationAnalysisServiceTest {
             reportRepository, termService, userRepository,
             analysisEngine, snapshotSerializer, geminiReportClient
     );
-
-    private static final UUID USER_ID = UUID.randomUUID();
-    private static final LocalDate TODAY = LocalDate.now();
-    private static final LocalDate START = TODAY.minusDays(13);
-    private static final LocalDate END = TODAY.minusDays(1);
 
     // -------------------------------------------------------------------------
     // checkAvailability

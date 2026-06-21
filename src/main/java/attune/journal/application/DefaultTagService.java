@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -48,6 +49,7 @@ public class DefaultTagService {
     }
 
     private void copyForCategory(UUID userId, JournalTagCategory category) {
+        LocalDateTime now = LocalDateTime.now();
         List<JournalTag> systemTags = journalTagRepository
                 .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category);
         if (systemTags.isEmpty()) return;
@@ -65,7 +67,7 @@ public class DefaultTagService {
             if (existingTagIds.contains(tag.getId())) continue;
             boolean makeVisible = tag.isDefaultVisible() && visibleCount < MAX_VISIBLE_DEFAULTS;
             if (makeVisible) visibleCount++;
-            toSave.add(UserJournalTagPreference.create(userId, tag.getId(), true, makeVisible));
+            toSave.add(UserJournalTagPreference.create(userId, tag.getId(), true, makeVisible, now));
         }
         preferenceRepository.saveAll(toSave);
     }

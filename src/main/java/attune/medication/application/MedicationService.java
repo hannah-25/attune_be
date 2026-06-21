@@ -43,7 +43,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,8 +52,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 public class MedicationService {
-
-    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final UserMedicationRepository userMedicationRepository;
     private final MedicationRepository medicationRepository;
@@ -178,7 +175,13 @@ public class MedicationService {
             validateActiveMedicationEndAt(endAt);
         }
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
-        um.update(updateEndAt ? endAt : null, updateEndAt, request.isActive(), request.alarmActive());
+        um.update(
+                updateEndAt ? endAt : null,
+                updateEndAt,
+                request.isActive(),
+                request.alarmActive(),
+                LocalDateTime.now()
+        );
         return UpdateMedicationResponse.from(um);
     }
 
@@ -343,7 +346,7 @@ public class MedicationService {
     }
 
     private void validateActiveMedicationEndAt(LocalDate endAt) {
-        if (endAt != null && endAt.isBefore(LocalDate.now(SERVICE_ZONE))) {
+        if (endAt != null && endAt.isBefore(LocalDate.now())) {
             throw new BadRequestException("활성화된 복약 정보의 종료일은 오늘보다 이전일 수 없습니다.");
         }
     }

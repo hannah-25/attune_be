@@ -2,6 +2,7 @@ package attune.common.config;
 
 import attune.common.ApiVersion;
 import attune.common.filter.JwtAuthenticationFilter;
+import attune.common.security.SecurityErrorResponseWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsProperties corsProperties;
+    private final SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -61,6 +63,19 @@ public class SecurityConfig {
 
                 // JWT 토큰 기반 인증에서는 세션을 사용하지 않음!
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                securityErrorResponseWriter.write(
+                                        response,
+                                        org.springframework.http.HttpStatus.UNAUTHORIZED,
+                                        "로그인이 필요합니다."
+                                ))
+                        .accessDeniedHandler((request, response, exception) ->
+                                securityErrorResponseWriter.write(
+                                        response,
+                                        org.springframework.http.HttpStatus.FORBIDDEN,
+                                        "관리자 권한이 필요합니다."
+                                )))
 
                 // OPTIONS 요청(Preflight 요청)을 허용
                 .authorizeHttpRequests(auth -> auth

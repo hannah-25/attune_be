@@ -34,17 +34,50 @@ public class AdminNotificationSender {
         do {
             batch = loadBatch(page++);
             for (UserSetting setting : batch) {
-                notificationService.sendToUser(
-                        setting.getId(),
-                        NotificationAlarmType.MARKETING,
-                        noticeId,
-                        scheduledAt,
-                        message
-                );
+                try {
+                    notificationService.sendToUser(
+                            setting.getId(),
+                            NotificationAlarmType.MARKETING,
+                            noticeId,
+                            scheduledAt,
+                            message
+                    );
+                } catch (Exception e) {
+                    log.error("[NOTICE PUSH] Failed to send to userId={}", setting.getId(), e);
+                }
             }
         } while (batch.size() == BATCH_SIZE);
 
         log.info("[MARKETING PUSH] noticeId={} completed", noticeId);
+    }
+
+    @Async
+    public void sendMarketingPush(String title, String body, String targetUrl, Long campaignId, LocalDateTime scheduledAt) {
+        String url = targetUrl != null ? targetUrl : "/";
+        PushMessage message = new PushMessage(title, body, url);
+
+        log.info("[MARKETING PUSH] campaignId={} title=\"{}\"", campaignId, title);
+
+        int page = 0;
+        List<UserSetting> batch;
+        do {
+            batch = loadBatch(page++);
+            for (UserSetting setting : batch) {
+                try {
+                    notificationService.sendToUser(
+                            setting.getId(),
+                            NotificationAlarmType.MARKETING,
+                            campaignId,
+                            scheduledAt,
+                            message
+                    );
+                } catch (Exception e) {
+                    log.error("[MARKETING PUSH] Failed to send to userId={}", setting.getId(), e);
+                }
+            }
+        } while (batch.size() == BATCH_SIZE);
+
+        log.info("[MARKETING PUSH] campaignId={} completed", campaignId);
     }
 
     private List<UserSetting> loadBatch(int page) {

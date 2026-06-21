@@ -47,6 +47,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class JournalTagCatalogCheckServiceTest {
 
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 6, 21, 0, 0);
+
     @Mock
     private JournalTagRepository journalTagRepository;
     @Mock
@@ -148,9 +150,9 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
                 .updatedAt(LocalDateTime.now())
                 .build();
         LegacyJournalTagMapping higherMapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.CONDITION, 42L, userId, 10L);
+                JournalTagCategory.CONDITION, 42L, userId, 10L, NOW);
         LegacyJournalTagMapping lowerMapping = LegacyJournalTagMapping.create(
-                JournalTagCategory.CONDITION, 21L, userId, 10L);
+                JournalTagCategory.CONDITION, 21L, userId, 10L, NOW);
         ArgumentCaptor<ConditionLog> logCaptor = ArgumentCaptor.forClass(ConditionLog.class);
 
         when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
@@ -183,7 +185,8 @@ when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
 
 when(journalTagRepository.findById(10L)).thenReturn(Optional.of(systemTag));
         when(preferenceRepository.findById(any())).thenReturn(Optional.of(
-                attune.journal.domain.model.UserJournalTagPreference.create(userId, 10L, false, false)));
+                attune.journal.domain.model.UserJournalTagPreference.create(
+                        userId, 10L, false, false, NOW)));
 
         assertThatThrownBy(() -> checkService.check(10L))
                 .isInstanceOf(BadRequestException.class);
