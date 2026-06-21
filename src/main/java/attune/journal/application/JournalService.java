@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -164,7 +165,7 @@ public class JournalService {
 
         Map<LocalDate, String> memoByDate =
                 memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate).stream()
-                        .collect(Collectors.toMap(Memo::getJournalDate, m -> m.getMemo() != null ? m.getMemo() : ""));
+                        .collect(HashMap::new, (map, m) -> map.put(m.getJournalDate(), m.getMemo()), HashMap::putAll);
 
         List<JournalDateResponse> journals = new ArrayList<>();
         for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
