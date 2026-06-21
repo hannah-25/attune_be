@@ -163,9 +163,9 @@ public class JournalService {
                                 )
                         ));
 
-        Map<LocalDate, String> memoByDate =
-                memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate).stream()
-                        .collect(HashMap::new, (map, m) -> map.put(m.getJournalDate(), m.getMemo()), HashMap::putAll);
+        Map<LocalDate, String> memoByDate = new HashMap<>();
+        memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate)
+                .forEach(m -> memoByDate.put(m.getJournalDate(), m.getMemo()));
 
         List<JournalDateResponse> journals = new ArrayList<>();
         for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
