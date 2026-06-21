@@ -34,13 +34,17 @@ public class AdminNotificationSender {
         do {
             batch = loadBatch(page++);
             for (UserSetting setting : batch) {
-                notificationService.sendToUser(
-                        setting.getId(),
-                        NotificationAlarmType.MARKETING,
-                        noticeId,
-                        scheduledAt,
-                        message
-                );
+                try {
+                    notificationService.sendToUser(
+                            setting.getId(),
+                            NotificationAlarmType.MARKETING,
+                            noticeId,
+                            scheduledAt,
+                            message
+                    );
+                } catch (Exception e) {
+                    log.error("[NOTICE PUSH] Failed to send to userId={}", setting.getId(), e);
+                }
             }
         } while (batch.size() == BATCH_SIZE);
 
@@ -59,13 +63,17 @@ public class AdminNotificationSender {
         do {
             batch = loadBatch(page++);
             for (UserSetting setting : batch) {
-                notificationService.sendToUser(
-                        setting.getId(),
-                        NotificationAlarmType.MARKETING,
-                        campaignId,
-                        scheduledAt,
-                        message
-                );
+                try {
+                    notificationService.sendToUser(
+                            setting.getId(),
+                            NotificationAlarmType.MARKETING,
+                            campaignId,
+                            scheduledAt,
+                            message
+                    );
+                } catch (Exception e) {
+                    log.error("[MARKETING PUSH] Failed to send to userId={}", setting.getId(), e);
+                }
             }
         } while (batch.size() == BATCH_SIZE);
 
