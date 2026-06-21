@@ -35,7 +35,7 @@ public class JournalController {
         return ResponseEntity.ok(journalService.getJournal(date));
     }
 
-    @Operation(summary = "주간 일지 벌크 조회", description = "기간 내 모든 날짜의 활성 태그와 체크 내역을 한 번에 반환한다.")
+    @Operation(summary = "기간별 일지 벌크 조회", description = "기간 내 모든 날짜의 활성 태그와 체크 내역을 한 번에 반환한다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<JournalBulkResponse> getJournalsBulk(
