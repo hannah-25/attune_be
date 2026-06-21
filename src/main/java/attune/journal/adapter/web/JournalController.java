@@ -5,6 +5,7 @@ import attune.common.ApiVersion;
 import attune.journal.application.JournalService;
 import attune.journal.application.dto.response.DeleteJournalRangeResponse;
 import attune.journal.application.dto.response.DeleteJournalResponse;
+import attune.journal.application.dto.response.JournalBulkResponse;
 import attune.journal.application.dto.response.JournalDetailResponse;
 import attune.journal.application.dto.response.JournalListResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,9 +35,19 @@ public class JournalController {
         return ResponseEntity.ok(journalService.getJournal(date));
     }
 
-    @Operation(summary = "기간별 일지 목록 조회", description = "기간 내 일지 데이터가 존재하는 날짜 목록을 반환한다.")
+    @Operation(summary = "주간 일지 벌크 조회", description = "기간 내 모든 날짜의 활성 태그와 체크 내역을 한 번에 반환한다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
+    public ResponseEntity<JournalBulkResponse> getJournalsBulk(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        return ResponseEntity.ok(journalService.getJournalsBulk(startDate, endDate));
+    }
+
+    @Operation(summary = "기간별 일지 목록 조회", description = "기간 내 일지 데이터가 존재하는 날짜 목록을 반환한다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/dates")
     public ResponseEntity<JournalListResponse> getJournalDates(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate

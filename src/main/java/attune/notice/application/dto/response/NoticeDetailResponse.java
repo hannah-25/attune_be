@@ -8,6 +8,7 @@ public record NoticeDetailResponse(
         Long noticeId,
         String title,
         String content,
+        boolean isPinned,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -16,6 +17,7 @@ public record NoticeDetailResponse(
                 notice.getId(),
                 notice.getTitle(),
                 notice.getContent(),
+                notice.isPinned(),
                 notice.getCreatedAt(),
                 notice.getUpdatedAt()
         );
