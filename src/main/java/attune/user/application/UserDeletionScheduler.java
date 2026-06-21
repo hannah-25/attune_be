@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Slf4j
@@ -20,13 +20,14 @@ public class UserDeletionScheduler {
 
     private final UserRepository userRepository;
     private final UserPermanentDeletionService permanentDeletionService;
+    private final Clock clock;
 
     @Value("${app.user.deletion-retention-days:30}")
     private int retentionDays;
 
     @Scheduled(cron = "${app.user.deletion-cron:0 0 3 * * *}")
     public void deleteExpiredWithdrawnUsers() {
-        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.UTC).minusDays(retentionDays);
+        LocalDateTime cutoff = LocalDateTime.now(clock).minusDays(retentionDays);
         List<User> targets = userRepository.findExpiredWithdrawnUsers(UserStatus.WITHDRAWAL, cutoff);
         if (targets.isEmpty()) {
             return;

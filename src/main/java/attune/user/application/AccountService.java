@@ -88,6 +88,7 @@ public class AccountService {
                 .nickname(request.nickname())
                 .userType(UserType.USER)
                 .userStatus(UserStatus.PENDING)
+                .createdAt(LocalDateTime.now(clock))
                 .build();
 
         userRepository.save(user);
@@ -182,6 +183,7 @@ public class AccountService {
                 .nickname(finalNickname)
                 .userType(UserType.USER)
                 .userStatus(UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now(clock))
                 .build();
         userRepository.save(user);
         userSettingRepository.save(UserSetting.createDefault(user));
@@ -211,7 +213,7 @@ public class AccountService {
             }
         }
 
-        user.withdraw();
+        user.withdraw(LocalDateTime.now(clock));
         userAuthCacheRepository.delete(userId);
     }
 

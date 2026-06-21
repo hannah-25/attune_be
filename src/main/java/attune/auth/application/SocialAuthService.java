@@ -23,10 +23,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 @Service
 @Transactional
@@ -43,6 +43,7 @@ public class SocialAuthService {
     private final JwtConfig jwtConfig;
     private final UserAuthCacheRepository userAuthCacheRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     public AuthResult login(SocialLoginRequest request) {
         OAuthVerifier verifier = verifiers.stream()
@@ -52,7 +53,7 @@ public class SocialAuthService {
 
         OAuthUserInfo info = verifier.verify(request.token());
         User user = findOrCreateUser(request.provider(), info);
-        user.recordLogin(LocalDateTime.now(ZoneOffset.UTC));
+        user.recordLogin(LocalDateTime.now(clock));
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), user.getUserStatus());
         String refreshToken = jwtProvider.generateRefreshToken();
@@ -108,7 +109,7 @@ public class SocialAuthService {
         }
 
         user.restore();
-        user.recordLogin(LocalDateTime.now(ZoneOffset.UTC));
+        user.recordLogin(LocalDateTime.now(clock));
         eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);

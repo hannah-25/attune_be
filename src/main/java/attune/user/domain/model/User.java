@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Getter
@@ -53,7 +53,7 @@ public class User {
     @PrePersist
     void initializeCreatedAt() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now(ZoneOffset.UTC);
+            createdAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         }
     }
 
@@ -86,9 +86,9 @@ public class User {
         this.profileImageUrl = url;
     }
 
-    public void withdraw() {
+    public void withdraw(LocalDateTime now) {
         this.userStatus = UserStatus.WITHDRAWAL;
-        this.withdrawalAt = LocalDateTime.now(ZoneOffset.UTC);
+        this.withdrawalAt = now;
     }
 
     public void restore() {

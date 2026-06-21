@@ -6,7 +6,7 @@ import attune.user.domain.model.UserStatus;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.UUID;
 
 public record AdminMemberResponse(
@@ -37,7 +37,9 @@ public record AdminMemberResponse(
         );
     }
 
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+
     private static Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.toInstant(ZoneOffset.UTC);
+        return value == null ? null : value.atZone(KST).toInstant();
     }
 }

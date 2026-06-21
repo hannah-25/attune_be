@@ -28,9 +28,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -43,6 +43,7 @@ public class AuthService {
     private final UserAuthCacheRepository userAuthCacheRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Clock clock;
 
     public AuthResult login(LoginRequest request) {
         userRepository.findByEmail(request.email()).ifPresent(user -> {
@@ -60,7 +61,7 @@ public class AuthService {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId())
                 .orElseThrow(UserNotFoundException::new);
-        user.recordLogin(LocalDateTime.now(ZoneOffset.UTC));
+        user.recordLogin(LocalDateTime.now(clock));
 
         String accessToken = jwtProvider.generateAccessToken(userDetails.getId(), userDetails.getUserType(), userDetails.getUserStatus());
         String refreshToken = jwtProvider.generateRefreshToken();
@@ -124,7 +125,7 @@ public class AuthService {
         }
 
         user.restore();
-        user.recordLogin(LocalDateTime.now(ZoneOffset.UTC));
+        user.recordLogin(LocalDateTime.now(clock));
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);
         String refreshToken = jwtProvider.generateRefreshToken();
