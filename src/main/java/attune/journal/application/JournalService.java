@@ -116,6 +116,9 @@ public class JournalService {
 
     @Transactional(readOnly = true)
     public JournalBulkResponse getJournalsBulk(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new BadRequestException("시작 날짜와 종료 날짜는 필수입니다.");
+        }
         if (startDate.isAfter(endDate)) {
             throw new BadRequestException("시작 날짜는 종료 날짜보다 이전이어야 합니다.");
         }
