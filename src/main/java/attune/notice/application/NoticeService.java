@@ -1,6 +1,6 @@
 package attune.notice.application;
 
-import attune.alarm.application.AdminNotificationSender;
+import attune.alarm.application.event.NoticePushRequestedEvent;
 import attune.common.error.notfound.NoticeNotFoundException;
 import attune.common.mail.event.NoticePublishedEvent;
 import attune.notice.application.dto.request.CreateNoticeRequest;
@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 public class NoticeService {
 
     private final NoticeRepository noticeRepository;
-    private final AdminNotificationSender adminNotificationSender;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
@@ -62,7 +61,12 @@ public class NoticeService {
         Notice saved = noticeRepository.save(notice);
 
         if (request.sendNotification()) {
-            adminNotificationSender.sendNoticeToAll(saved.getId(), saved.getTitle(), saved.getContent(), saved.getCreatedAt());
+            eventPublisher.publishEvent(new NoticePushRequestedEvent(
+                    saved.getId(),
+                    saved.getTitle(),
+                    saved.getContent(),
+                    saved.getCreatedAt()
+            ));
         }
         if (request.sendEmail()) {
             eventPublisher.publishEvent(new NoticePublishedEvent(saved.getTitle(), saved.getContent()));

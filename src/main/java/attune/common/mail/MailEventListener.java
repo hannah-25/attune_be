@@ -9,9 +9,9 @@ import attune.user.domain.model.UserStatus;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -43,7 +43,7 @@ public class MailEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTermsUpdated(TermsUpdatedEvent event) {
         Pageable pageable = PageRequest.of(0, BATCH_SIZE);
-        Page<User> page;
+        Slice<User> page;
         do {
             page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, pageable);
             page.getContent().forEach(user ->
@@ -56,7 +56,7 @@ public class MailEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleNoticePublished(NoticePublishedEvent event) {
         Pageable pageable = PageRequest.of(0, BATCH_SIZE);
-        Page<User> page;
+        Slice<User> page;
         do {
             page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, pageable);
             page.getContent().forEach(user -> {

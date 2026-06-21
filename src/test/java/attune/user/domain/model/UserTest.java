@@ -27,7 +27,7 @@ class UserTest {
         assertThat(user.getUserStatus()).isEqualTo(UserStatus.DELETED);
         assertThat(user.getEmail()).startsWith("deleted_").endsWith("@deleted.attune.me");
         assertThat(user.getNickname()).isEqualTo(
-                "deleted_" + userId.toString().replace("-", "").substring(0, 12)
+                "deleted_" + userId.toString().replace("-", "")
         );
         assertThat(user.getPassword()).isNull();
         assertThat(user.getProvider()).isNull();

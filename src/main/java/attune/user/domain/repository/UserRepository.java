@@ -3,8 +3,8 @@ package attune.user.domain.repository;
 import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Lock;
@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     Optional<User> findByProviderAndProviderId(OAuthProvider provider, String providerId);
     boolean existsByNickname(String nickname);
-    Page<User> findAllByUserStatus(UserStatus status, Pageable pageable);
+    Slice<User> findAllByUserStatus(UserStatus status, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u FROM User u WHERE u.id = :id")

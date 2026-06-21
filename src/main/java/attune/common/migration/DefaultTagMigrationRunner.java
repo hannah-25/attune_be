@@ -10,8 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -34,7 +34,7 @@ public class DefaultTagMigrationRunner implements ApplicationRunner {
         Set<UUID> usersWithPreferences = preferenceRepository.findDistinctUserIds();
         int count = 0;
         int pageNumber = 0;
-        Page<User> page;
+        Slice<User> page;
 
         do {
             page = userRepository.findAllByUserStatus(UserStatus.ACTIVE, PageRequest.of(pageNumber++, BATCH_SIZE));
