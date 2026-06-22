@@ -233,6 +233,19 @@
 
 ---
 
+## JournalTagLog (통합 태그 체크 로그)
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | BIGINT | PK, AUTO_INCREMENT, NOT NULL | 로그 고유 식별자 |
+| user_id | UUID | FK → User.id ON DELETE CASCADE, NOT NULL | 사용자 ID |
+| journal_tag_id | BIGINT | FK → JournalTag.id ON DELETE RESTRICT, NOT NULL | 태그 ID |
+| journal_date | DATE | NOT NULL | 체크인 대상 날짜 (클라이언트 기준, Asia/Seoul) |
+| checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 |
+| | | UNIQUE(user_id, journal_tag_id, journal_date) | 동일 날짜 중복 체크 방지 |
+
+---
+
 ## DailyGoal (일일 목표)
 
 | Column Name | DB Data Type | Constraints | Description |
