@@ -2,10 +2,10 @@ package attune.medicationAnalysis.application.engine;
 
 import attune.journal.domain.model.DailyStatusLog;
 import attune.journal.domain.model.Memo;
+import attune.journal.domain.repository.JournalTagLogView;
 import attune.medication.domain.model.UserMedication;
 import attune.medication.domain.model.UserMedicationLog;
 import attune.medication.domain.model.UserMedicationSchedule;
-import jakarta.persistence.Tuple;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,11 +18,8 @@ public record AnalysisRawData(
         List<UserMedication> medications,
         List<UserMedicationSchedule> schedules,
         List<UserMedicationLog> medicationLogs,
-        List<Tuple> conditionTuples,
-        List<Tuple> sideEffectTuples,
-        List<Tuple> troubleTuples,
+        List<JournalTagLogView> tagLogs,
         List<DailyStatusLog> statusLogs,
         List<Object[]> goalLogPairs,
         List<Memo> memos
-) {
-}
+) {}

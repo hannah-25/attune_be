@@ -1,5 +1,9 @@
 # Journal Tag Catalog Migration
 
+> **Superseded:** 실제 이용자가 없는 상태에서 단계적 dual-write 대신 직접 전환하기로 결정했다.
+> 신규 구현과 배포는 `docs/journal-tag-direct-cutover-plan.md`를 기준으로 진행한다.
+> 이 문서는 기존 설계의 배경과 이력 확인 용도로만 유지한다.
+
 ## Goal
 
 Replace copied per-user default tags with a shared tag catalog and per-user preferences without changing current APIs during the migration.
