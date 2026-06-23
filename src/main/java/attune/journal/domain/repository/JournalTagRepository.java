@@ -28,4 +28,8 @@ public interface JournalTagRepository extends JpaRepository<JournalTag, Long> {
     boolean existsByScopeAndCategoryAndNameAndIsActiveTrue(
             JournalTagScope scope, JournalTagCategory category, String name
     );
+
+    boolean existsByScopeAndOwnerUserIdAndCategoryAndNameAndIsActiveTrue(
+            JournalTagScope scope, UUID ownerUserId, JournalTagCategory category, String name
+    );
 }

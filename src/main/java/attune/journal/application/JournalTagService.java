@@ -83,6 +83,11 @@ public class JournalTagService {
             throw new DuplicateTagException("journal tag");
         }
 
+        if (journalTagRepository.existsByScopeAndOwnerUserIdAndCategoryAndNameAndIsActiveTrue(
+                JournalTagScope.USER, userId, request.category(), normalizedName)) {
+            throw new DuplicateTagException("journal tag");
+        }
+
         boolean[] reactivated = {false};
         JournalTag tag = journalTagRepository.findByScopeAndOwnerUserIdAndCategoryAndNameAndTagType(
                         JournalTagScope.USER, userId, request.category(), normalizedName, request.tagType())
