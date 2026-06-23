@@ -71,7 +71,7 @@ public class JournalTagController {
             @PathVariable Long tagId,
             @Valid @RequestBody CheckJournalTagRequest request
     ) {
-        return ResponseEntity.status(201).body(journalTagCheckService.check(tagId, request));
+        return ResponseEntity.ok(journalTagCheckService.check(tagId, request));
     }
 
     @DeleteMapping("/{tagId}/checks")

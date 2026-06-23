@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,7 +19,13 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "journal_tags")
+@Table(
+        name = "journal_tags",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_journal_tags_owner_category_name_type",
+                columnNames = {"owner_key", "category", "name", "tag_type"}
+        )
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -101,4 +108,5 @@ public class JournalTag {
         this.isActive = true;
         this.updatedAt = now;
     }
+
 }

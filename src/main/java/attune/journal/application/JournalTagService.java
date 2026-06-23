@@ -78,10 +78,10 @@ public class JournalTagService {
         String normalizedName = normalizeName(request.name());
         validateTagType(request.category(), request.tagType());
 
-        journalTagRepository.findByScopeAndCategoryAndNameAndTagType(
-                        JournalTagScope.SYSTEM, request.category(), normalizedName, request.tagType())
-                .filter(JournalTag::isActive)
-                .ifPresent(t -> { throw new DuplicateTagException("journal tag"); });
+        if (journalTagRepository.existsByScopeAndCategoryAndNameAndIsActiveTrue(
+                JournalTagScope.SYSTEM, request.category(), normalizedName)) {
+            throw new DuplicateTagException("journal tag");
+        }
 
         boolean[] reactivated = {false};
         JournalTag tag = journalTagRepository.findByScopeAndOwnerUserIdAndCategoryAndNameAndTagType(
@@ -145,14 +145,21 @@ public class JournalTagService {
     @Transactional
     public void bulkSetVisibilityForOnboarding(UUID userId, Set<Long> visibleTagIds) {
         LocalDateTime now = LocalDateTime.now();
-        List<JournalTag> allTags = Stream.concat(
-                journalTagRepository.findAllByScopeAndIsActiveTrue(JournalTagScope.SYSTEM).stream(),
-                journalTagRepository.findAllByScopeAndOwnerUserIdAndIsActiveTrue(JournalTagScope.USER, userId).stream()
-        ).toList();
+        List<JournalTag> onboardingTags = journalTagRepository
+                .findAllByScopeAndCategoryAndIsActiveTrue(
+                        JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE);
+        Set<Long> onboardingTagIds = onboardingTags.stream()
+                .map(JournalTag::getId)
+                .collect(Collectors.toSet());
+        if (!onboardingTagIds.containsAll(visibleTagIds)) {
+            throw new BadRequestException(
+                    "visibleTagIds must contain only active system TROUBLE tag IDs");
+        }
+
         Map<Long, UserJournalTagPreference> existingPrefs = preferenceRepository.findAllByUserId(userId).stream()
                 .collect(Collectors.toMap(UserJournalTagPreference::getJournalTagId, Function.identity()));
 
-        List<UserJournalTagPreference> preferences = allTags.stream()
+        List<UserJournalTagPreference> preferences = onboardingTags.stream()
                 .map(tag -> {
                     boolean visible = visibleTagIds.contains(tag.getId());
                     UserJournalTagPreference pref = existingPrefs.get(tag.getId());
