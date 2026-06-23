@@ -20,7 +20,6 @@ public record GoalRequest(
         List<Long> visibleTagIds
 ) {
     public GoalRequest {
-        goals = goals != null ? goals : List.of();
         visibleTagIds = visibleTagIds != null ? visibleTagIds : List.of();
     }
     public record GoalItem(
