@@ -203,6 +203,7 @@ SELECT
     ),
     '2026-06-23 00:00:00',
     NOW(6)
+FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1
     FROM `terms`
@@ -229,6 +230,7 @@ SELECT
     ),
     '2026-06-23 00:00:00',
     NOW(6)
+FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1
     FROM `terms`
@@ -248,6 +250,7 @@ SELECT
     ),
     '2026-06-23 00:00:00',
     NOW(6)
+FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1
     FROM `terms`
@@ -272,6 +275,7 @@ SELECT
     ),
     '2026-06-23 00:00:00',
     NOW(6)
+FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1
     FROM `terms`
