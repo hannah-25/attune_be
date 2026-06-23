@@ -144,6 +144,7 @@ public class JournalTagService {
 
     @Transactional
     public void bulkSetVisibilityForOnboarding(UUID userId, Set<Long> visibleTagIds) {
+        Set<Long> tagIds = visibleTagIds != null ? visibleTagIds : Set.of();
         LocalDateTime now = LocalDateTime.now();
         List<JournalTag> onboardingTags = journalTagRepository
                 .findAllByScopeAndCategoryAndIsActiveTrue(
@@ -151,7 +152,7 @@ public class JournalTagService {
         Set<Long> onboardingTagIds = onboardingTags.stream()
                 .map(JournalTag::getId)
                 .collect(Collectors.toSet());
-        if (!onboardingTagIds.containsAll(visibleTagIds)) {
+        if (!onboardingTagIds.containsAll(tagIds)) {
             throw new BadRequestException(
                     "visibleTagIds must contain only active system TROUBLE tag IDs");
         }
@@ -161,7 +162,7 @@ public class JournalTagService {
 
         List<UserJournalTagPreference> preferences = onboardingTags.stream()
                 .map(tag -> {
-                    boolean visible = visibleTagIds.contains(tag.getId());
+                    boolean visible = tagIds.contains(tag.getId());
                     UserJournalTagPreference pref = existingPrefs.get(tag.getId());
                     if (pref == null) {
                         pref = UserJournalTagPreference.create(userId, tag.getId(), true, visible, now);
