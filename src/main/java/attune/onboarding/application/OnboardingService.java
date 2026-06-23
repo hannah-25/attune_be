@@ -271,9 +271,9 @@ public class OnboardingService {
         onboardingGoalSnapshotRepository.saveAll(snapshots);
 
         // 2. 태그 visible 업데이트
-        if (request.visibleCatalogTagIds() != null) {
+        if (request.visibleTagIds() != null) {
             journalTagService.bulkSetVisibilityForOnboarding(
-                    userId, new HashSet<>(request.visibleCatalogTagIds()));
+                    userId, new HashSet<>(request.visibleTagIds()));
         }
 
         List<GoalResponse.GoalItem> items = saved.stream()

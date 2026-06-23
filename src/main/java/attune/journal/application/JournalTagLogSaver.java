@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 /**
@@ -28,7 +29,7 @@ class JournalTagLogSaver {
                 .userId(userId)
                 .journalTagId(journalTagId)
                 .journalDate(journalDate)
-                .checkedAt(LocalDateTime.now())
+                .checkedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")))
                 .build());
     }
 

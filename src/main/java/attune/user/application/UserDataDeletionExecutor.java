@@ -25,11 +25,6 @@ public class UserDataDeletionExecutor {
             "DELETE FROM schedule_categories WHERE user_id = ?",
             "DELETE FROM todos WHERE user_id = ?",
 
-            // TODO: journal-tag Phase 6(레거시 엔티티 완전 삭제) 시 condition_logs/side_effect_logs/
-            //       trouble_logs/condition_tags/side_effect_tags/trouble_tags 관련 6개 구문 함께 제거
-            "DELETE FROM condition_logs WHERE condition_tag_id IN (SELECT id FROM condition_tags WHERE user_id = ?)",
-            "DELETE FROM side_effect_logs WHERE side_effect_tag_id IN (SELECT id FROM side_effect_tags WHERE user_id = ?)",
-            "DELETE FROM trouble_logs WHERE trouble_tag_id IN (SELECT id FROM trouble_tags WHERE user_id = ?)",
             "DELETE FROM daily_status_logs WHERE user_id = ?",
             "DELETE FROM memos WHERE user_id = ?",
             "DELETE FROM onboarding_goal_snapshots WHERE user_id = ?",
@@ -37,9 +32,6 @@ public class UserDataDeletionExecutor {
             "DELETE FROM daily_goals WHERE user_id = ?",
             "DELETE FROM journal_tag_logs WHERE user_id = ?",
             "DELETE FROM user_journal_tag_preferences WHERE user_id = ?",
-            "DELETE FROM condition_tags WHERE user_id = ?",
-            "DELETE FROM side_effect_tags WHERE user_id = ?",
-            "DELETE FROM trouble_tags WHERE user_id = ?",
             "DELETE FROM journal_tags WHERE owner_user_id = ?",
 
             "DELETE FROM user_medication_logs WHERE user_medication_schedule_id IN (" +

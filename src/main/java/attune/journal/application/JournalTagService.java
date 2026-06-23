@@ -188,6 +188,9 @@ public class JournalTagService {
     }
 
     private String normalizeName(String raw) {
+        if (raw == null) {
+            throw new BadRequestException("Tag name must not be null");
+        }
         String trimmed = raw.strip();
         if (trimmed.isEmpty()) {
             throw new BadRequestException("Tag name must not be blank");
