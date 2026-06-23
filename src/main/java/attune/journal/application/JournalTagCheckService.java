@@ -49,6 +49,7 @@ public class JournalTagCheckService {
     @Transactional
     public void uncheck(Long tagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        validateJournalDate(journalDate);
         requireAccessibleTag(userId, tagId);
         logRepository.deleteByUserIdAndJournalTagIdAndJournalDate(userId, tagId, journalDate);
     }

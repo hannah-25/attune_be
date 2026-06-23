@@ -295,7 +295,7 @@
 
 `journalDate`는 오늘 이전(Asia/Seoul 기준)이어야 한다. 미래 날짜는 400.
 
-**Response 201**
+**Response 200**
 
 ```json
 { "tagId": 1, "category": "CONDITION", "name": "집중 어려움", "tagType": "INATTENTION", "journalDate": "2026-06-23", "checkedAt": "2026-06-23T09:30:00" }

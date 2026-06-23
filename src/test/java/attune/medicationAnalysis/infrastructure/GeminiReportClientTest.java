@@ -29,7 +29,7 @@ class GeminiReportClientTest {
         String snapshotJson = "{\"period\":{\"days\":7}}";
         AnalysisSnapshot snapshot = mock(AnalysisSnapshot.class);
         AnalysisSnapshot.TimeWindowPattern pattern = new AnalysisSnapshot.TimeWindowPattern(
-                "오전", "TIME_WINDOW_01", Map.of(), Map.of(), Map.of(), 3);
+                "오전", "TIME_WINDOW_01", Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), 3);
 
         when(snapshot.timeWindowPatterns()).thenReturn(List.of(pattern));
         when(aiTextGenerator.generateJson(anyString())).thenReturn("{}");

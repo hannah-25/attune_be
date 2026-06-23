@@ -149,51 +149,6 @@
 
 ---
 
-## ConditionTag (컨디션 태그)
-
-| Column Name | DB Data Type | Constraints | Description |
-|---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 컨디션 태그 고유 식별자 |
-| user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| condition_name | VARCHAR(255) | NOT NULL | 컨디션 내용 |
-| type | ENUM | NOT NULL | 컨디션 유형 (UP, DOWN, TIGHT, FOGGY, CALM, USER_INPUT) |
-| is_active | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
-| visible | BOOLEAN | DEFAULT false | 태그 표시 여부 |
-
----
-
-## ConditionLog (컨디션 로그)
-
-| Column Name | DB Data Type | Constraints | Description |
-|---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 컨디션 로그 고유 식별자 |
-| condition_tag_id | BIGINT | FK → ConditionTag.id, NOT NULL | 컨디션 태그 ID |
-| checkedAt | TIMESTAMP | NOT NULL | 체크 일시 |
-
----
-
-## SideEffectTag (부작용 태그)
-
-| Column Name | DB Data Type | Constraints | Description |
-|---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 부작용 태그 고유 식별자 |
-| user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| side_effect | VARCHAR(255) | NOT NULL | 부작용 내용 |
-| is_active | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
-| visible | BOOLEAN | DEFAULT false | 태그 표시 여부 |
-
----
-
-## SideEffectLog (부작용 로그)
-
-| Column Name | DB Data Type | Constraints | Description |
-|---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 부작용 로그 고유 식별자 |
-| side_effect_tag_id | BIGINT | FK → SideEffectTag.id, NOT NULL | 부작용 태그 ID |
-| checkedAt | TIMESTAMP | NOT NULL | 체크 일시 |
-
----
-
 ## DailyStatusLog (일일 상태 로그)
 
 | Column Name | DB Data Type | Constraints | Description |
@@ -210,26 +165,34 @@
 
 ---
 
-## TroubleTag (트러블 태그)
+## JournalTag (태그 마스터)
 
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 트러블 태그 고유 식별자 |
-| user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| trouble | VARCHAR(255) | NOT NULL | 트러블 내용 |
-| type | ENUM | NOT NULL | 트러블 유형 (INATTENTION, HYPERACTIVITY, IMPULSIVITY, TIME_MANAGEMENT, COGNITIVE_ERROR, USER_INPUT) |
-| is_active | BOOLEAN | DEFAULT true | 태그 활성화 여부 |
-| visible | BOOLEAN | DEFAULT false | 태그 표시 여부 |
+| id | BIGINT | PK, AUTO_INCREMENT, NOT NULL | 태그 고유 식별자 |
+| category | VARCHAR(30) | NOT NULL | CONDITION / SIDE_EFFECT / TROUBLE |
+| name | VARCHAR(255) | NOT NULL | 태그 표시 이름 (NFC 정규화) |
+| tag_type | VARCHAR(50) | NOT NULL | 세부 유형 (CALM / UP / DOWN / TIGHT / FOGGY / INATTENTION / TIME_MANAGEMENT / IMPULSIVITY / HYPERACTIVITY / COGNITIVE_ERROR / NONE) |
+| scope | VARCHAR(20) | NOT NULL | SYSTEM / USER |
+| owner_user_id | BINARY(16) | NULL | USER 태그 소유자 UUID. SYSTEM 태그는 NULL |
+| owner_key | BINARY(16) | NOT NULL | USER: owner_user_id 와 동일. SYSTEM: 0x00...00 (SYSTEM_OWNER_KEY) |
+| is_active | TINYINT(1) | NOT NULL | 활성 여부. USER 태그 삭제 시 false 소프트 삭제 |
+| default_visible | TINYINT(1) | NOT NULL | preference 미설정 사용자의 기본 노출 여부 |
+| created_at | DATETIME(6) | NOT NULL | 생성 시각 |
+| updated_at | DATETIME(6) | NOT NULL | 최종 수정 시각 |
+| | | UNIQUE(owner_key, category, name, tag_type) `uq_journal_tags_owner_category_name_type` | 소유자 내 중복 태그 방지 |
 
 ---
 
-## TroubleLog (일일 트러블 로그)
+## UserJournalTagPreference (사용자 태그 표시 설정)
 
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
-| id | BIGINT | PK, NOT NULL | 일일 트러블 로그 고유 식별자 |
-| trouble_tag_id | BIGINT | FK → TroubleTag.id, NOT NULL | 트러블 태그 ID |
-| checkedAt | TIMESTAMP | NOT NULL | 체크 일시 |
+| user_id | BINARY(16) | PK, FK → User.id ON DELETE CASCADE, NOT NULL | 사용자 UUID |
+| journal_tag_id | BIGINT | PK, FK → JournalTag.id ON DELETE CASCADE, NOT NULL | 태그 ID |
+| is_enabled | TINYINT(1) | NOT NULL | 이 태그를 체크인에서 사용할지 여부 |
+| is_visible | TINYINT(1) | NOT NULL | 체크인 화면에 노출할지 여부 |
+| updated_at | DATETIME(6) | NOT NULL | 최종 수정 시각 |
 
 ---
 

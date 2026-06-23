@@ -295,17 +295,21 @@ public class AnalysisEngine {
                 limitations.add(group.name() + " 그룹이 " + MIN_GROUP_DAYS + "일 미만이어서 비교에서 제외됩니다.");
                 result.add(new AnalysisSnapshot.DayGroupComparison(
                         group, days.size(), false,
-                        null, null, null, null, null, null, null, null, null));
+                        null, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), null, Map.of(), null, null, null));
                 continue;
             }
 
             Map<String, Integer> condDays = countTagDaysInGroup(condLogs, days,
                     v -> v.log().getJournalDate(), v -> v.tag().getName());
+            Map<String, Integer> condTypeDays = countTagDaysInGroup(condLogs, days,
+                    v -> v.log().getJournalDate(), v -> v.tag().getTagType());
 
             Map<String, Integer> sideDayMap = countTagDaysInGroup(sideLogs, days,
                     v -> v.log().getJournalDate(), v -> v.tag().getName());
 
-            Map<String, Integer> troubleDayMap = countTagDaysInGroup(troubleLogs, days,
+            Map<String, Integer> troubleNameDayMap = countTagDaysInGroup(troubleLogs, days,
+                    v -> v.log().getJournalDate(), v -> v.tag().getName());
+            Map<String, Integer> troubleTypeDayMap = countTagDaysInGroup(troubleLogs, days,
                     v -> v.log().getJournalDate(), v -> v.tag().getTagType());
 
             List<Integer> scores = goalLogPairs.stream()
@@ -335,7 +339,8 @@ public class AnalysisEngine {
             result.add(new AnalysisSnapshot.DayGroupComparison(
                     group, days.size(), true,
                     avgGoal != null ? Math.round(avgGoal * 10) / 10.0 : null,
-                    condDays, sideDayMap, troubleDayMap,
+                    condDays, condTypeDays, sideDayMap,
+                    troubleNameDayMap, troubleTypeDayMap,
                     avgSleep != null ? Math.round(avgSleep * 10) / 10.0 : null,
                     sleepDist,
                     breakfastRate, lunchRate, dinnerRate));
@@ -375,17 +380,22 @@ public class AnalysisEngine {
 
             Map<String, Integer> condDays = countTagDaysInWindow(condLogs, window,
                     v -> v.log().getCheckedAt(), v -> v.tag().getName());
+            Map<String, Integer> condTypeDays = countTagDaysInWindow(condLogs, window,
+                    v -> v.log().getCheckedAt(), v -> v.tag().getTagType());
 
             Map<String, Integer> sideDayMap = countTagDaysInWindow(sideLogs, window,
                     v -> v.log().getCheckedAt(), v -> v.tag().getName());
 
-            Map<String, Integer> troubleDayMap = countTagDaysInWindow(troubleLogs, window,
+            Map<String, Integer> troubleNameDayMap = countTagDaysInWindow(troubleLogs, window,
+                    v -> v.log().getCheckedAt(), v -> v.tag().getName());
+            Map<String, Integer> troubleTypeDayMap = countTagDaysInWindow(troubleLogs, window,
                     v -> v.log().getCheckedAt(), v -> v.tag().getTagType());
 
             patterns.add(new AnalysisSnapshot.TimeWindowPattern(
                     window.getLabel(),
                     "TIME_WINDOW_" + String.format("%02d", idx++),
-                    condDays, sideDayMap, troubleDayMap, medDates.size()));
+                    condDays, condTypeDays, sideDayMap,
+                    troubleNameDayMap, troubleTypeDayMap, medDates.size()));
         }
         return patterns;
     }

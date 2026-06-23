@@ -50,8 +50,10 @@ public record AnalysisSnapshot(
             boolean eligible,
             Double avgGoalScore,
             Map<String, Integer> conditionDayCounts,
-            Map<String, Integer> sideEffectDayCounts,
+            Map<String, Integer> conditionTypeCounts,
+            Map<String, Integer> sideEffectDayCounts, // SIDE_EFFECT tagType은 항상 "NONE"이므로 type 집계 생략
             Map<String, Integer> troubleDayCounts,
+            Map<String, Integer> troubleTypeCounts,
             Double avgSleepHour,
             Map<String, Integer> sleepQualityDist,
             Double breakfastRate,
@@ -63,8 +65,10 @@ public record AnalysisSnapshot(
             String window,
             String evidenceId,
             Map<String, Integer> conditionDayCounts,
-            Map<String, Integer> sideEffectDayCounts,
+            Map<String, Integer> conditionTypeCounts,
+            Map<String, Integer> sideEffectDayCounts, // SIDE_EFFECT tagType은 항상 "NONE"이므로 type 집계 생략
             Map<String, Integer> troubleDayCounts,
+            Map<String, Integer> troubleTypeCounts,
             int medicationTakenDays
     ) {}
 

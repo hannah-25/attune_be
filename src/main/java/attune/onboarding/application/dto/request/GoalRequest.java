@@ -1,6 +1,7 @@
 package attune.onboarding.application.dto.request;
 
 import attune.journal.domain.model.DailyGoalType;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -15,8 +16,12 @@ public record GoalRequest(
         List<GoalItem> goals,
 
         @Schema(description = "visible로 설정할 journal tag ID 목록")
+        @JsonAlias("visibleCatalogTagIds")
         List<Long> visibleTagIds
 ) {
+    public GoalRequest {
+        visibleTagIds = visibleTagIds != null ? visibleTagIds : List.of();
+    }
     public record GoalItem(
             @NotBlank @Schema(description = "목표 제목") String title,
             @NotNull @Schema(description = "기능 영역") DailyGoalType type

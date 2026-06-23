@@ -3,12 +3,16 @@ package attune.onboarding.application;
 import attune.common.error.internalserver.GeminiGenerationException;
 import attune.ai.application.AiTextGenerator;
 import attune.journal.domain.model.DailyGoalType;
+import attune.journal.domain.model.SystemJournalTagDefinitions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,12 +21,15 @@ public class OnboardingAiService {
     private final AiTextGenerator aiTextGenerator;
     private final ObjectMapper objectMapper;
 
-    private static final String TAG_POOL = """
-            부주의: 딴생각, 깜빡함, 설명을 놓침, 중요한 내용을 빠뜨림, 집중이 끊김
-            시간관리: 미룸, 시작이 어려움, 지각함, 예상보다 오래 걸림, 우선순위 못 정함
-            충동성: 급하게 처리, 확인 전 제출함, 감정적으로 반응함
-            과활성: 가만히 있기 어려움, 말이 많아짐
-            인지오류: 숫자/단위 실수, 날짜/일정 착각, 항목 혼동, 순서를 헷갈림""";
+    private static final Map<String, String> TROUBLE_TYPE_LABELS = Map.of(
+            "INATTENTION", "부주의",
+            "TIME_MANAGEMENT", "시간관리",
+            "IMPULSIVITY", "충동성",
+            "HYPERACTIVITY", "과활성",
+            "COGNITIVE_ERROR", "인지오류"
+    );
+
+    private static final String TAG_POOL = buildTagPool();
 
     private static final String FUNCTIONAL_AREAS = "업무/학업, 시간관리, 생활관리, 정서/관계";
 
@@ -138,5 +145,20 @@ public class OnboardingAiService {
         } catch (Exception e) {
             throw new GeminiGenerationException("Failed to parse Gemini onboarding response", e);
         }
+    }
+
+    private static String buildTagPool() {
+        Map<String, List<String>> namesByType = SystemJournalTagDefinitions.troubleTags().stream()
+                .collect(Collectors.groupingBy(
+                        SystemJournalTagDefinitions.Definition::tagType,
+                        LinkedHashMap::new,
+                        Collectors.mapping(SystemJournalTagDefinitions.Definition::name, Collectors.toList())
+                ));
+        return namesByType.entrySet().stream()
+                .map(entry -> Objects.requireNonNull(
+                        TROUBLE_TYPE_LABELS.get(entry.getKey()),
+                        "TROUBLE_TYPE_LABELS missing entry for tagType: " + entry.getKey())
+                        + ": " + String.join(", ", entry.getValue()))
+                .collect(Collectors.joining("\n"));
     }
 }

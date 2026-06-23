@@ -162,15 +162,23 @@ public class MedicationChangeDetector {
         for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) allDays.add(d);
 
         Map<String, Set<LocalDate>> condDays = new HashMap<>();
+        Map<String, Set<LocalDate>> condTypeDays = new HashMap<>();
         Map<String, Set<LocalDate>> sideDays = new HashMap<>();
-        Map<String, Set<LocalDate>> troubleDays = new HashMap<>();
+        Map<String, Set<LocalDate>> troubleNameDays = new HashMap<>();
+        Map<String, Set<LocalDate>> troubleTypeDays = new HashMap<>();
         for (JournalTagLogView v : tagLogs) {
-            String name = v.tag().getName();
             LocalDate date = v.log().getJournalDate();
             switch (v.tag().getCategory()) {
-                case CONDITION -> condDays.computeIfAbsent(name, k -> new HashSet<>()).add(date);
-                case SIDE_EFFECT -> sideDays.computeIfAbsent(name, k -> new HashSet<>()).add(date);
-                case TROUBLE -> troubleDays.computeIfAbsent(name, k -> new HashSet<>()).add(date);
+                case CONDITION -> {
+                    condDays.computeIfAbsent(v.tag().getName(), k -> new HashSet<>()).add(date);
+                    condTypeDays.computeIfAbsent(v.tag().getTagType(), k -> new HashSet<>()).add(date);
+                }
+                case SIDE_EFFECT -> sideDays.computeIfAbsent(
+                        v.tag().getName(), k -> new HashSet<>()).add(date);
+                case TROUBLE -> {
+                    troubleNameDays.computeIfAbsent(v.tag().getName(), k -> new HashSet<>()).add(date);
+                    troubleTypeDays.computeIfAbsent(v.tag().getTagType(), k -> new HashSet<>()).add(date);
+                }
             }
         }
 
@@ -186,7 +194,8 @@ public class MedicationChangeDetector {
         return List.of(new AnalysisSnapshot.DayGroupComparison(
                 DayGroup.TAKEN_DAY, allDays.size(), true,
                 avgGoal != null ? Math.round(avgGoal * 10) / 10.0 : null,
-                toCounts(condDays), toCounts(sideDays), toCounts(troubleDays),
+                toCounts(condDays), toCounts(condTypeDays), toCounts(sideDays),
+                toCounts(troubleNameDays), toCounts(troubleTypeDays),
                 avgSleep, Map.of(),
                 mealRate(statusLogs, s -> Boolean.TRUE.equals(s.getAteBreakfast())),
                 mealRate(statusLogs, s -> Boolean.TRUE.equals(s.getAteLunch())),

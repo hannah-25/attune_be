@@ -11,10 +11,6 @@ import java.util.UUID;
 
 public interface JournalTagRepository extends JpaRepository<JournalTag, Long> {
 
-    Optional<JournalTag> findByScopeAndCategoryAndNameAndTagType(
-            JournalTagScope scope, JournalTagCategory category, String name, String tagType
-    );
-
     Optional<JournalTag> findByScopeAndOwnerUserIdAndCategoryAndNameAndTagType(
             JournalTagScope scope, UUID ownerUserId, JournalTagCategory category, String name, String tagType
     );
@@ -28,4 +24,12 @@ public interface JournalTagRepository extends JpaRepository<JournalTag, Long> {
     );
 
     List<JournalTag> findAllByScopeAndOwnerUserIdAndIsActiveTrue(JournalTagScope scope, UUID ownerUserId);
+
+    boolean existsByScopeAndCategoryAndNameAndIsActiveTrue(
+            JournalTagScope scope, JournalTagCategory category, String name
+    );
+
+    boolean existsByScopeAndOwnerUserIdAndCategoryAndNameAndIsActiveTrue(
+            JournalTagScope scope, UUID ownerUserId, JournalTagCategory category, String name
+    );
 }

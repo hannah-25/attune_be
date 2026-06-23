@@ -95,7 +95,12 @@ public class SnapshotSerializer {
                 case SIDE_EFFECT -> "SL";
                 case TROUBLE -> "TL";
             };
-            fingerprints.add(prefix + ":" + v.log().getId() + ":" + v.log().getCheckedAt());
+            fingerprints.add(prefix
+                    + ":" + v.log().getId()
+                    + ":" + v.log().getCheckedAt()
+                    + ":" + v.tag().getId()
+                    + ":" + v.tag().getName()
+                    + ":" + v.tag().getTagType());
         });
 
         rawData.statusLogs()

@@ -13,7 +13,7 @@ public record AiRecommendationResponse(
         List<GoalItem> goals
 ) {
     public record TagItem(
-            @Schema(description = "태그 ID") Long id,
+            @Schema(description = "태그 ID") Long tagId,
             @Schema(description = "태그명") String trouble,
             @Schema(description = "태그 타입") String type,
             @Schema(description = "Gemini 추천 여부") boolean recommended
