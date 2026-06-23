@@ -295,7 +295,7 @@ public class AnalysisEngine {
                 limitations.add(group.name() + " 그룹이 " + MIN_GROUP_DAYS + "일 미만이어서 비교에서 제외됩니다.");
                 result.add(new AnalysisSnapshot.DayGroupComparison(
                         group, days.size(), false,
-                        null, null, null, null, null, null, null, null, null, null, null));
+                        null, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), null, Map.of(), null, null, null));
                 continue;
             }
 
