@@ -14,8 +14,8 @@ public record GoalRequest(
         @Schema(description = "확정 목표 목록 (4개)")
         List<GoalItem> goals,
 
-        @Schema(description = "visible로 설정할 trouble catalog tag ID 목록")
-        List<Long> visibleCatalogTagIds
+        @Schema(description = "visible로 설정할 journal tag ID 목록")
+        List<Long> visibleTagIds
 ) {
     public record GoalItem(
             @NotBlank @Schema(description = "목표 제목") String title,

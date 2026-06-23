@@ -5,13 +5,11 @@ import attune.common.util.SecurityUtils;
 import attune.journal.application.dto.response.*;
 import attune.journal.domain.model.*;
 import attune.journal.domain.repository.*;
-import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,36 +24,35 @@ import java.util.stream.Collectors;
 @Service
 public class JournalService {
 
-    private final ConditionLogRepository conditionLogRepository;
-    private final SideEffectLogRepository sideEffectLogRepository;
-    private final TroubleLogRepository troubleLogRepository;
+    private final JournalTagLogRepository journalTagLogRepository;
+    private final JournalTagService journalTagService;
     private final DailyStatusLogRepository dailyStatusLogRepository;
     private final DailyGoalRepository dailyGoalRepository;
     private final DailyGoalLogRepository dailyGoalLogRepository;
     private final MemoRepository memoRepository;
-    private final JournalTagCatalogService catalogService;
 
     @Transactional(readOnly = true)
     public JournalDetailResponse getJournal(LocalDate date) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime startAt = date.atStartOfDay();
-        LocalDateTime endAt = date.plusDays(1).atStartOfDay();
 
         ActiveTagsResponse activeTags = buildActiveTags(userId);
 
-        List<ConditionCheckResponse> conditions = conditionLogRepository
-                .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(JournalService::toConditionCheckResponse)
+        List<JournalTagLogView> tagLogs = journalTagLogRepository
+                .findAllWithTagByUserIdAndJournalDate(userId, date);
+
+        List<ConditionCheckResponse> conditions = tagLogs.stream()
+                .filter(v -> v.tag().getCategory() == JournalTagCategory.CONDITION)
+                .map(ConditionCheckResponse::of)
                 .toList();
 
-        List<SideEffectCheckResponse> sideEffects = sideEffectLogRepository
-                .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(JournalService::toSideEffectCheckResponse)
+        List<SideEffectCheckResponse> sideEffects = tagLogs.stream()
+                .filter(v -> v.tag().getCategory() == JournalTagCategory.SIDE_EFFECT)
+                .map(SideEffectCheckResponse::of)
                 .toList();
 
-        List<TroubleCheckResponse> troubles = troubleLogRepository
-                .findAllInRangeWithTag(userId, startAt, endAt).stream()
-                .map(JournalService::toTroubleCheckResponse)
+        List<TroubleCheckResponse> troubles = tagLogs.stream()
+                .filter(v -> v.tag().getCategory() == JournalTagCategory.TROUBLE)
+                .map(TroubleCheckResponse::of)
                 .toList();
 
         DailyStatusLog status = dailyStatusLogRepository
@@ -88,13 +85,10 @@ public class JournalService {
     @Transactional(readOnly = true)
     public JournalListResponse getJournalDates(LocalDate startDate, LocalDate endDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime startAt = startDate.atStartOfDay();
-        LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
 
         Set<LocalDate> dates = new TreeSet<>();
-        dates.addAll(conditionLogRepository.findDistinctDatesInRange(userId, startAt, endAt));
-        dates.addAll(sideEffectLogRepository.findDistinctDatesInRange(userId, startAt, endAt));
-        dates.addAll(troubleLogRepository.findDistinctDatesInRange(userId, startAt, endAt));
+        dates.addAll(journalTagLogRepository
+                .findDistinctJournalDatesByUserIdAndJournalDateBetween(userId, startDate, endDate));
         dates.addAll(dailyStatusLogRepository.findDistinctDatesInRange(userId, startDate, endDate));
         dates.addAll(dailyGoalLogRepository.findDistinctDatesInRange(userId, startDate, endDate));
         dates.addAll(memoRepository.findDistinctDatesInRange(userId, startDate, endDate));
@@ -126,31 +120,32 @@ public class JournalService {
             throw new BadRequestException("조회 기간은 최대 31일까지 가능합니다.");
         }
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime startAt = startDate.atStartOfDay();
-        LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
 
         ActiveTagsResponse activeTags = buildActiveTags(userId);
 
-        Map<LocalDate, List<ConditionCheckResponse>> conditionsByDate =
-                conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt).stream()
-                        .collect(Collectors.groupingBy(
-                                t -> t.get("log", ConditionLog.class).getCheckedAt().toLocalDate(),
-                                Collectors.mapping(JournalService::toConditionCheckResponse, Collectors.toList())
-                        ));
+        List<JournalTagLogView> tagLogs = journalTagLogRepository
+                .findAllWithTagByUserIdAndJournalDateBetween(userId, startDate, endDate);
 
-        Map<LocalDate, List<SideEffectCheckResponse>> sideEffectsByDate =
-                sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt).stream()
-                        .collect(Collectors.groupingBy(
-                                t -> t.get("log", SideEffectLog.class).getCheckedAt().toLocalDate(),
-                                Collectors.mapping(JournalService::toSideEffectCheckResponse, Collectors.toList())
-                        ));
+        Map<LocalDate, List<ConditionCheckResponse>> conditionsByDate = tagLogs.stream()
+                .filter(v -> v.tag().getCategory() == JournalTagCategory.CONDITION)
+                .collect(Collectors.groupingBy(
+                        v -> v.log().getJournalDate(),
+                        Collectors.mapping(ConditionCheckResponse::of, Collectors.toList())
+                ));
 
-        Map<LocalDate, List<TroubleCheckResponse>> troublesByDate =
-                troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt).stream()
-                        .collect(Collectors.groupingBy(
-                                t -> t.get("log", TroubleLog.class).getCheckedAt().toLocalDate(),
-                                Collectors.mapping(JournalService::toTroubleCheckResponse, Collectors.toList())
-                        ));
+        Map<LocalDate, List<SideEffectCheckResponse>> sideEffectsByDate = tagLogs.stream()
+                .filter(v -> v.tag().getCategory() == JournalTagCategory.SIDE_EFFECT)
+                .collect(Collectors.groupingBy(
+                        v -> v.log().getJournalDate(),
+                        Collectors.mapping(SideEffectCheckResponse::of, Collectors.toList())
+                ));
+
+        Map<LocalDate, List<TroubleCheckResponse>> troublesByDate = tagLogs.stream()
+                .filter(v -> v.tag().getCategory() == JournalTagCategory.TROUBLE)
+                .collect(Collectors.groupingBy(
+                        v -> v.log().getJournalDate(),
+                        Collectors.mapping(TroubleCheckResponse::of, Collectors.toList())
+                ));
 
         Map<LocalDate, DailyStatusLog> statusByDate =
                 dailyStatusLogRepository.findByUserIdAndDateBetween(userId, startDate, endDate).stream()
@@ -160,10 +155,7 @@ public class JournalService {
                 dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate).stream()
                         .collect(Collectors.groupingBy(
                                 row -> ((DailyGoalLog) row[0]).getDate(),
-                                Collectors.mapping(
-                                        JournalService::toGoalCheckResponse,
-                                        Collectors.toList()
-                                )
+                                Collectors.mapping(JournalService::toGoalCheckResponse, Collectors.toList())
                         ));
 
         Map<LocalDate, String> memoByDate = new HashMap<>();
@@ -191,68 +183,36 @@ public class JournalService {
 
     private int deleteRange(LocalDate startDate, LocalDate endDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime startAt = startDate.atStartOfDay();
-        LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
 
         int total = 0;
-        total += conditionLogRepository.deleteAllInRange(userId, startAt, endAt);
-        total += sideEffectLogRepository.deleteAllInRange(userId, startAt, endAt);
-        total += troubleLogRepository.deleteAllInRange(userId, startAt, endAt);
+        total += journalTagLogRepository.deleteAllByUserIdAndJournalDateBetween(userId, startDate, endDate);
         total += dailyStatusLogRepository.deleteAllInRange(userId, startDate, endDate);
         total += dailyGoalLogRepository.deleteAllInRange(userId, startDate, endDate);
         total += memoRepository.deleteAllInRange(userId, startDate, endDate);
         return total;
     }
 
+    private ActiveTagsResponse buildActiveTags(UUID userId) {
+        List<ConditionTagResponse> conditions = journalTagService
+                .getTags(JournalTagCategory.CONDITION, false).stream()
+                .map(ConditionTagResponse::from)
+                .toList();
+        List<SideEffectTagResponse> sideEffects = journalTagService
+                .getTags(JournalTagCategory.SIDE_EFFECT, false).stream()
+                .map(SideEffectTagResponse::from)
+                .toList();
+        List<TroubleTagResponse> troubles = journalTagService
+                .getTags(JournalTagCategory.TROUBLE, false).stream()
+                .map(TroubleTagResponse::from)
+                .toList();
+        List<GoalActiveResponse> goals = dailyGoalRepository
+                .findAllByUserIdAndIsActiveTrue(userId).stream()
+                .map(GoalActiveResponse::from)
+                .toList();
+        return new ActiveTagsResponse(conditions, sideEffects, troubles, goals);
+    }
+
     private static GoalCheckResponse toGoalCheckResponse(Object[] row) {
         return GoalCheckResponse.of((DailyGoal) row[1], (DailyGoalLog) row[0]);
-    }
-
-    private static ConditionCheckResponse toConditionCheckResponse(Tuple t) {
-        return ConditionCheckResponse.of(t.get("tag", ConditionTag.class), t.get("log", ConditionLog.class));
-    }
-
-    private static SideEffectCheckResponse toSideEffectCheckResponse(Tuple t) {
-        return SideEffectCheckResponse.of(t.get("tag", SideEffectTag.class), t.get("log", SideEffectLog.class));
-    }
-
-    private static TroubleCheckResponse toTroubleCheckResponse(Tuple t) {
-        return TroubleCheckResponse.of(t.get("tag", TroubleTag.class), t.get("log", TroubleLog.class));
-    }
-
-    private ActiveTagsResponse buildActiveTags(UUID userId) {
-        return new ActiveTagsResponse(
-                getVisibleConditionTags(),
-                getVisibleSideEffectTags(),
-                getVisibleTroubleTags(),
-                dailyGoalRepository.findAllByUserIdAndIsActiveTrue(userId).stream()
-                        .map(GoalActiveResponse::from).toList()
-        );
-    }
-
-    private List<ConditionTagResponse> getVisibleConditionTags() {
-        return catalogService.getTags(JournalTagCategory.CONDITION).stream()
-                .filter(CatalogJournalTagResponse::visible)
-                .filter(r -> r.legacyTagId() != null)
-                .map(r -> new ConditionTagResponse(
-                        r.legacyTagId(), r.name(), ConditionType.valueOf(r.tagType()), r.visible()))
-                .toList();
-    }
-
-    private List<SideEffectTagResponse> getVisibleSideEffectTags() {
-        return catalogService.getTags(JournalTagCategory.SIDE_EFFECT).stream()
-                .filter(CatalogJournalTagResponse::visible)
-                .filter(r -> r.legacyTagId() != null)
-                .map(r -> new SideEffectTagResponse(r.legacyTagId(), r.name(), r.visible()))
-                .toList();
-    }
-
-    private List<TroubleTagResponse> getVisibleTroubleTags() {
-        return catalogService.getTags(JournalTagCategory.TROUBLE).stream()
-                .filter(CatalogJournalTagResponse::visible)
-                .filter(r -> r.legacyTagId() != null)
-                .map(r -> new TroubleTagResponse(
-                        r.legacyTagId(), r.name(), TroubleType.valueOf(r.tagType()), r.visible()))
-                .toList();
     }
 }

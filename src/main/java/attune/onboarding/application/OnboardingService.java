@@ -4,8 +4,8 @@ import attune.common.error.badrequest.InvalidOnboardingRequestException;
 import attune.common.error.badrequest.OnboardingNotCompleteException;
 import attune.common.error.notfound.AsrsAssessmentNotFoundException;
 import attune.common.error.notfound.UserNotFoundException;
-import attune.journal.application.JournalTagCatalogService;
-import attune.journal.application.dto.response.CatalogJournalTagResponse;
+import attune.journal.application.JournalTagService;
+import attune.journal.application.dto.response.JournalTagResponse;
 import attune.journal.domain.model.DailyGoal;
 import attune.journal.domain.model.DailyGoalType;
 import attune.journal.domain.model.OnboardingGoalSnapshot;
@@ -54,7 +54,7 @@ public class OnboardingService {
     private final DailyGoalRepository dailyGoalRepository;
     private final OnboardingGoalSnapshotRepository onboardingGoalSnapshotRepository;
     private final OnboardingAiService onboardingAiService;
-    private final JournalTagCatalogService journalTagCatalogService;
+    private final JournalTagService journalTagService;
 
     @Transactional(readOnly = true)
     public OnboardingStatusResponse getOnboardingStatus(UUID userId) {
@@ -202,13 +202,13 @@ public class OnboardingService {
                     symptom.getDescription(), inattentionScore, hyperactivityScore);
         }
 
-        // 태그: 카탈로그 시스템 태그 전체 + Gemini 추천 여부 표시
-        List<CatalogJournalTagResponse> catalogTags = journalTagCatalogService.getTroubleTags(userId);
+        // 태그: 시스템 TROUBLE 태그 전체 + Gemini 추천 여부 표시
+        List<JournalTagResponse> troubleTags = journalTagService.getTroubleTags(userId);
         Set<String> recommended = new HashSet<>(geminiResponse.visibleTags());
 
-        List<AiRecommendationResponse.TagItem> tagItems = catalogTags.stream()
+        List<AiRecommendationResponse.TagItem> tagItems = troubleTags.stream()
                 .map(t -> new AiRecommendationResponse.TagItem(
-                        t.catalogTagId(), t.name(), t.tagType(),
+                        t.tagId(), t.name(), t.tagType(),
                         recommended.contains(t.name())))
                 .toList();
 
@@ -271,9 +271,9 @@ public class OnboardingService {
         onboardingGoalSnapshotRepository.saveAll(snapshots);
 
         // 2. 태그 visible 업데이트
-        if (request.visibleCatalogTagIds() != null) {
-            journalTagCatalogService.bulkSetVisibilityForOnboarding(
-                    userId, new HashSet<>(request.visibleCatalogTagIds()));
+        if (request.visibleTagIds() != null) {
+            journalTagService.bulkSetVisibilityForOnboarding(
+                    userId, new HashSet<>(request.visibleTagIds()));
         }
 
         List<GoalResponse.GoalItem> items = saved.stream()

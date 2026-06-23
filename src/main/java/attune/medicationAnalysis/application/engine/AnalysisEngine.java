@@ -10,7 +10,6 @@ import attune.medication.domain.repository.UserMedicationLogRepository;
 import attune.medication.domain.repository.UserMedicationRepository;
 import attune.medication.domain.repository.UserMedicationScheduleRepository;
 import attune.medicationAnalysis.application.model.*;
-import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -31,9 +31,7 @@ public class AnalysisEngine {
     private final UserMedicationRepository userMedicationRepository;
     private final UserMedicationScheduleRepository scheduleRepository;
     private final UserMedicationLogRepository medicationLogRepository;
-    private final ConditionLogRepository conditionLogRepository;
-    private final SideEffectLogRepository sideEffectLogRepository;
-    private final TroubleLogRepository troubleLogRepository;
+    private final JournalTagLogRepository journalTagLogRepository;
     private final DailyStatusLogRepository dailyStatusLogRepository;
     private final DailyGoalLogRepository dailyGoalLogRepository;
     private final MemoRepository memoRepository;
@@ -55,16 +53,14 @@ public class AnalysisEngine {
         LocalDateTime startAt = startDate.atStartOfDay();
         LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
 
-        // --- 데이터 로딩 ---
         List<UserMedication> medications = userMedicationRepository.findAllOverlappingPeriod(userId, startDate, endDate);
         List<Long> medicationIds = medications.stream().map(UserMedication::getId).toList();
         List<UserMedicationSchedule> schedules = medicationIds.isEmpty() ? List.of()
                 : scheduleRepository.findByUserMedicationIdInOrderByUserMedicationIdAscDoseTimeAsc(medicationIds);
         List<UserMedicationLog> medLogs = medicationLogRepository.findAllByUserIdAndTakenAtBetween(userId, startAt, endAt);
 
-        List<Tuple> conditionTuples = conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
-        List<Tuple> sideEffectTuples = sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
-        List<Tuple> troubleTuples = troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
+        List<JournalTagLogView> tagLogs = journalTagLogRepository
+                .findAllWithTagByUserIdAndJournalDateBetween(userId, startDate, endDate);
         List<DailyStatusLog> statusLogs = dailyStatusLogRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
         List<Object[]> goalLogPairs = dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate);
         List<Memo> memos = loadMemos
@@ -74,8 +70,7 @@ public class AnalysisEngine {
         return new AnalysisRawData(
                 userId, startDate, endDate,
                 medications, schedules, medLogs,
-                conditionTuples, sideEffectTuples, troubleTuples,
-                statusLogs, goalLogPairs, memos
+                tagLogs, statusLogs, goalLogPairs, memos
         );
     }
 
@@ -86,50 +81,41 @@ public class AnalysisEngine {
         List<UserMedication> medications = rawData.medications();
         List<UserMedicationSchedule> schedules = rawData.schedules();
         List<UserMedicationLog> medLogs = rawData.medicationLogs();
-        List<Tuple> conditionTuples = rawData.conditionTuples();
-        List<Tuple> sideEffectTuples = rawData.sideEffectTuples();
-        List<Tuple> troubleTuples = rawData.troubleTuples();
+        List<JournalTagLogView> tagLogs = rawData.tagLogs();
         List<DailyStatusLog> statusLogs = rawData.statusLogs();
         List<Object[]> goalLogPairs = rawData.goalLogPairs();
         List<Memo> memos = rawData.memos();
 
-        // --- 데이터 품질 검사 ---
-        Set<LocalDate> recordedDays = computeRecordedDays(conditionTuples, sideEffectTuples, troubleTuples,
-                statusLogs, goalLogPairs, memos);
-        List<String> limitations = new ArrayList<>();
-        String confidence = computeConfidence(recordedDays.size(), (int) startDate.until(endDate.plusDays(1), java.time.temporal.ChronoUnit.DAYS));
+        List<JournalTagLogView> condLogs = filter(tagLogs, JournalTagCategory.CONDITION);
+        List<JournalTagLogView> sideLogs = filter(tagLogs, JournalTagCategory.SIDE_EFFECT);
+        List<JournalTagLogView> troubleLogs = filter(tagLogs, JournalTagCategory.TROUBLE);
 
-        // --- 예정 일정 생성 및 상태 판정 ---
+        Set<LocalDate> recordedDays = computeRecordedDays(tagLogs, statusLogs, goalLogPairs, memos);
+        List<String> limitations = new ArrayList<>();
+        int totalDays = (int) startDate.until(endDate.plusDays(1), java.time.temporal.ChronoUnit.DAYS);
+        String confidence = computeConfidence(recordedDays.size(), totalDays);
+
         List<AnalysisSnapshot.DailyMedicationStatus> dailyStatuses = buildDailyStatuses(
                 medications, schedules, medLogs, startDate, endDate);
 
-        // --- 복용 통계 ---
         AnalysisSnapshot.AdherenceSummary adherenceSummary = computeAdherence(dailyStatuses, medLogs, startDate, endDate);
 
-        // --- 날짜 그룹 분류 ---
         Map<LocalDate, DayGroup> dayGroupMap = classifyDays(dailyStatuses, startDate, endDate);
 
-        // --- 날짜 그룹별 일지 비교 ---
         List<AnalysisSnapshot.DayGroupComparison> groupComparisons = compareGroups(
-                dayGroupMap, conditionTuples, sideEffectTuples, troubleTuples,
-                statusLogs, goalLogPairs, limitations);
+                dayGroupMap, condLogs, sideLogs, troubleLogs, statusLogs, goalLogPairs, limitations);
 
-        // --- 3시간 시간대 집계 ---
         List<AnalysisSnapshot.TimeWindowPattern> windowPatterns = aggregateTimeWindows(
-                conditionTuples, sideEffectTuples, troubleTuples, medLogs, limitations);
+                condLogs, sideLogs, troubleLogs, medLogs, limitations);
 
-        // --- 부작용 요약 ---
-        List<AnalysisSnapshot.SideEffectSummary> sideEffectSummaries = buildSideEffectSummaries(sideEffectTuples);
+        List<AnalysisSnapshot.SideEffectSummary> sideEffectSummaries = buildSideEffectSummaries(sideLogs);
 
-        // --- 변경 감지 ---
         List<AnalysisSnapshot.MedicationChange> medicationChanges = changeDetector.detect(userId, startDate, endDate);
 
-        // --- 메모 발췌 ---
         List<AnalysisSnapshot.MemoEvidence> memoEvidence = includeMemo
-                ? buildMemoEvidence(memos, conditionTuples, sideEffectTuples, troubleTuples)
+                ? buildMemoEvidence(memos, tagLogs)
                 : List.of();
 
-        int totalDays = (int) startDate.until(endDate.plusDays(1), java.time.temporal.ChronoUnit.DAYS);
         return new AnalysisSnapshot(
                 new AnalysisSnapshot.Period(startDate, endDate, totalDays),
                 new AnalysisSnapshot.DataQuality(recordedDays.size(), confidence, limitations),
@@ -143,33 +129,20 @@ public class AnalysisEngine {
         );
     }
 
-    // 리포트 생성 가능 여부 (7일 기록 조건)
     @Transactional(readOnly = true)
     public int countRecordedDays(UUID userId, LocalDate startDate, LocalDate endDate) {
-        LocalDateTime startAt = startDate.atStartOfDay();
-        LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
-
-        List<Tuple> conditionTuples = conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
-        List<Tuple> sideEffectTuples = sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
-        List<Tuple> troubleTuples = troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
+        List<JournalTagLogView> tagLogs = journalTagLogRepository
+                .findAllWithTagByUserIdAndJournalDateBetween(userId, startDate, endDate);
         List<DailyStatusLog> statusLogs = dailyStatusLogRepository.findByUserIdAndDateBetween(userId, startDate, endDate);
         List<Object[]> goalLogPairs = dailyGoalLogRepository.findAllInRangeWithGoal(userId, startDate, endDate);
         List<Memo> memos = memoRepository.findByUserIdAndJournalDateBetween(userId, startDate, endDate);
 
-        return computeRecordedDays(
-                conditionTuples, sideEffectTuples, troubleTuples,
-                statusLogs, goalLogPairs, memos
-        ).size();
+        return computeRecordedDays(tagLogs, statusLogs, goalLogPairs, memos).size();
     }
 
     public int countRecordedDays(AnalysisRawData rawData) {
         return computeRecordedDays(
-                rawData.conditionTuples(),
-                rawData.sideEffectTuples(),
-                rawData.troubleTuples(),
-                rawData.statusLogs(),
-                rawData.goalLogPairs(),
-                rawData.memos()
+                rawData.tagLogs(), rawData.statusLogs(), rawData.goalLogPairs(), rawData.memos()
         ).size();
     }
 
@@ -177,14 +150,16 @@ public class AnalysisEngine {
     // private helpers
     // -------------------------------------------------------------------------
 
+    private List<JournalTagLogView> filter(List<JournalTagLogView> tagLogs, JournalTagCategory category) {
+        return tagLogs.stream().filter(v -> v.tag().getCategory() == category).toList();
+    }
+
     private Set<LocalDate> computeRecordedDays(
-            List<Tuple> conditionTuples, List<Tuple> sideEffectTuples, List<Tuple> troubleTuples,
+            List<JournalTagLogView> tagLogs,
             List<DailyStatusLog> statusLogs, List<Object[]> goalLogPairs, List<Memo> memos) {
 
         Set<LocalDate> days = new HashSet<>();
-        conditionTuples.forEach(t -> days.add(t.get("log", ConditionLog.class).getCheckedAt().toLocalDate()));
-        sideEffectTuples.forEach(t -> days.add(t.get("log", SideEffectLog.class).getCheckedAt().toLocalDate()));
-        troubleTuples.forEach(t -> days.add(t.get("log", TroubleLog.class).getCheckedAt().toLocalDate()));
+        tagLogs.forEach(v -> days.add(v.log().getJournalDate()));
         statusLogs.forEach(s -> days.add(s.getDate()));
         goalLogPairs.forEach(pair -> days.add(((DailyGoalLog) pair[0]).getDate()));
         memos.forEach(m -> days.add(m.getJournalDate()));
@@ -204,7 +179,6 @@ public class AnalysisEngine {
             List<UserMedicationLog> logs,
             LocalDate startDate, LocalDate endDate) {
 
-        // scheduleId → date → log
         Map<Long, Map<LocalDate, UserMedicationLog>> logIndex = new HashMap<>();
         for (UserMedicationLog log : logs) {
             Long scheduleId = log.getUserMedicationSchedule().getId();
@@ -215,7 +189,7 @@ public class AnalysisEngine {
         Map<Long, List<UserMedicationSchedule>> schedulesByMed = schedules.stream()
                 .collect(Collectors.groupingBy(s -> s.getUserMedication().getId()));
 
-        Map<LocalDate, int[]> dailyCounts = new TreeMap<>(); // [taken, skipped, unrecorded]
+        Map<LocalDate, int[]> dailyCounts = new TreeMap<>();
         for (UserMedication med : medications) {
             List<UserMedicationSchedule> medSchedules = schedulesByMed.getOrDefault(med.getId(), List.of());
             if (medSchedules.isEmpty()) continue;
@@ -263,11 +237,9 @@ public class AnalysisEngine {
         double adherenceRate = totalScheduled == 0 ? 0 : Math.round((double) takenCount / totalScheduled * 1000) / 10.0;
         double recordingRate = totalScheduled == 0 ? 0 : Math.round((double) (takenCount + skippedCount) / totalScheduled * 1000) / 10.0;
 
-        // 시간대별 복용 집계
         Map<TimeWindow, int[]> windowCounts = new EnumMap<>(TimeWindow.class);
         for (TimeWindow w : TimeWindow.values()) windowCounts.put(w, new int[3]);
 
-        // UNRECORDED는 takenAt이 없으므로 시간대별 집계에서 제외한다.
         for (UserMedicationLog log : medLogs) {
             TimeWindow w = TimeWindow.of(log.getTakenAt().toLocalTime());
             int[] c = windowCounts.get(w);
@@ -295,7 +267,6 @@ public class AnalysisEngine {
         for (AnalysisSnapshot.DailyMedicationStatus status : dailyStatuses) {
             map.put(status.date(), status.group());
         }
-        // 예정 일정이 없는 날(처방 없음)은 UNRECORDED_DAY로 처리
         for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
             map.putIfAbsent(d, DayGroup.UNRECORDED_DAY);
         }
@@ -304,7 +275,9 @@ public class AnalysisEngine {
 
     private List<AnalysisSnapshot.DayGroupComparison> compareGroups(
             Map<LocalDate, DayGroup> dayGroupMap,
-            List<Tuple> conditionTuples, List<Tuple> sideEffectTuples, List<Tuple> troubleTuples,
+            List<JournalTagLogView> condLogs,
+            List<JournalTagLogView> sideLogs,
+            List<JournalTagLogView> troubleLogs,
             List<DailyStatusLog> statusLogs, List<Object[]> goalLogPairs,
             List<String> limitations) {
 
@@ -326,29 +299,21 @@ public class AnalysisEngine {
                 continue;
             }
 
-            // 감정 기록일 수 per tag
-            Map<String, Integer> condDays = countTagDaysInGroup(conditionTuples, days,
-                    t -> t.get("log", ConditionLog.class).getCheckedAt().toLocalDate(),
-                    t -> t.get("tag", ConditionTag.class).getCondition());
+            Map<String, Integer> condDays = countTagDaysInGroup(condLogs, days,
+                    v -> v.log().getJournalDate(), v -> v.tag().getName());
 
-            // 부작용 기록일 수 per tag
-            Map<String, Integer> sideDays = countTagDaysInGroup(sideEffectTuples, days,
-                    t -> t.get("log", SideEffectLog.class).getCheckedAt().toLocalDate(),
-                    t -> t.get("tag", SideEffectTag.class).getSideEffect());
+            Map<String, Integer> sideDayMap = countTagDaysInGroup(sideLogs, days,
+                    v -> v.log().getJournalDate(), v -> v.tag().getName());
 
-            // 실수 기록일 수 per type
-            Map<String, Integer> troubleDays = countTagDaysInGroup(troubleTuples, days,
-                    t -> t.get("log", TroubleLog.class).getCheckedAt().toLocalDate(),
-                    t -> t.get("tag", TroubleTag.class).getType().name());
+            Map<String, Integer> troubleDayMap = countTagDaysInGroup(troubleLogs, days,
+                    v -> v.log().getJournalDate(), v -> v.tag().getTagType());
 
-            // 목표 점수 평균
             List<Integer> scores = goalLogPairs.stream()
                     .filter(pair -> days.contains(((DailyGoalLog) pair[0]).getDate()))
                     .map(pair -> ((DailyGoalLog) pair[0]).getScore())
                     .toList();
             Double avgGoal = scores.isEmpty() ? null : scores.stream().mapToInt(Integer::intValue).average().orElse(0);
 
-            // 수면·식사
             List<DailyStatusLog> groupStatus = statusLogs.stream()
                     .filter(s -> days.contains(s.getDate())).toList();
 
@@ -370,7 +335,7 @@ public class AnalysisEngine {
             result.add(new AnalysisSnapshot.DayGroupComparison(
                     group, days.size(), true,
                     avgGoal != null ? Math.round(avgGoal * 10) / 10.0 : null,
-                    condDays, sideDays, troubleDays,
+                    condDays, sideDayMap, troubleDayMap,
                     avgSleep != null ? Math.round(avgSleep * 10) / 10.0 : null,
                     sleepDist,
                     breakfastRate, lunchRate, dinnerRate));
@@ -379,27 +344,24 @@ public class AnalysisEngine {
     }
 
     private List<AnalysisSnapshot.TimeWindowPattern> aggregateTimeWindows(
-            List<Tuple> conditionTuples, List<Tuple> sideEffectTuples, List<Tuple> troubleTuples,
+            List<JournalTagLogView> condLogs,
+            List<JournalTagLogView> sideLogs,
+            List<JournalTagLogView> troubleLogs,
             List<UserMedicationLog> medLogs, List<String> limitations) {
 
         List<AnalysisSnapshot.TimeWindowPattern> patterns = new ArrayList<>();
         int idx = 1;
 
         for (TimeWindow window : TimeWindow.values()) {
-            // 해당 시간대에 기록된 distinct date 수
-            Set<LocalDate> condDates = distinctDatesInWindow(conditionTuples, window,
-                    t -> t.get("log", ConditionLog.class).getCheckedAt());
-            Set<LocalDate> sideDates = distinctDatesInWindow(sideEffectTuples, window,
-                    t -> t.get("log", SideEffectLog.class).getCheckedAt());
-            Set<LocalDate> troubleDates = distinctDatesInWindow(troubleTuples, window,
-                    t -> t.get("log", TroubleLog.class).getCheckedAt());
+            Set<LocalDate> condDates = distinctDatesInWindow(condLogs, window, v -> v.log().getCheckedAt());
+            Set<LocalDate> sideDates = distinctDatesInWindow(sideLogs, window, v -> v.log().getCheckedAt());
+            Set<LocalDate> troubleDates = distinctDatesInWindow(troubleLogs, window, v -> v.log().getCheckedAt());
 
             Set<LocalDate> allDates = new HashSet<>();
             allDates.addAll(condDates);
             allDates.addAll(sideDates);
             allDates.addAll(troubleDates);
 
-            // 복용 기록일 수
             Set<LocalDate> medDates = medLogs.stream()
                     .filter(l -> l.getStatus() == UserMedicationLogStatus.TAKEN
                             && TimeWindow.of(l.getTakenAt().toLocalTime()) == window)
@@ -411,40 +373,34 @@ public class AnalysisEngine {
                 continue;
             }
 
-            // tag별 distinct day count (deduplicated: 같은 날 같은 태그는 1회)
-            Map<String, Integer> condDays = countTagDaysInWindow(conditionTuples, window,
-                    t -> t.get("log", ConditionLog.class).getCheckedAt(),
-                    t -> t.get("tag", ConditionTag.class).getCondition());
+            Map<String, Integer> condDays = countTagDaysInWindow(condLogs, window,
+                    v -> v.log().getCheckedAt(), v -> v.tag().getName());
 
-            Map<String, Integer> sideDays = countTagDaysInWindow(sideEffectTuples, window,
-                    t -> t.get("log", SideEffectLog.class).getCheckedAt(),
-                    t -> t.get("tag", SideEffectTag.class).getSideEffect());
+            Map<String, Integer> sideDayMap = countTagDaysInWindow(sideLogs, window,
+                    v -> v.log().getCheckedAt(), v -> v.tag().getName());
 
-            Map<String, Integer> troubleDays = countTagDaysInWindow(troubleTuples, window,
-                    t -> t.get("log", TroubleLog.class).getCheckedAt(),
-                    t -> t.get("tag", TroubleTag.class).getType().name());
+            Map<String, Integer> troubleDayMap = countTagDaysInWindow(troubleLogs, window,
+                    v -> v.log().getCheckedAt(), v -> v.tag().getTagType());
 
             patterns.add(new AnalysisSnapshot.TimeWindowPattern(
                     window.getLabel(),
                     "TIME_WINDOW_" + String.format("%02d", idx++),
-                    condDays, sideDays, troubleDays, medDates.size()));
+                    condDays, sideDayMap, troubleDayMap, medDates.size()));
         }
         return patterns;
     }
 
-    private List<AnalysisSnapshot.SideEffectSummary> buildSideEffectSummaries(List<Tuple> sideEffectTuples) {
-        // tag별 기록일 집계
+    private List<AnalysisSnapshot.SideEffectSummary> buildSideEffectSummaries(List<JournalTagLogView> sideLogs) {
         Map<Long, String> tagNames = new HashMap<>();
         Map<Long, Set<LocalDate>> tagDates = new HashMap<>();
         Map<Long, Map<TimeWindow, Integer>> tagWindowCounts = new HashMap<>();
 
-        for (Tuple t : sideEffectTuples) {
-            SideEffectLog log = t.get("log", SideEffectLog.class);
-            SideEffectTag tag = t.get("tag", SideEffectTag.class);
-            tagNames.put(tag.getId(), tag.getSideEffect());
-            tagDates.computeIfAbsent(tag.getId(), k -> new HashSet<>()).add(log.getCheckedAt().toLocalDate());
-            TimeWindow w = TimeWindow.of(log.getCheckedAt().toLocalTime());
-            tagWindowCounts.computeIfAbsent(tag.getId(), k -> new EnumMap<>(TimeWindow.class))
+        for (JournalTagLogView v : sideLogs) {
+            Long tagId = v.tag().getId();
+            tagNames.put(tagId, v.tag().getName());
+            tagDates.computeIfAbsent(tagId, k -> new HashSet<>()).add(v.log().getJournalDate());
+            TimeWindow w = TimeWindow.of(v.log().getCheckedAt().toLocalTime());
+            tagWindowCounts.computeIfAbsent(tagId, k -> new EnumMap<>(TimeWindow.class))
                     .merge(w, 1, Integer::sum);
         }
 
@@ -466,16 +422,12 @@ public class AnalysisEngine {
     }
 
     private List<AnalysisSnapshot.MemoEvidence> buildMemoEvidence(
-            List<Memo> memos,
-            List<Tuple> conditionTuples, List<Tuple> sideEffectTuples, List<Tuple> troubleTuples) {
+            List<Memo> memos, List<JournalTagLogView> tagLogs) {
 
         if (memos.isEmpty()) return List.of();
 
-        // 증상/부작용/실수 태그 이름 수집 (키워드로 활용)
         Set<String> keywords = new HashSet<>();
-        conditionTuples.forEach(t -> keywords.add(t.get("tag", ConditionTag.class).getCondition().toLowerCase()));
-        sideEffectTuples.forEach(t -> keywords.add(t.get("tag", SideEffectTag.class).getSideEffect().toLowerCase()));
-        troubleTuples.forEach(t -> keywords.add(t.get("tag", TroubleTag.class).getTrouble().toLowerCase()));
+        tagLogs.forEach(v -> keywords.add(v.tag().getName().toLowerCase()));
 
         return memos.stream()
                 .filter(m -> m.getMemo() != null && !m.getMemo().isBlank())
@@ -492,41 +444,43 @@ public class AnalysisEngine {
     // -------------------------------------------------------------------------
 
     private <T> Map<String, Integer> countTagDaysInGroup(
-            List<Tuple> tuples, Set<LocalDate> groupDays,
-            java.util.function.Function<Tuple, LocalDate> dateExtractor,
-            java.util.function.Function<Tuple, String> keyExtractor) {
+            List<T> items, Set<LocalDate> groupDays,
+            Function<T, LocalDate> dateExtractor,
+            Function<T, String> keyExtractor) {
 
         Map<String, Set<LocalDate>> tagDays = new HashMap<>();
-        for (Tuple t : tuples) {
-            LocalDate date = dateExtractor.apply(t);
+        for (T item : items) {
+            LocalDate date = dateExtractor.apply(item);
             if (!groupDays.contains(date)) continue;
-            String key = keyExtractor.apply(t);
+            String key = keyExtractor.apply(item);
             tagDays.computeIfAbsent(key, k -> new HashSet<>()).add(date);
         }
         return tagDays.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size()));
     }
 
-    private Set<LocalDate> distinctDatesInWindow(
-            List<Tuple> tuples, TimeWindow window,
-            java.util.function.Function<Tuple, LocalDateTime> timeExtractor) {
+    private <T> Set<LocalDate> distinctDatesInWindow(
+            List<T> items, TimeWindow window,
+            Function<T, LocalDateTime> timeExtractor) {
 
-        return tuples.stream()
-                .filter(t -> TimeWindow.of(timeExtractor.apply(t).toLocalTime()) == window)
-                .map(t -> timeExtractor.apply(t).toLocalDate())
+        return items.stream()
+                .map(timeExtractor)
+                .filter(t -> TimeWindow.of(t.toLocalTime()) == window)
+                .map(LocalDateTime::toLocalDate)
                 .collect(Collectors.toSet());
     }
 
     private <T> Map<String, Integer> countTagDaysInWindow(
-            List<Tuple> tuples, TimeWindow window,
-            java.util.function.Function<Tuple, LocalDateTime> timeExtractor,
-            java.util.function.Function<Tuple, String> keyExtractor) {
+            List<T> items, TimeWindow window,
+            Function<T, LocalDateTime> timeExtractor,
+            Function<T, String> keyExtractor) {
 
         Map<String, Set<LocalDate>> tagDays = new HashMap<>();
-        for (Tuple t : tuples) {
-            if (TimeWindow.of(timeExtractor.apply(t).toLocalTime()) != window) continue;
-            LocalDate date = timeExtractor.apply(t).toLocalDate();
-            String key = keyExtractor.apply(t);
+        for (T item : items) {
+            LocalDateTime time = timeExtractor.apply(item);
+            if (TimeWindow.of(time.toLocalTime()) != window) continue;
+            LocalDate date = time.toLocalDate();
+            String key = keyExtractor.apply(item);
             tagDays.computeIfAbsent(key, k -> new HashSet<>()).add(date);
         }
         return tagDays.entrySet().stream()

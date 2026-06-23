@@ -1,14 +1,17 @@
 package attune.medicationAnalysis.application.engine;
 
-import attune.journal.domain.model.*;
-import attune.journal.domain.repository.*;
-import attune.medication.domain.model.UserMedicationLog;
+import attune.journal.domain.model.DailyGoalLog;
+import attune.journal.domain.model.JournalTagCategory;
+import attune.journal.domain.repository.DailyGoalLogRepository;
+import attune.journal.domain.repository.DailyStatusLogRepository;
+import attune.journal.domain.repository.JournalTagLogRepository;
+import attune.journal.domain.repository.JournalTagLogView;
+import attune.journal.domain.repository.MemoRepository;
 import attune.medication.domain.repository.UserMedicationLogRepository;
 import attune.medicationAnalysis.application.model.AnalysisSnapshot;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,17 +20,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class SnapshotSerializer {
 
     private final UserMedicationLogRepository medicationLogRepository;
-    private final ConditionLogRepository conditionLogRepository;
-    private final SideEffectLogRepository sideEffectLogRepository;
-    private final TroubleLogRepository troubleLogRepository;
+    private final JournalTagLogRepository journalTagLogRepository;
     private final DailyStatusLogRepository dailyStatusLogRepository;
     private final DailyGoalLogRepository dailyGoalLogRepository;
     private final MemoRepository memoRepository;
@@ -43,10 +46,13 @@ public class SnapshotSerializer {
     }
 
     public String computeCountHash(AnalysisRawData rawData) {
+        long cl = count(rawData.tagLogs(), JournalTagCategory.CONDITION);
+        long sl = count(rawData.tagLogs(), JournalTagCategory.SIDE_EFFECT);
+        long tl = count(rawData.tagLogs(), JournalTagCategory.TROUBLE);
         String raw = "ML:" + rawData.medicationLogs().size()
-                + "|CL:" + rawData.conditionTuples().size()
-                + "|SL:" + rawData.sideEffectTuples().size()
-                + "|TL:" + rawData.troubleTuples().size()
+                + "|CL:" + cl
+                + "|SL:" + sl
+                + "|TL:" + tl
                 + "|DS:" + rawData.statusLogs().size()
                 + "|GL:" + rawData.goalLogPairs().size()
                 + "|MO:" + rawData.memos().size();
@@ -55,19 +61,25 @@ public class SnapshotSerializer {
 
     @Transactional(readOnly = true)
     public String computeCountHash(UUID userId, LocalDate startDate, LocalDate endDate) {
-        LocalDateTime startAt = startDate.atStartOfDay();
-        LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
-
-        long ml = medicationLogRepository.countByUserIdAndTakenAtBetween(userId, startAt, endAt);
-        long cl = conditionLogRepository.countInRangeWithTag(userId, startAt, endAt);
-        long sl = sideEffectLogRepository.countInRangeWithTag(userId, startAt, endAt);
-        long tl = troubleLogRepository.countInRangeWithTag(userId, startAt, endAt);
+        long cl = journalTagLogRepository.countByUserIdAndCategoryAndJournalDateBetween(
+                userId, JournalTagCategory.CONDITION, startDate, endDate);
+        long sl = journalTagLogRepository.countByUserIdAndCategoryAndJournalDateBetween(
+                userId, JournalTagCategory.SIDE_EFFECT, startDate, endDate);
+        long tl = journalTagLogRepository.countByUserIdAndCategoryAndJournalDateBetween(
+                userId, JournalTagCategory.TROUBLE, startDate, endDate);
+        long ml = medicationLogRepository.countByUserIdAndTakenAtBetween(
+                userId, startDate.atStartOfDay(), endDate.plusDays(1).atStartOfDay());
         long ds = dailyStatusLogRepository.countByUserIdAndDateBetween(userId, startDate, endDate);
         long gl = dailyGoalLogRepository.countInRangeWithGoal(userId, startDate, endDate);
         long mo = memoRepository.countByUserIdAndJournalDateBetween(userId, startDate, endDate);
 
-        String raw = "ML:" + ml + "|CL:" + cl + "|SL:" + sl + "|TL:" + tl
-                + "|DS:" + ds + "|GL:" + gl + "|MO:" + mo;
+        String raw = "ML:" + ml
+                + "|CL:" + cl
+                + "|SL:" + sl
+                + "|TL:" + tl
+                + "|DS:" + ds
+                + "|GL:" + gl
+                + "|MO:" + mo;
         return sha256(raw);
     }
 
@@ -77,19 +89,13 @@ public class SnapshotSerializer {
         rawData.medicationLogs()
                 .forEach(l -> fingerprints.add("ML:" + l.getId() + ":" + l.getTakenAt()));
 
-        rawData.conditionTuples().forEach(t -> {
-            ConditionLog l = t.get("log", ConditionLog.class);
-            fingerprints.add("CL:" + l.getId() + ":" + l.getCheckedAt());
-        });
-
-        rawData.sideEffectTuples().forEach(t -> {
-            SideEffectLog l = t.get("log", SideEffectLog.class);
-            fingerprints.add("SL:" + l.getId() + ":" + l.getCheckedAt());
-        });
-
-        rawData.troubleTuples().forEach(t -> {
-            TroubleLog l = t.get("log", TroubleLog.class);
-            fingerprints.add("TL:" + l.getId() + ":" + l.getCheckedAt());
+        rawData.tagLogs().forEach(v -> {
+            String prefix = switch (v.tag().getCategory()) {
+                case CONDITION -> "CL";
+                case SIDE_EFFECT -> "SL";
+                case TROUBLE -> "TL";
+            };
+            fingerprints.add(prefix + ":" + v.log().getId() + ":" + v.log().getCheckedAt());
         });
 
         rawData.statusLogs()
@@ -105,6 +111,10 @@ public class SnapshotSerializer {
 
         Collections.sort(fingerprints);
         return sha256(String.join("|", fingerprints));
+    }
+
+    private long count(List<JournalTagLogView> tagLogs, JournalTagCategory category) {
+        return tagLogs.stream().filter(v -> v.tag().getCategory() == category).count();
     }
 
     private String sha256(String input) {

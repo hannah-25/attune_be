@@ -210,6 +210,115 @@
 
 ---
 
+## Journal Tags (태그 관리)
+
+### GET /v1/journals/tags?category=&manage=false
+
+사용자의 태그 목록을 조회한다. SYSTEM 태그와 USER 태그를 함께 반환한다.
+
+**인증:** 필요 (JWT)
+
+**Query Parameters**
+
+| 파라미터 | 필수 | 설명 |
+|---------|------|------|
+| `category` | 필수 | `CONDITION` / `SIDE_EFFECT` / `TROUBLE` |
+| `manage` | 선택 (기본 false) | false: enabled && visible 태그만. true: 비활성 태그 포함 전체 |
+
+**Response 200**
+
+```json
+[
+  { "tagId": 1, "category": "CONDITION", "name": "집중 어려움", "tagType": "INATTENTION", "scope": "SYSTEM", "enabled": true, "visible": true }
+]
+```
+
+---
+
+### POST /v1/journals/tags
+
+사용자 태그를 생성한다. 동일 name+tagType의 비활성 태그가 있으면 재활성화(200), 새로 생성하면 201.
+
+**인증:** 필요 (JWT)
+
+**Request Body**
+
+```json
+{ "category": "CONDITION", "name": "두통", "tagType": "OTHER", "visible": true }
+```
+
+**Response 201** (신규) / **200** (재활성화)
+
+```json
+{ "tagId": 10, "category": "CONDITION", "name": "두통", "tagType": "OTHER", "scope": "USER", "enabled": true, "visible": true }
+```
+
+---
+
+### PATCH /v1/journals/tags/{tagId}/preference
+
+태그의 enabled/visible 상태를 변경한다. `enabled=false`이면 `visible`은 자동으로 false 처리.
+
+**인증:** 필요 (JWT)
+
+**Request Body**
+
+```json
+{ "enabled": true, "visible": false }
+```
+
+**Response 200** — 갱신된 태그 응답 (GET 목록과 동일 형식)
+
+---
+
+### DELETE /v1/journals/tags/{tagId}
+
+태그를 삭제한다. SYSTEM 태그는 preference만 비활성화, USER 태그는 엔티티도 비활성화.
+
+**인증:** 필요 (JWT)
+
+**Response 204**
+
+---
+
+### POST /v1/journals/tags/{tagId}/checks
+
+특정 날짜에 태그를 체크인한다. 동일 날짜에 이미 체크인되어 있으면 기존 응답 반환(멱등).
+
+**인증:** 필요 (JWT)
+
+**Request Body**
+
+```json
+{ "journalDate": "2026-06-23" }
+```
+
+`journalDate`는 오늘 이전(Asia/Seoul 기준)이어야 한다. 미래 날짜는 400.
+
+**Response 201**
+
+```json
+{ "tagId": 1, "category": "CONDITION", "name": "집중 어려움", "tagType": "INATTENTION", "journalDate": "2026-06-23", "checkedAt": "2026-06-23T09:30:00" }
+```
+
+---
+
+### DELETE /v1/journals/tags/{tagId}/checks?date=
+
+특정 날짜의 체크인을 취소한다. 체크인이 없어도 204 반환(멱등).
+
+**인증:** 필요 (JWT)
+
+**Query Parameters**
+
+| 파라미터 | 필수 | 설명 |
+|---------|------|------|
+| `date` | 필수 | 취소할 날짜 (YYYY-MM-DD) |
+
+**Response 204**
+
+---
+
 ## Journal (일지)
 
 ### GET /v1/journals?startDate=&endDate=
