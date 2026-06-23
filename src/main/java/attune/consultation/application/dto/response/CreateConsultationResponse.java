@@ -3,6 +3,7 @@ package attune.consultation.application.dto.response;
 import attune.consultation.domain.model.Consultation;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public record CreateConsultationResponse(
         Long consultationId,
@@ -12,6 +13,8 @@ public record CreateConsultationResponse(
         boolean isFirstVisit
 ) {
     public static CreateConsultationResponse from(Consultation consultation) {
+        Objects.requireNonNull(consultation, "consultation must not be null");
+
         return new CreateConsultationResponse(
                 consultation.getId(),
                 consultation.getConsultationDate(),
