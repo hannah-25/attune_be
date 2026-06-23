@@ -37,13 +37,13 @@ class UserDataDeletionExecutorTest {
         verify(jdbcTemplate, atLeastOnce()).update(sqlCaptor.capture(), any(Object[].class));
         List<String> executedSql = sqlCaptor.getAllValues();
         assertThat(executedSql).contains(
-                "DELETE FROM condition_logs WHERE condition_tag_id IN (SELECT id FROM condition_tags WHERE user_id = ?)",
-                "DELETE FROM side_effect_logs WHERE side_effect_tag_id IN (SELECT id FROM side_effect_tags WHERE user_id = ?)",
-                "DELETE FROM trouble_logs WHERE trouble_tag_id IN (SELECT id FROM trouble_tags WHERE user_id = ?)"
+                "DELETE FROM journal_tag_logs WHERE user_id = ?",
+                "DELETE FROM user_journal_tag_preferences WHERE user_id = ?",
+                "DELETE FROM journal_tags WHERE owner_user_id = ?"
         );
-        assertThat(executedSql).noneMatch(sql -> sql.matches(
-                "DELETE FROM (condition|side_effect|trouble)_logs WHERE user_id = \\?"
-        ));
+        assertThat(executedSql).noneMatch(sql ->
+                sql.contains("condition_logs") || sql.contains("side_effect_logs") || sql.contains("trouble_logs")
+        );
         verify(entityManager).remove(any(User.class));
     }
 }

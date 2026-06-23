@@ -1,10 +1,8 @@
 package attune.medicationAnalysis.application.engine;
 
-import attune.journal.domain.repository.ConditionLogRepository;
 import attune.journal.domain.repository.DailyGoalLogRepository;
 import attune.journal.domain.repository.DailyStatusLogRepository;
-import attune.journal.domain.repository.SideEffectLogRepository;
-import attune.journal.domain.repository.TroubleLogRepository;
+import attune.journal.domain.repository.JournalTagLogRepository;
 import attune.medication.domain.model.Medication;
 import attune.medication.domain.model.MedicationDosage;
 import attune.medication.domain.model.UserMedication;
@@ -32,9 +30,7 @@ class MedicationChangeDetectorTest {
     private final MedicationChangeDetector detector = new MedicationChangeDetector(
             userMedicationRepository,
             mock(UserMedicationLogRepository.class),
-            mock(ConditionLogRepository.class),
-            mock(SideEffectLogRepository.class),
-            mock(TroubleLogRepository.class),
+            mock(JournalTagLogRepository.class),
             mock(DailyStatusLogRepository.class),
             mock(DailyGoalLogRepository.class)
     );
