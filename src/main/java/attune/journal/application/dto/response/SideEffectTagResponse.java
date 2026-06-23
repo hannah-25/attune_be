@@ -1,7 +1,5 @@
 package attune.journal.application.dto.response;
 
-import attune.journal.domain.model.SideEffectTag;
-
 public record SideEffectTagResponse(
         Long tagId,
         String sideEffect,

@@ -8,7 +8,6 @@ import attune.medication.domain.repository.UserMedicationLogRepository;
 import attune.medication.domain.repository.UserMedicationRepository;
 import attune.medicationAnalysis.application.model.AnalysisSnapshot;
 import attune.medicationAnalysis.application.model.DayGroup;
-import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,19 +27,15 @@ public class MedicationChangeDetector {
 
     private final UserMedicationRepository userMedicationRepository;
     private final UserMedicationLogRepository medicationLogRepository;
-    private final ConditionLogRepository conditionLogRepository;
-    private final SideEffectLogRepository sideEffectLogRepository;
-    private final TroubleLogRepository troubleLogRepository;
+    private final JournalTagLogRepository journalTagLogRepository;
     private final DailyStatusLogRepository dailyStatusLogRepository;
     private final DailyGoalLogRepository dailyGoalLogRepository;
 
     @Transactional(readOnly = true)
     public List<AnalysisSnapshot.MedicationChange> detect(
             UUID userId, LocalDate startDate, LocalDate endDate) {
-        // 사용자 전체 UserMedication 이력 (비교를 위해 분석 기간 외 이전 기록도 필요)
         List<UserMedication> allMedications = userMedicationRepository.findAllByUserIdWithDetails(userId);
 
-        // 분석 기간 내에 startedAt이 있는 약 목록
         List<UserMedication> changedInPeriod = allMedications.stream()
                 .filter(m -> m.getStartedAt() != null
                         && !m.getStartedAt().isBefore(startDate)
@@ -50,14 +45,12 @@ public class MedicationChangeDetector {
         List<AnalysisSnapshot.MedicationChange> changes = new ArrayList<>();
 
         for (UserMedication current : changedInPeriod) {
-            // 전체 복약 이력에서 시작일 기준 직전 레코드 탐색
             Optional<UserMedication> previous = allMedications.stream()
                     .filter(m -> !m.getId().equals(current.getId())
                             && m.getStartedAt() != null
                             && m.getStartedAt().isBefore(current.getStartedAt()))
                     .max(Comparator.comparing(UserMedication::getStartedAt));
 
-            // 직전 레코드와 비교하여 변경 유형 판정
             String changeType = determineChangeType(current, previous.orElse(null));
             boolean confirmed = current.getConsultation() != null;
             Long consultationId = current.getConsultation() != null ? current.getConsultation().getId() : null;
@@ -98,7 +91,6 @@ public class MedicationChangeDetector {
     }
 
     private LocalDate resolveChangeDate(UserMedication current, UserMedication previous) {
-        // 우선순위: 1) current.startedAt 2) previous.endAt+1일 3) consultationDate
         if (current.getStartedAt() != null) return current.getStartedAt();
         if (previous != null && previous.getEndAt() != null) return previous.getEndAt().plusDays(1);
         if (current.getConsultation() != null) {
@@ -116,7 +108,6 @@ public class MedicationChangeDetector {
             return ineligible("변경 기준일을 확인할 수 없습니다.");
         }
 
-        // 전후 기간 산출: 변경 전 기간과 후 기간 중 짧은 쪽에 맞춤
         long daysBeforeChange = ChronoUnit.DAYS.between(analysisStart, changeDate);
         long daysAfterChange = ChronoUnit.DAYS.between(changeDate, analysisEnd.plusDays(1));
 
@@ -130,7 +121,6 @@ public class MedicationChangeDetector {
         LocalDate afterStart = changeDate;
         LocalDate afterEnd = changeDate.plusDays(windowDays - 1);
 
-        // 기록일 조건 체크
         int beforeRecorded = countRecordedDaysInRange(userId, beforeStart, beforeEnd);
         int afterRecorded = countRecordedDaysInRange(userId, afterStart, afterEnd);
 
@@ -138,7 +128,6 @@ public class MedicationChangeDetector {
             return ineligible("변경 전후 일지 기록일이 각각 " + MIN_BEFORE_AFTER_RECORDED_DAYS + "일 미만입니다.");
         }
 
-        // 전후 기간별 일지 비교 계산
         List<AnalysisSnapshot.DayGroupComparison> beforeComparisons = computeSimpleComparison(userId, beforeStart, beforeEnd);
         List<AnalysisSnapshot.DayGroupComparison> afterComparisons = computeSimpleComparison(userId, afterStart, afterEnd);
 
@@ -153,15 +142,9 @@ public class MedicationChangeDetector {
     }
 
     private int countRecordedDaysInRange(UUID userId, LocalDate start, LocalDate end) {
-        LocalDateTime startAt = start.atStartOfDay();
-        LocalDateTime endAt = end.plusDays(1).atStartOfDay();
-        Set<LocalDate> days = new HashSet<>();
-        conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt)
-                .forEach(t -> days.add(t.get("log", ConditionLog.class).getCheckedAt().toLocalDate()));
-        sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt)
-                .forEach(t -> days.add(t.get("log", SideEffectLog.class).getCheckedAt().toLocalDate()));
-        troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt)
-                .forEach(t -> days.add(t.get("log", TroubleLog.class).getCheckedAt().toLocalDate()));
+        Set<LocalDate> days = new HashSet<>(
+            journalTagLogRepository.findDistinctJournalDatesByUserIdAndJournalDateBetween(userId, start, end)
+        );
         dailyStatusLogRepository.findByUserIdAndDateBetween(userId, start, end)
                 .forEach(s -> days.add(s.getDate()));
         dailyGoalLogRepository.findAllInRangeWithGoal(userId, start, end)
@@ -170,28 +153,26 @@ public class MedicationChangeDetector {
     }
 
     private List<AnalysisSnapshot.DayGroupComparison> computeSimpleComparison(UUID userId, LocalDate start, LocalDate end) {
-        LocalDateTime startAt = start.atStartOfDay();
-        LocalDateTime endAt = end.plusDays(1).atStartOfDay();
-
-        List<Tuple> condTuples = conditionLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
-        List<Tuple> sideTuples = sideEffectLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
-        List<Tuple> troubleTuples = troubleLogRepository.findAllInRangeWithTag(userId, startAt, endAt);
+        List<JournalTagLogView> tagLogs = journalTagLogRepository
+                .findAllWithTagByUserIdAndJournalDateBetween(userId, start, end);
         List<DailyStatusLog> statusLogs = dailyStatusLogRepository.findByUserIdAndDateBetween(userId, start, end);
         List<Object[]> goalLogPairs = dailyGoalLogRepository.findAllInRangeWithGoal(userId, start, end);
 
-        // 이 기간은 전체를 하나의 그룹으로 단순 집계
         Set<LocalDate> allDays = new HashSet<>();
         for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) allDays.add(d);
 
-        Map<String, Set<LocalDate>> condDays = tagDays(condTuples,
-                t -> t.get("log", ConditionLog.class).getCheckedAt().toLocalDate(),
-                t -> t.get("tag", ConditionTag.class).getCondition());
-        Map<String, Set<LocalDate>> sideDays = tagDays(sideTuples,
-                t -> t.get("log", SideEffectLog.class).getCheckedAt().toLocalDate(),
-                t -> t.get("tag", SideEffectTag.class).getSideEffect());
-        Map<String, Set<LocalDate>> troubleDays = tagDays(troubleTuples,
-                t -> t.get("log", TroubleLog.class).getCheckedAt().toLocalDate(),
-                t -> t.get("tag", TroubleTag.class).getType().name());
+        Map<String, Set<LocalDate>> condDays = new HashMap<>();
+        Map<String, Set<LocalDate>> sideDays = new HashMap<>();
+        Map<String, Set<LocalDate>> troubleDays = new HashMap<>();
+        for (JournalTagLogView v : tagLogs) {
+            String name = v.tag().getName();
+            LocalDate date = v.log().getJournalDate();
+            switch (v.tag().getCategory()) {
+                case CONDITION -> condDays.computeIfAbsent(name, k -> new HashSet<>()).add(date);
+                case SIDE_EFFECT -> sideDays.computeIfAbsent(name, k -> new HashSet<>()).add(date);
+                case TROUBLE -> troubleDays.computeIfAbsent(name, k -> new HashSet<>()).add(date);
+            }
+        }
 
         List<Integer> scores = goalLogPairs.stream()
                 .map(pair -> ((DailyGoalLog) pair[0]).getScore()).toList();
@@ -211,14 +192,6 @@ public class MedicationChangeDetector {
                 mealRate(statusLogs, s -> Boolean.TRUE.equals(s.getAteLunch())),
                 mealRate(statusLogs, s -> Boolean.TRUE.equals(s.getAteDinner()))
         ));
-    }
-
-    private Map<String, Set<LocalDate>> tagDays(List<Tuple> tuples,
-            java.util.function.Function<Tuple, LocalDate> dateFn,
-            java.util.function.Function<Tuple, String> keyFn) {
-        Map<String, Set<LocalDate>> map = new HashMap<>();
-        tuples.forEach(t -> map.computeIfAbsent(keyFn.apply(t), k -> new HashSet<>()).add(dateFn.apply(t)));
-        return map;
     }
 
     private Map<String, Integer> toCounts(Map<String, Set<LocalDate>> tagDays) {
