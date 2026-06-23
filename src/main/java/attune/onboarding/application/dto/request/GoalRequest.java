@@ -19,6 +19,10 @@ public record GoalRequest(
         @JsonAlias("visibleCatalogTagIds")
         List<Long> visibleTagIds
 ) {
+    public GoalRequest {
+        goals = goals != null ? goals : List.of();
+        visibleTagIds = visibleTagIds != null ? visibleTagIds : List.of();
+    }
     public record GoalItem(
             @NotBlank @Schema(description = "목표 제목") String title,
             @NotNull @Schema(description = "기능 영역") DailyGoalType type
