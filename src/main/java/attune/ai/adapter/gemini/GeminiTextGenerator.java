@@ -22,10 +22,10 @@ public class GeminiTextGenerator implements AiTextGenerator {
 
     private static final String GENERATION_FAILED_MESSAGE = "Gemini response generation failed.";
 
-    // 재시도는 503(과부하)·연결 끊김에만, 그것도 1회만 한다.
+    // 재시도는 502·503·504(게이트웨이/과부하)·연결 끊김에만, 그것도 1회만 한다.
     // 429(쿼터/레이트리밋)는 재시도해도 회복되지 않고 호출 비용만 늘기 때문에 즉시 503으로 안내한다.
-    private static final int MAX_ATTEMPTS = 2;          // 최초 1회 + 재시도 1회
-    private static final long INITIAL_BACKOFF_MS = 300L;
+    private static final int MAX_ATTEMPTS = 2;     // 최초 1회 + 재시도 1회
+    private static final long BACKOFF_MS = 300L;   // 재시도 전 고정 대기
 
     private final RestClient restClient;
     private final GeminiProperties properties;
@@ -103,7 +103,7 @@ public class GeminiTextGenerator implements AiTextGenerator {
             }
 
             if (attempt < MAX_ATTEMPTS) {
-                backoff(attempt);
+                backoff();
             }
         }
 
@@ -111,10 +111,9 @@ public class GeminiTextGenerator implements AiTextGenerator {
         throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, lastTransient);
     }
 
-    private void backoff(int attempt) {
-        long delay = INITIAL_BACKOFF_MS * (1L << (attempt - 1)); // 300ms → 600ms → ...
+    private void backoff() {
         try {
-            sleeper.sleep(delay);
+            sleeper.sleep(BACKOFF_MS);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, ie);
