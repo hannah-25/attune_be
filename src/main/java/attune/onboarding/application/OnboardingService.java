@@ -219,10 +219,11 @@ public class OnboardingService {
                         recommendedCondition.contains(t.name())))
                 .toList();
 
-        // 목표: Korean functionalArea → DailyGoalType 매핑
-        List<AiRecommendationResponse.GoalItem> goalItems = geminiResponse.treatmentGoals().stream()
-                .map(g -> new AiRecommendationResponse.GoalItem(g.goal(), mapFunctionalArea(g.functionalArea())))
-                .toList();
+        // 목표: Korean functionalArea → DailyGoalType 매핑 (Gemini가 목표를 누락해도 NPE 없이 처리)
+        List<AiRecommendationResponse.GoalItem> goalItems =
+                Objects.requireNonNullElse(geminiResponse.treatmentGoals(), List.<GeminiOnboardingResponse.GoalItem>of()).stream()
+                        .map(g -> new AiRecommendationResponse.GoalItem(g.goal(), mapFunctionalArea(g.functionalArea())))
+                        .toList();
 
         return new AiRecommendationResponse(tagItems, conditionItems, goalItems);
     }
