@@ -13,10 +13,6 @@ public record CreateScheduleResponse(
         LocalDateTime endTime
 ) {
     public static CreateScheduleResponse from(Schedule schedule) {
-        if (schedule == null) {
-            return null;
-        }
-
         return new CreateScheduleResponse(
                 schedule.getId(),
                 schedule.getTitle(),

@@ -12,10 +12,6 @@ public record CreateConsultationResponse(
         boolean isFirstVisit
 ) {
     public static CreateConsultationResponse from(Consultation consultation) {
-        if (consultation == null) {
-            return null;
-        }
-
         return new CreateConsultationResponse(
                 consultation.getId(),
                 consultation.getConsultationDate(),
