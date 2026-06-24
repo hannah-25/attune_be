@@ -29,7 +29,17 @@ public class OnboardingAiService {
             "COGNITIVE_ERROR", "인지오류"
     );
 
+    private static final Map<String, String> CONDITION_TYPE_LABELS = Map.of(
+            "CALM", "안정·평온",
+            "UP", "들뜸·고양",
+            "DOWN", "무기력·저하",
+            "TIGHT", "불안·긴장",
+            "FOGGY", "멍함·흐림"
+    );
+
     private static final String TAG_POOL = buildTagPool();
+
+    private static final String CONDITION_TAG_POOL = buildConditionTagPool();
 
     private static final String FUNCTIONAL_AREAS = "업무/학업, 시간관리, 생활관리, 정서/관계";
 
@@ -42,7 +52,8 @@ public class OnboardingAiService {
 
     private static final String OUTPUT_RULES = """
             [출력 규칙]
-            - visibleTags: 사용자와 가장 관련 높은 세부 태그 5~7개를 태그 풀의 각 줄 콜론(:) 뒤에 나열된 항목 중에서만 선택. '부주의', '시간관리', '충동성', '과활성', '인지오류' 같은 카테고리명은 절대 선택 불가.
+            - visibleTags: '문제 상황 태그 풀'의 각 줄 콜론(:) 뒤에 나열된 항목 중에서만 가장 관련 높은 5~7개 선택. '부주의', '시간관리', '충동성', '과활성', '인지오류' 같은 카테고리명은 절대 선택 불가.
+            - visibleConditionTags: '감정·컨디션 태그 풀'의 각 줄 콜론(:) 뒤에 나열된 항목 중에서만 가장 관련 높은 5~7개 선택. 카테고리명은 절대 선택 불가.
             - treatmentGoals: 반드시 4개 고정.
 
             [treatmentGoals 작성 가이드라인 - 엄격 적용]
@@ -57,6 +68,7 @@ public class OnboardingAiService {
             다른 텍스트 없이 아래 형식의 JSON만 출력:
             {
               "visibleTags": ["태그명1", "태그명2"],
+              "visibleConditionTags": ["감정태그명1", "감정태그명2"],
               "treatmentGoals": [
                 {"goal": "목표 문장", "functionalArea": "업무/학업"},
                 {"goal": "목표 문장", "functionalArea": "시간관리"}
@@ -80,16 +92,19 @@ public class OnboardingAiService {
                 [ASRS 검사 결과]
                 주의력 점수: %d점 (높을 경우 시간관리 어려움도 함께 있는 것으로 해석하세요)
                 과잉행동·충동 점수: %d점
-                
-                [태그 풀 - 반드시 이 목록에서만 선택]
+
+                [문제 상황 태그 풀 - visibleTags는 반드시 이 목록에서만 선택]
                 %s
-                
+
+                [감정·컨디션 태그 풀 - visibleConditionTags는 반드시 이 목록에서만 선택]
+                %s
+
                 [functionalArea 가능한 값]
                 %s
-                
+
                 %s
                 """.formatted(symptomDescription, inattentionScore, hyperactivityScore,
-                TAG_POOL, FUNCTIONAL_AREAS, OUTPUT_RULES);
+                TAG_POOL, CONDITION_TAG_POOL, FUNCTIONAL_AREAS, OUTPUT_RULES);
 
         return parse(aiTextGenerator.generateJson(prompt));
     }
@@ -114,7 +129,10 @@ public class OnboardingAiService {
                 [사용자가 선택한 취약 기능 영역]
                 %s
 
-                [태그 풀 - 반드시 이 목록에서만 선택]
+                [문제 상황 태그 풀 - visibleTags는 반드시 이 목록에서만 선택]
+                %s
+
+                [감정·컨디션 태그 풀 - visibleConditionTags는 반드시 이 목록에서만 선택]
                 %s
 
                 [functionalArea 가능한 값]
@@ -124,7 +142,7 @@ public class OnboardingAiService {
                 """.formatted(
                 String.join(", ", selectedSymptomTypes),
                 functionalAreaLabels,
-                TAG_POOL, FUNCTIONAL_AREAS, OUTPUT_RULES);
+                TAG_POOL, CONDITION_TAG_POOL, FUNCTIONAL_AREAS, OUTPUT_RULES);
 
         return parse(aiTextGenerator.generateJson(prompt));
     }
@@ -158,6 +176,21 @@ public class OnboardingAiService {
                 .map(entry -> Objects.requireNonNull(
                         TROUBLE_TYPE_LABELS.get(entry.getKey()),
                         "TROUBLE_TYPE_LABELS missing entry for tagType: " + entry.getKey())
+                        + ": " + String.join(", ", entry.getValue()))
+                .collect(Collectors.joining("\n"));
+    }
+
+    private static String buildConditionTagPool() {
+        Map<String, List<String>> namesByType = SystemJournalTagDefinitions.conditionTags().stream()
+                .collect(Collectors.groupingBy(
+                        SystemJournalTagDefinitions.Definition::tagType,
+                        LinkedHashMap::new,
+                        Collectors.mapping(SystemJournalTagDefinitions.Definition::name, Collectors.toList())
+                ));
+        return namesByType.entrySet().stream()
+                .map(entry -> Objects.requireNonNull(
+                        CONDITION_TYPE_LABELS.get(entry.getKey()),
+                        "CONDITION_TYPE_LABELS missing entry for tagType: " + entry.getKey())
                         + ": " + String.join(", ", entry.getValue()))
                 .collect(Collectors.joining("\n"));
     }

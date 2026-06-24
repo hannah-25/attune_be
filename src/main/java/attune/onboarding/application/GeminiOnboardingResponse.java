@@ -4,11 +4,13 @@ import java.util.List;
 
 /**
  * Gemini 온보딩 분석 응답.
- * visibleTags  : 사용자에게 노출할 trouble_tag 이름 목록 (5~7개)
- * treatmentGoals: 개인화 치료 목표 4개
+ * visibleTags          : 사용자에게 노출할 trouble_tag(문제 상황) 이름 목록 (5~7개)
+ * visibleConditionTags : 사용자에게 노출할 condition_tag(감정·컨디션) 이름 목록 (5~7개)
+ * treatmentGoals       : 개인화 치료 목표 4개
  */
 public record GeminiOnboardingResponse(
         List<String> visibleTags,
+        List<String> visibleConditionTags,
         List<GoalItem> treatmentGoals
 ) {
     /**

@@ -138,6 +138,7 @@ class OnboardingServiceTest {
                         new GoalRequest.GoalItem("same title", DailyGoalType.LIFE_MANAGEMENT),
                         new GoalRequest.GoalItem("new title", DailyGoalType.EMOTIONAL_SOCIAL)
                 ),
+                null,
                 null
         );
 
@@ -174,6 +175,7 @@ class OnboardingServiceTest {
                 .build();
         GoalRequest request = new GoalRequest(
                 List.of(new GoalRequest.GoalItem("same title", DailyGoalType.LIFE_MANAGEMENT)),
+                null,
                 null
         );
 
@@ -198,6 +200,7 @@ class OnboardingServiceTest {
                         new GoalRequest.GoalItem("same title", DailyGoalType.WORK_STUDY),
                         new GoalRequest.GoalItem("same title", DailyGoalType.TIME_MANAGEMENT)
                 ),
+                null,
                 null
         );
 

@@ -5,9 +5,9 @@ import attune.common.error.badrequest.OnboardingNotCompleteException;
 import attune.common.error.notfound.AsrsAssessmentNotFoundException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.journal.application.JournalTagService;
-import attune.journal.application.dto.response.JournalTagResponse;
 import attune.journal.domain.model.DailyGoal;
 import attune.journal.domain.model.DailyGoalType;
+import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.OnboardingGoalSnapshot;
 import attune.journal.domain.repository.DailyGoalRepository;
 import attune.journal.domain.repository.OnboardingGoalSnapshotRepository;
@@ -202,14 +202,20 @@ public class OnboardingService {
                     symptom.getDescription(), inattentionScore, hyperactivityScore);
         }
 
-        // 태그: 시스템 TROUBLE 태그 전체 + Gemini 추천 여부 표시
-        List<JournalTagResponse> troubleTags = journalTagService.getTroubleTags(userId);
-        Set<String> recommended = new HashSet<>(geminiResponse.visibleTags());
-
-        List<AiRecommendationResponse.TagItem> tagItems = troubleTags.stream()
+        // 문제 상황(TROUBLE) 태그: 시스템 태그 전체 + Gemini 추천 여부 표시
+        Set<String> recommendedTrouble = toNameSet(geminiResponse.visibleTags());
+        List<AiRecommendationResponse.TagItem> tagItems = journalTagService.getTroubleTags(userId).stream()
                 .map(t -> new AiRecommendationResponse.TagItem(
                         t.tagId(), t.name(), t.tagType(),
-                        recommended.contains(t.name())))
+                        recommendedTrouble.contains(t.name())))
+                .toList();
+
+        // 감정·컨디션(CONDITION) 태그: 시스템 태그 전체 + Gemini 추천 여부 표시
+        Set<String> recommendedCondition = toNameSet(geminiResponse.visibleConditionTags());
+        List<AiRecommendationResponse.ConditionTagItem> conditionItems = journalTagService.getConditionTags(userId).stream()
+                .map(t -> new AiRecommendationResponse.ConditionTagItem(
+                        t.tagId(), t.name(), t.tagType(),
+                        recommendedCondition.contains(t.name())))
                 .toList();
 
         // 목표: Korean functionalArea → DailyGoalType 매핑
@@ -217,7 +223,7 @@ public class OnboardingService {
                 .map(g -> new AiRecommendationResponse.GoalItem(g.goal(), mapFunctionalArea(g.functionalArea())))
                 .toList();
 
-        return new AiRecommendationResponse(tagItems, goalItems);
+        return new AiRecommendationResponse(tagItems, conditionItems, goalItems);
     }
 
     @Transactional
@@ -270,10 +276,14 @@ public class OnboardingService {
                 .toList();
         onboardingGoalSnapshotRepository.saveAll(snapshots);
 
-        // 2. 태그 visible 업데이트
+        // 2. 태그 visible 업데이트 (필드 생략(null) 시 변경 안 함 / 빈 배열이면 전체 숨김)
         if (request.visibleTagIds() != null) {
             journalTagService.bulkSetVisibilityForOnboarding(
-                    userId, new HashSet<>(request.visibleTagIds()));
+                    userId, JournalTagCategory.TROUBLE, new HashSet<>(request.visibleTagIds()));
+        }
+        if (request.visibleConditionTagIds() != null) {
+            journalTagService.bulkSetVisibilityForOnboarding(
+                    userId, JournalTagCategory.CONDITION, new HashSet<>(request.visibleConditionTagIds()));
         }
 
         List<GoalResponse.GoalItem> items = saved.stream()
@@ -391,6 +401,10 @@ public class OnboardingService {
                 .filter(a -> a.getQuestionId() >= 10 && a.getQuestionId() <= 18)
                 .mapToInt(AsrsAnswer::getScore)
                 .sum();
+    }
+
+    private static Set<String> toNameSet(List<String> names) {
+        return names == null ? Set.of() : new HashSet<>(names);
     }
 
     private DailyGoalType mapFunctionalArea(String koreanArea) {

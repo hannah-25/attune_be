@@ -23,6 +23,7 @@ class OnboardingAiServiceTest {
                 .thenReturn("""
                         {
                           "visibleTags": ["깜빡함"],
+                          "visibleConditionTags": ["불안함"],
                           "treatmentGoals": []
                         }
                         """);
@@ -31,6 +32,9 @@ class OnboardingAiServiceTest {
 
         String prompt = promptCaptor.getValue();
         assertThat(SystemJournalTagDefinitions.troubleTags())
+                .allSatisfy(definition ->
+                        assertThat(prompt).contains(definition.name()));
+        assertThat(SystemJournalTagDefinitions.conditionTags())
                 .allSatisfy(definition ->
                         assertThat(prompt).contains(definition.name()));
         verify(aiTextGenerator).generateJson(prompt);
