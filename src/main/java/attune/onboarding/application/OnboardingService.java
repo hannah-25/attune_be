@@ -222,7 +222,7 @@ public class OnboardingService {
         // 목표: Korean functionalArea → DailyGoalType 매핑 (Gemini가 목표를 누락해도 NPE 없이 처리)
         List<AiRecommendationResponse.GoalItem> goalItems =
                 Objects.requireNonNullElse(geminiResponse.treatmentGoals(), List.<GeminiOnboardingResponse.GoalItem>of()).stream()
-                        .filter(g -> g != null && g.goal() != null && !g.goal().isBlank())
+                        .filter(g -> g != null && g.goal() != null && !g.goal().isBlank() && g.functionalArea() != null && !g.functionalArea().isBlank())
                         .map(g -> new AiRecommendationResponse.GoalItem(g.goal(), mapFunctionalArea(g.functionalArea())))
                         .toList();
 
