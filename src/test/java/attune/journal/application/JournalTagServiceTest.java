@@ -55,7 +55,7 @@ class JournalTagServiceTest {
         when(preferenceRepository.findAllByUserId(userId))
                 .thenReturn(List.of(existingTroublePreference, conditionPreference));
 
-        journalTagService.bulkSetVisibilityForOnboarding(userId, Set.of(1L));
+        journalTagService.bulkSetVisibilityForOnboarding(userId, JournalTagCategory.TROUBLE, Set.of(1L));
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<UserJournalTagPreference>> captor =
@@ -89,7 +89,7 @@ class JournalTagServiceTest {
                 .thenReturn(List.of(troubleTag));
 
         assertThatThrownBy(() ->
-                journalTagService.bulkSetVisibilityForOnboarding(userId, Set.of(1L, 99L)))
+                journalTagService.bulkSetVisibilityForOnboarding(userId, JournalTagCategory.TROUBLE, Set.of(1L, 99L)))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("active system TROUBLE");
 

@@ -5,6 +5,7 @@ import attune.ai.config.GeminiProperties;
 import attune.common.error.internalserver.GeminiGenerationException;
 import attune.common.error.serviceunavailable.GeminiUnavailableException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -37,6 +38,7 @@ public class GeminiTextGenerator implements AiTextGenerator {
         void sleep(long millis) throws InterruptedException;
     }
 
+    @Autowired
     public GeminiTextGenerator(
             @Qualifier("geminiRestClient") RestClient restClient,
             GeminiProperties properties

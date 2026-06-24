@@ -60,8 +60,17 @@ public class JournalTagService {
 
     @Transactional(readOnly = true)
     public List<JournalTagResponse> getTroubleTags(UUID userId) {
+        return getSystemTagsForOnboarding(userId, JournalTagCategory.TROUBLE);
+    }
+
+    @Transactional(readOnly = true)
+    public List<JournalTagResponse> getConditionTags(UUID userId) {
+        return getSystemTagsForOnboarding(userId, JournalTagCategory.CONDITION);
+    }
+
+    private List<JournalTagResponse> getSystemTagsForOnboarding(UUID userId, JournalTagCategory category) {
         List<JournalTag> systemTags = journalTagRepository
-                .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE);
+                .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category);
         Map<Long, UserJournalTagPreference> preferences = preferenceRepository.findAllByUserId(userId).stream()
                 .collect(Collectors.toMap(UserJournalTagPreference::getJournalTagId, Function.identity()));
 
@@ -148,18 +157,19 @@ public class JournalTagService {
     }
 
     @Transactional
-    public void bulkSetVisibilityForOnboarding(UUID userId, Set<Long> visibleTagIds) {
+    public void bulkSetVisibilityForOnboarding(UUID userId, JournalTagCategory category, Set<Long> visibleTagIds) {
         Set<Long> tagIds = visibleTagIds != null ? visibleTagIds : Set.of();
         LocalDateTime now = LocalDateTime.now();
         List<JournalTag> onboardingTags = journalTagRepository
                 .findAllByScopeAndCategoryAndIsActiveTrue(
-                        JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE);
+                        JournalTagScope.SYSTEM, category);
         Set<Long> onboardingTagIds = onboardingTags.stream()
                 .map(JournalTag::getId)
                 .collect(Collectors.toSet());
         if (!onboardingTagIds.containsAll(tagIds)) {
+            String field = category == JournalTagCategory.CONDITION ? "visibleConditionTagIds" : "visibleTagIds";
             throw new BadRequestException(
-                    "visibleTagIds must contain only active system TROUBLE tag IDs");
+                    field + " must contain only active system " + category + " tag IDs");
         }
 
         Map<Long, UserJournalTagPreference> existingPrefs = preferenceRepository.findAllByUserId(userId).stream()

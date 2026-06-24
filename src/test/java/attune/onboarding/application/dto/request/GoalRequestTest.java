@@ -28,10 +28,39 @@ class GoalRequestTest {
     }
 
     @Test
-    void rejectsNullGoals() {
-        GoalRequest request = new GoalRequest(null, null);
+    void deserializesVisibleConditionTagIds() throws Exception {
+        String json = """
+                {
+                  "goals": [ { "title": "할 일 3개 적기", "type": "WORK_STUDY" } ],
+                  "visibleTagIds": [10, 11],
+                  "visibleConditionTagIds": [20, 21]
+                }
+                """;
 
-        assertThat(request.visibleTagIds()).isEmpty();
+        GoalRequest request = objectMapper.readValue(json, GoalRequest.class);
+
+        assertThat(request.visibleTagIds()).containsExactly(10L, 11L);
+        assertThat(request.visibleConditionTagIds()).containsExactly(20L, 21L);
+    }
+
+    @Test
+    void leavesTagIdsNullWhenOmitted() throws Exception {
+        String json = """
+                { "goals": [ { "title": "할 일 3개 적기", "type": "WORK_STUDY" } ] }
+                """;
+
+        GoalRequest request = objectMapper.readValue(json, GoalRequest.class);
+
+        // 생략(null) = "가시성 변경 안 함". 빈 배열([])과 구분되어야 한다.
+        assertThat(request.visibleTagIds()).isNull();
+        assertThat(request.visibleConditionTagIds()).isNull();
+    }
+
+    @Test
+    void rejectsNullGoals() {
+        GoalRequest request = new GoalRequest(null, null, null);
+
+        assertThat(request.visibleTagIds()).isNull();
         assertThat(validator.validate(request))
                 .anySatisfy(violation -> assertThat(violation.getPropertyPath().toString()).isEqualTo("goals"));
     }

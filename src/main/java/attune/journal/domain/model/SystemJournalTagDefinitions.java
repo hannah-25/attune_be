@@ -74,6 +74,12 @@ public final class SystemJournalTagDefinitions {
                 .toList();
     }
 
+    public static List<Definition> conditionTags() {
+        return ALL.stream()
+                .filter(definition -> definition.category() == JournalTagCategory.CONDITION)
+                .toList();
+    }
+
     private static Definition condition(String name, String tagType, boolean defaultVisible) {
         return new Definition(JournalTagCategory.CONDITION, name, tagType, defaultVisible);
     }

@@ -18,6 +18,8 @@ class AiRecommendationResponseTest {
         AiRecommendationResponse response = new AiRecommendationResponse(
                 List.of(new AiRecommendationResponse.TagItem(
                         10L, "깜빡함", "INATTENTION", true)),
+                List.of(new AiRecommendationResponse.ConditionTagItem(
+                        20L, "불안함", "TIGHT", true)),
                 List.of(new AiRecommendationResponse.GoalItem(
                         "할 일 3개 적기", DailyGoalType.WORK_STUDY))
         );
