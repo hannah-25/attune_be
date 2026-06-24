@@ -2,6 +2,7 @@ package attune.common.error;
 
 import attune.common.error.internalserver.GeminiGenerationException;
 import attune.common.error.internalserver.MailSendFailedException;
+import attune.common.error.ServiceUnavailableException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -147,6 +148,14 @@ public class GlobalExceptionHandler {
         log.error("500 GeminiGenerationFailed", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleServiceUnavailable(ServiceUnavailableException e) {
+        log.warn("503 ServiceUnavailable: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "5")
+                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, e.getClientMessage()));
     }
 
     @ExceptionHandler(Exception.class)
