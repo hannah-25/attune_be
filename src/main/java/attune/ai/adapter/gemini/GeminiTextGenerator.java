@@ -49,9 +49,9 @@ public class GeminiTextGenerator implements AiTextGenerator {
             GeminiProperties properties,
             Sleeper sleeper
     ) {
-        this.restClient = restClient;
-        this.properties = properties;
-        this.sleeper = sleeper;
+        this.restClient = Objects.requireNonNull(restClient, "restClient");
+        this.properties = Objects.requireNonNull(properties, "properties");
+        this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
     }
 
     @Override
