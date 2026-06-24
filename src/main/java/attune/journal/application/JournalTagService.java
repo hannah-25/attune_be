@@ -167,8 +167,9 @@ public class JournalTagService {
                 .map(JournalTag::getId)
                 .collect(Collectors.toSet());
         if (!onboardingTagIds.containsAll(tagIds)) {
+            String field = category == JournalTagCategory.CONDITION ? "visibleConditionTagIds" : "visibleTagIds";
             throw new BadRequestException(
-                    "visibleTagIds must contain only active system " + category + " tag IDs");
+                    field + " must contain only active system " + category + " tag IDs");
         }
 
         Map<Long, UserJournalTagPreference> existingPrefs = preferenceRepository.findAllByUserId(userId).stream()
