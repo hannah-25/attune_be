@@ -33,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -404,7 +405,15 @@ public class OnboardingService {
     }
 
     private static Set<String> toNameSet(List<String> names) {
-        return names == null ? Set.of() : new HashSet<>(names);
+        if (names == null) {
+            return Set.of();
+        }
+        // Gemini가 공백을 포함하거나 NFD로 응답해도 NFC 시스템 태그명과 매칭되도록 정규화한다.
+        return names.stream()
+                .filter(Objects::nonNull)
+                .map(String::strip)
+                .map(name -> Normalizer.normalize(name, Normalizer.Form.NFC))
+                .collect(Collectors.toSet());
     }
 
     private DailyGoalType mapFunctionalArea(String koreanArea) {
