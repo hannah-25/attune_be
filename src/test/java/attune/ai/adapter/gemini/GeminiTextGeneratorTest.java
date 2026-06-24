@@ -39,9 +39,8 @@ class GeminiTextGeneratorTest {
     }
 
     @Test
-    void retriesTransientErrorThenSucceeds() {
+    void retriesOnceOnOverloadThenSucceeds() {
         server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
-        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
         server.expect(requestTo(URL)).andRespond(withSuccess(SUCCESS_BODY, MediaType.APPLICATION_JSON));
 
         String result = generator.generate("hi");
@@ -51,9 +50,21 @@ class GeminiTextGeneratorTest {
     }
 
     @Test
-    void throwsServiceUnavailableWhenAllAttemptsAreTransient() {
-        server.expect(ExpectedCount.times(3), requestTo(URL))
+    void throwsServiceUnavailableWhenOverloadPersists() {
+        // 최초 1회 + 재시도 1회 = 총 2회만 호출해야 한다.
+        server.expect(ExpectedCount.times(2), requestTo(URL))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThatThrownBy(() -> generator.generate("hi"))
+                .isInstanceOf(GeminiUnavailableException.class);
+        server.verify();
+    }
+
+    @Test
+    void doesNotRetryOnQuotaExceeded() {
+        // 429(쿼터 초과)는 재시도하지 않고 단 1회 호출 후 503으로 안내해야 한다 (비용 절감).
+        server.expect(ExpectedCount.once(), requestTo(URL))
+                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
         assertThatThrownBy(() -> generator.generate("hi"))
                 .isInstanceOf(GeminiUnavailableException.class);

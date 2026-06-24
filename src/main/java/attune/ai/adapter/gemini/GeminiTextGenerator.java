@@ -15,7 +15,6 @@ import org.springframework.web.client.RestClientResponseException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 @Slf4j
 @Component
@@ -23,10 +22,10 @@ public class GeminiTextGenerator implements AiTextGenerator {
 
     private static final String GENERATION_FAILED_MESSAGE = "Gemini response generation failed.";
 
-    /** 전이성(일시적) 오류로 보고 재시도하는 HTTP 상태 코드. */
-    private static final Set<Integer> RETRYABLE_STATUS = Set.of(429, 500, 503);
-    private static final int MAX_ATTEMPTS = 3;
-    private static final long INITIAL_BACKOFF_MS = 200L;
+    // 재시도는 503(과부하)·연결 끊김에만, 그것도 1회만 한다.
+    // 429(쿼터/레이트리밋)는 재시도해도 회복되지 않고 호출 비용만 늘기 때문에 즉시 503으로 안내한다.
+    private static final int MAX_ATTEMPTS = 2;          // 최초 1회 + 재시도 1회
+    private static final long INITIAL_BACKOFF_MS = 300L;
 
     private final RestClient restClient;
     private final GeminiProperties properties;
@@ -70,13 +69,18 @@ public class GeminiTextGenerator implements AiTextGenerator {
                 }
                 return text;
             } catch (RestClientResponseException e) {
-                if (!RETRYABLE_STATUS.contains(e.getStatusCode().value())) {
-                    // 400/401/403/404 등은 재시도해도 의미 없으므로 즉시 실패.
+                int status = e.getStatusCode().value();
+                if (status == 429) {
+                    // 쿼터/레이트리밋 초과 — 재시도해도 회복 안 됨(비용만 발생). 즉시 503 안내.
+                    log.warn("Gemini 쿼터/레이트리밋 초과(429) — 재시도하지 않음");
+                    throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, e);
+                }
+                if (status != 503) {
+                    // 400/401/403/404/500 등은 재시도 의미 없음 → 즉시 실패(500).
                     throw new GeminiGenerationException(GENERATION_FAILED_MESSAGE, e);
                 }
-                lastTransient = e;
-                log.warn("Gemini 일시적 오류(HTTP {}) — 재시도 {}/{}",
-                        e.getStatusCode().value(), attempt, MAX_ATTEMPTS);
+                lastTransient = e; // 503(과부하)만 재시도
+                log.warn("Gemini 과부하(503) — 재시도 {}/{}", attempt, MAX_ATTEMPTS);
             } catch (ResourceAccessException e) {
                 lastTransient = e;
                 log.warn("Gemini 연결 실패 — 재시도 {}/{}: {}", attempt, MAX_ATTEMPTS, e.getMessage());
