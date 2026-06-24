@@ -155,8 +155,7 @@ public class GlobalExceptionHandler {
         log.warn("503 ServiceUnavailable: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .header("Retry-After", "5")
-                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE,
-                        "AI 분석 서비스가 일시적으로 혼잡합니다. 잠시 후 다시 시도해 주세요."));
+                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, e.getClientMessage()));
     }
 
     @ExceptionHandler(Exception.class)
