@@ -29,13 +29,29 @@ public class GeminiTextGenerator implements AiTextGenerator {
 
     private final RestClient restClient;
     private final GeminiProperties properties;
+    private final Sleeper sleeper;
+
+    /** 백오프 대기 추상화. 운영에서는 {@link Thread#sleep(long)}, 테스트에서는 즉시 반환 구현을 주입한다. */
+    @FunctionalInterface
+    public interface Sleeper {
+        void sleep(long millis) throws InterruptedException;
+    }
 
     public GeminiTextGenerator(
             @Qualifier("geminiRestClient") RestClient restClient,
             GeminiProperties properties
     ) {
+        this(restClient, properties, Thread::sleep);
+    }
+
+    GeminiTextGenerator(
+            RestClient restClient,
+            GeminiProperties properties,
+            Sleeper sleeper
+    ) {
         this.restClient = restClient;
         this.properties = properties;
+        this.sleeper = sleeper;
     }
 
     @Override
@@ -96,9 +112,9 @@ public class GeminiTextGenerator implements AiTextGenerator {
     }
 
     private void backoff(int attempt) {
-        long delay = INITIAL_BACKOFF_MS * (1L << (attempt - 1)); // 200ms → 400ms → ...
+        long delay = INITIAL_BACKOFF_MS * (1L << (attempt - 1)); // 300ms → 600ms → ...
         try {
-            Thread.sleep(delay);
+            sleeper.sleep(delay);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, ie);

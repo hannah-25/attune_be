@@ -152,7 +152,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ServiceUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleServiceUnavailable(ServiceUnavailableException e) {
-        log.warn("503 ServiceUnavailable: {}", e.getMessage());
+        log.warn("503 ServiceUnavailable: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .header("Retry-After", "5")
                 .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE,

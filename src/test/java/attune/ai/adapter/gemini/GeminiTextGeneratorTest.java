@@ -35,7 +35,8 @@ class GeminiTextGeneratorTest {
         server = MockRestServiceServer.bindTo(builder).build();
         generator = new GeminiTextGenerator(
                 builder.build(),
-                new GeminiProperties("test-key", BASE_URL, "gemini-2.5-flash"));
+                new GeminiProperties("test-key", BASE_URL, "gemini-2.5-flash"),
+                millis -> { /* 테스트에서는 백오프 대기 없이 즉시 진행 */ });
     }
 
     @Test
