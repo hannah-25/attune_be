@@ -91,12 +91,12 @@ public class GeminiTextGenerator implements AiTextGenerator {
                     log.warn("Gemini 쿼터/레이트리밋 초과(429) — 재시도하지 않음");
                     throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, e);
                 }
-                if (status != 503) {
+                if (status != 502 && status != 503 && status != 504) {
                     // 400/401/403/404/500 등은 재시도 의미 없음 → 즉시 실패(500).
                     throw new GeminiGenerationException(GENERATION_FAILED_MESSAGE, e);
                 }
-                lastTransient = e; // 503(과부하)만 재시도
-                log.warn("Gemini 과부하(503) — 재시도 {}/{}", attempt, MAX_ATTEMPTS);
+                lastTransient = e; // 게이트웨이/과부하 일시 오류(502·503·504)만 재시도
+                log.warn("Gemini 일시적 오류(HTTP {}) — 재시도 {}/{}", status, attempt, MAX_ATTEMPTS);
             } catch (ResourceAccessException e) {
                 lastTransient = e;
                 log.warn("Gemini 연결 실패 — 재시도 {}/{}: {}", attempt, MAX_ATTEMPTS, e.getMessage());

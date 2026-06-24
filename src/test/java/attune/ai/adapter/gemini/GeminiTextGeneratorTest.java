@@ -51,6 +51,24 @@ class GeminiTextGeneratorTest {
     }
 
     @Test
+    void retriesOnceOnGatewayErrorThenSucceeds() {
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.GATEWAY_TIMEOUT)); // 504
+        server.expect(requestTo(URL)).andRespond(withSuccess(SUCCESS_BODY, MediaType.APPLICATION_JSON));
+
+        assertThat(generator.generate("hi")).isEqualTo("OK");
+        server.verify();
+    }
+
+    @Test
+    void retriesOnBadGateway() {
+        server.expect(requestTo(URL)).andRespond(withStatus(HttpStatus.BAD_GATEWAY)); // 502
+        server.expect(requestTo(URL)).andRespond(withSuccess(SUCCESS_BODY, MediaType.APPLICATION_JSON));
+
+        assertThat(generator.generate("hi")).isEqualTo("OK");
+        server.verify();
+    }
+
+    @Test
     void throwsServiceUnavailableWhenOverloadPersists() {
         // 최초 1회 + 재시도 1회 = 총 2회만 호출해야 한다.
         server.expect(ExpectedCount.times(2), requestTo(URL))
