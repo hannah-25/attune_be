@@ -6,7 +6,7 @@
 |----|------|------|------|-----------|
 | TD-1 | 배포 빌드가 `-x test` 로 테스트 스킵 | CI | 완화됨 | `ci.yml` 이 PR에서 테스트 강제. develop required check 설정 필요(사람) |
 | TD-2 | `docs/architecture.md`(구버전) 모듈 목록/레이아웃 낡음 | 문서 드리프트 | closed(2026-06-25) | `ARCHITECTURE.md` 로 통합·삭제. 참조(CLAUDE.md) 갱신 완료 |
-| TD-3 | Spotless 포맷 검사 미강제(non-blocking) | 코드 스타일 | open | 변경 파일 범위부터 정리 → 안정화 후 `check` 에 강제 승격 |
+| TD-3 | 자동 포매터 미도입 | 코드 스타일 | wontfix(2026-06-25) | Spotless 도입 검토했으나 제거 결정. 스타일은 리뷰로 관리. 필요 시 재논의 |
 | TD-4 | ArchUnit 일부 규칙 soft(컨트롤러→Repository 직접호출, 슬라이스 순환) | 아키텍처 | open | 위반 0 확인되면 강제 승격 |
 | TD-5 | DB 스키마 마이그레이션 도구(Flyway/Liquibase) 미사용 | 데이터 | open | 도입 검토. 현재 JPA ddl 기반 |
 | TD-6 | 테스트 커버리지 측정(JaCoCo) 없음 | 테스트 | open | JaCoCo 도입 + CI 리포트 |

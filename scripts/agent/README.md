@@ -10,7 +10,6 @@ AI 에이전트가 명령을 추측하지 않도록 한 표준 진입점. 모두
 | `test` | 테스트 (`--tests` 인자 전달 가능) | 아니오 |
 | `build` | 클린 빌드(테스트 포함) | 아니오 |
 | `verify` | 빌드+테스트+ArchUnit+시크릿/문서 점검 (= CI build 게이트) | 아니오 |
-| `lint` | Spotless 포맷 점검 (soft, 비차단) | 아니오 |
 | `check-docs` | 마크다운 깨진 링크 + generated 신선도 | 아니오 |
 | `generate-project-map` | `docs/generated/project-map.md` 재생성 | 덮어씀(생성물만) |
 | `generate-api-index` | `docs/generated/api-index.md` 재생성 | 덮어씀(생성물만) |

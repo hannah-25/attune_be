@@ -14,7 +14,7 @@
 
 - PR은 `ci.yml` 통과를 머지 조건으로 한다(브랜치 보호 설정은 사람이 GitHub에서 활성화 — `TODO(maintainer, 2026-06-25, required check 설정)`).
 - `ci.yml` 의 `build` 잡은 **테스트를 포함**해 실행한다(배포 빌드의 `-x test` 와 다름).
-- 포맷(Spotless) 검사는 초기에는 **non-blocking**(continue-on-error)으로 두고, 정리 후 강제 승격한다.
+- 자동 포매터(Spotless 등)는 현재 사용하지 않는다. 스타일은 리뷰로 관리한다.
 
 ## 시크릿
 

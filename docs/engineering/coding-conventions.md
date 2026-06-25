@@ -16,7 +16,7 @@
 
 ## 스타일 / 포맷
 
-- 포매터: **Spotless**(soft). `scripts/agent/lint` 로 점검, `./gradlew spotlessApply` 로 적용.
+- 자동 포매터는 현재 도입하지 않는다(의도적). 주변 코드의 스타일(들여쓰기·네이밍·import 정렬)을 그대로 따른다.
 - 기존 코드를 일괄 재포맷하지 않는다. **변경한 파일 범위**에서만 정리한다(거대 diff 금지).
 - import 와일드카드 지양, 미사용 import 제거.
 

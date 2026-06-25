@@ -2,7 +2,6 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.example'
@@ -58,20 +57,6 @@ dependencies {
 
 	// 아키텍처 규칙 검증 (ArchUnit) — src/test/java/attune/architecture
 	testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
-}
-
-// 코드 포맷 (Spotless) — soft rule (tech-debt TD-3).
-// enforceCheck=false 로 `check`/`build` 게이트에서 분리한다. 직접 실행만:
-//   ./gradlew spotlessCheck   (점검)
-//   ./gradlew spotlessApply   (적용 — 변경 파일 범위만 권장)
-spotless {
-	enforceCheck false
-	java {
-		target 'src/**/*.java'
-		targetExclude 'build/**'
-		trimTrailingWhitespace()
-		endWithNewline()
-	}
 }
 
 tasks.named('test') {
