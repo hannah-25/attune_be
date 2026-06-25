@@ -25,4 +25,13 @@
 
 - 새 엔티티는 `docs/db_schema.md` 와 대조하는 것을 PR 체크리스트로 강제한다.
 - `scripts/agent/generate-data-schema` 로 [`../generated/data-schema.md`](../generated/data-schema.md)(엔티티 인벤토리)를 갱신해 드리프트를 줄인다.
-- ASSUMPTION: 현재 스키마 마이그레이션 도구(Flyway/Liquibase) 미사용 → JPA `ddl-auto` 기반. 도입 검토는 tech-debt-tracker 참고.
+## 스키마 변경 절차 (중요)
+
+마이그레이션 도구(Flyway/Liquibase)는 **사용하지 않는다**(확인됨). 대신:
+
+- `ddl-auto`: `local`/`dev` = `update`, **`prod` = `validate`**.
+- 수동 SQL 스크립트를 [`../sql/`](../sql/) 에 날짜 접두사로 보관한다(예: `20260530_medication_schema_refactor.sql`).
+
+**prod 는 `validate` 이므로**, 엔티티/컬럼을 추가·변경하면 **운영 DB에 해당 DDL을 먼저 적용**해야 부팅이 통과한다.
+순서: ① `docs/db_schema.md` 확인 → ② `docs/sql/` 에 마이그레이션 SQL 작성 → ③ 운영 반영(사람) → ④ 엔티티 배포.
+이 순서를 어기면 prod 가 스키마 불일치로 기동 실패한다.

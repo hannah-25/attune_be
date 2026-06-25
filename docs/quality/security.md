@@ -17,9 +17,24 @@
 
 ## API별 인증 매트릭스
 
-ASSUMPTION: 대부분 엔드포인트는 인증 필요, 인증/공개(약관·회원가입·헬스)만 permitAll.
-정확한 매트릭스는 SecurityConfig 기준이며, `generated/api-index.md` 와 대조해 유지한다.
-`TODO(security-owner, 2026-06-25, 엔드포인트별 인증 매트릭스 표 확정)`.
+정본은 `common/config/SecurityConfig` 다. 아래는 그 규칙을 추출한 것(2026-06-25 기준).
+규칙이 바뀌면 이 표와 함께 갱신한다.
+
+| 분류 | 패턴 | 접근 |
+|------|------|------|
+| Preflight | `OPTIONS /**` | permitAll |
+| 모니터링 | `/actuator/**`, `/v1/health/**` | permitAll |
+| 인증/소셜 | `/auth/**`, `/oauth2/**`, `/login/oauth2/**`, `/v1/auth/login`·`/reissue`·`/restore`·`/social/login`·`/social/restore` | permitAll |
+| 가입/이메일 | `/v1/account/signup`, `/v1/account/verify-email` | permitAll |
+| 비밀번호 재설정 | `/v1/account/password/reset/**` | permitAll |
+| 약관 조회 | `/v1/terms/**` | permitAll |
+| 공지 조회 | `GET /v1/notices/**` | permitAll |
+| API 문서 | `/swagger-ui/**`, `/v3/api-docs/**`, `/swagger-ui.html` | permitAll |
+| 어드민 | `/v1/admin/**` | `ROLE_ADMIN` |
+| 그 외 전부 | `anyRequest()` | 인증 필요 |
+
+> 세션: `STATELESS`. 미인증 → 401("로그인이 필요합니다"), 권한 부족 → 403("관리자 권한이 필요합니다") — `SecurityErrorResponseWriter`.
+> 신규 엔드포인트는 기본이 "인증 필요"다. 공개로 열려면 SecurityConfig에 **명시적으로** permitAll 추가 + 이 표 갱신.
 
 ## 자동화 후보
 

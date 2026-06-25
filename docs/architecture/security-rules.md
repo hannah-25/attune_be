@@ -27,7 +27,7 @@
 | 위험 | 대응 |
 |------|------|
 | CORS | `CorsProperties` + SecurityConfig 화이트리스트 |
-| CSRF | 토큰 기반 stateless API → CSRF 비활성 정책 검토(쿠키 미사용 전제) ASSUMPTION |
+| CSRF | `SecurityConfig` 에서 비활성(확인됨). 인증은 `Authorization: Bearer` **헤더** 기반이라 쿠키 CSRF 벡터가 없음. 단 CORS `allowCredentials=true` 이므로 토큰을 쿠키로 옮기면 CSRF 재검토 필요 |
 | XSS | 응답은 JSON, 입력 검증/이스케이프는 클라이언트+서버 양측 |
 | SQL Injection | JPA 파라미터 바인딩 사용, 문자열 쿼리 연결 금지 |
 | 토큰 탈취 | 만료/갱신 + Redis 캐시 무효화(`UserAuthCacheEvictor`) |
