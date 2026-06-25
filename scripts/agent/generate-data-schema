@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# JPA 엔티티 인벤토리 생성 → docs/generated/data-schema.md (수동 수정 금지)
+# 권위 있는 스키마 문서는 docs/db_schema.md. 이건 드리프트 점검용 인벤토리다.
+source "$(dirname "$0")/_lib.sh"
+OUT="docs/generated/data-schema.md"
+mkdir -p docs/generated
+
+{
+  echo "<!-- 자동 생성: scripts/agent/generate-data-schema. 수동 수정 금지. -->"
+  echo "# 엔티티 인벤토리 (자동 생성)"
+  echo
+  echo "생성 시각: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "권위 있는 스키마: docs/db_schema.md. 이 파일은 코드↔문서 드리프트 점검용이다."
+  echo
+  echo "| 도메인 | 엔티티 | @Table |"
+  echo "|--------|--------|--------|"
+  while IFS= read -r f; do
+    rel="${f#src/main/java/attune/}"
+    domain="${rel%%/*}"
+    cls="$(basename "$f" .java)"
+    table=$( { grep -oE '@Table\([^)]*name\s*=\s*"[^"]+"' "$f" 2>/dev/null || true; } | { grep -oE '"[^"]+"' || true; } | tail -1 | tr -d '"')
+    [ -z "$table" ] && table="(기본)"
+    echo "| \`$domain\` | $cls | $table |"
+  done < <(grep -rl '@Entity' src/main/java/attune --include='*.java' | sort)
+  echo
+  count=$(grep -rl '@Entity' src/main/java/attune --include='*.java' | wc -l | tr -d ' ')
+  echo "총 엔티티: $count"
+} > "$OUT"
+ok "생성: $OUT"

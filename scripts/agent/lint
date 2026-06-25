@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# 포맷/스타일 점검 (Spotless). 현재는 non-blocking(soft) — 실패해도 종료코드 0.
+# 적용은: ./gradlew spotlessApply (변경 파일 범위만 권장)
+source "$(dirname "$0")/_lib.sh"
+log "spotlessCheck (soft)"
+if "$GRADLE" spotlessCheck "$@"; then
+  ok "포맷 통과"
+else
+  warn "포맷 위반 있음. './gradlew spotlessApply' 로 정리 가능. (현재 soft rule — tech-debt TD-3)"
+fi
+exit 0

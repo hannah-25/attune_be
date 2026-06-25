@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# 로컬 개발 환경 점검 + 시크릿 파일 준비. destructive 하지 않다.
+source "$(dirname "$0")/_lib.sh"
+
+log "Java 확인"
+if ! command -v java >/dev/null 2>&1; then
+  fail "java 가 없습니다." "JDK 17 설치 후 다시 실행"
+fi
+java -version 2>&1 | head -1
+
+log "Gradle 래퍼 확인"
+[ -x "./gradlew" ] || warn "gradlew 실행권한 없음 → CI/Unix 에서는 'chmod +x gradlew'"
+
+SECRET="src/main/resources/application-secret.yml"
+EXAMPLE="$SECRET.example"
+if [ ! -f "$SECRET" ]; then
+  warn "$SECRET 없음. 예시를 복사해 채워 넣으세요 (커밋 금지):"
+  warn "  cp $EXAMPLE $SECRET"
+else
+  ok "$SECRET 존재"
+fi
+
+ok "bootstrap 완료. 다음: scripts/agent/run-local 또는 scripts/agent/test"

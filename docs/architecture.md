@@ -1,5 +1,9 @@
 # 아키텍처
 
+> **DEPRECATED**: 이 문서는 모듈 일부만 나열하고 레이아웃 표기가 낡았다.
+> 정본은 루트 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) + [`architecture/`](./architecture/index.md) 이다.
+> (정리 추적: `exec-plans/tech-debt-tracker.md` TD-2)
+
 Spring Boot 4 / Java 17 기반의 **헥사고날(포트 & 어댑터) 아키텍처** 애플리케이션이다. 모든 도메인 모듈은 동일한 내부 구조를 따른다:
 
 ```

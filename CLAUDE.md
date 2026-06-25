@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Spring Boot 4 / Java 17 기반의 헥사고날 아키텍처 백엔드 프로젝트.
 
+> **하네스(Harness) 시스템**: AI 에이전트 작업의 단일 진입점은 [`AGENTS.md`](./AGENTS.md) 이며,
+> 구조화된 지식은 [`docs/README.md`](./docs/README.md) 에 있다. 작업 루프는
+> [`docs/agent/agent-workflow.md`](./docs/agent/agent-workflow.md), 표준 명령어는 [`scripts/agent/`](./scripts/agent/README.md).
+> 아래 내용은 그대로 유효하며, 더 자세한 규칙은 위 문서들로 연결된다.
+
 ## 명령어
 
 ```bash
