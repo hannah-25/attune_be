@@ -6,8 +6,8 @@
 
 ## 1. 프로젝트 한 줄 요약
 
-Attune 백엔드 — 복약/일지/진료 관리 및 알림·AI 리포트를 제공하는 헬스케어 서비스의 Spring Boot API 서버.
-도메인 상세는 [`docs/product/domain-overview.md`](./docs/product/domain-overview.md).
+Attune 백엔드 — **성인 ADHD 사용자**를 위한 앱의 Spring Boot API 서버. **복약 관리와 상태 기록**이 핵심이고,
+일정·진료·알림·AI 리포트가 이를 보조한다. 제품 관점은 [`docs/product/index.md`](./docs/product/index.md), 도메인 상세는 [`docs/product/domain-overview.md`](./docs/product/domain-overview.md).
 
 ## 2. 기술 스택 요약
 
