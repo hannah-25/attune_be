@@ -7,7 +7,8 @@ set +e  # 점검 스크립트는 개별 명령 실패로 중단되지 않게 한
 log "마크다운 상대 링크 점검"
 broken=0
 # 추적된 .md + 작업트리의 .md(신규 포함) 모두 점검
-files="$( { git ls-files '*.md'; find . -name '*.md' -not -path './build/*' -not -path './.git/*'; } 2>/dev/null | sort -u )"
+# find 는 `./docs/x.md`, git 은 `docs/x.md` 로 출력 → find 쪽 `./` 접두사를 제거해 중복 제거가 먹히게 한다.
+files="$( { git ls-files '*.md'; find . -name '*.md' -not -path './build/*' -not -path './.git/*' | sed 's|^\./||'; } 2>/dev/null | sort -u )"
 while IFS= read -r md; do
   [ -f "$md" ] || continue
   dir="$(dirname "$md")"

@@ -44,11 +44,12 @@ class ArchitectureRulesTest {
         rule.check(CLASSES);
     }
 
-    /** REST 컨트롤러는 adapter.web (또는 공통 web/error)에만 둔다. */
+    /** 컨트롤러(@RestController/@Controller)는 adapter.web (또는 공통 web/error)에만 둔다. */
     @Test
     void controllers_should_reside_in_adapter_web() {
         ArchRule rule = classes()
                 .that().areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+                .or().areAnnotatedWith("org.springframework.stereotype.Controller")
                 .should().resideInAnyPackage("..adapter.web..", "attune.common..");
         rule.check(CLASSES);
     }
