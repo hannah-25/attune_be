@@ -56,7 +56,7 @@ public class AnalysisEngine {
         List<UserMedication> medications = userMedicationRepository.findAllOverlappingPeriod(userId, startDate, endDate);
         List<Long> medicationIds = medications.stream().map(UserMedication::getId).toList();
         List<UserMedicationSchedule> schedules = medicationIds.isEmpty() ? List.of()
-                : scheduleRepository.findByUserMedicationIdInOrderByUserMedicationIdAscDoseTimeAsc(medicationIds);
+                : scheduleRepository.findByUserMedicationIdInAndIsActiveTrueOrderByUserMedicationIdAscDoseTimeAsc(medicationIds);
         List<UserMedicationLog> medLogs = medicationLogRepository.findAllByUserIdAndTakenAtBetween(userId, startAt, endAt);
 
         List<JournalTagLogView> tagLogs = journalTagLogRepository
@@ -175,41 +175,52 @@ public class AnalysisEngine {
 
     private List<AnalysisSnapshot.DailyMedicationStatus> buildDailyStatuses(
             List<UserMedication> medications,
-            List<UserMedicationSchedule> schedules,
+            List<UserMedicationSchedule> activeSchedules,
             List<UserMedicationLog> logs,
             LocalDate startDate, LocalDate endDate) {
 
-        Map<Long, Map<LocalDate, UserMedicationLog>> logIndex = new HashMap<>();
-        for (UserMedicationLog log : logs) {
-            Long scheduleId = log.getUserMedicationSchedule().getId();
-            LocalDate logDate = log.getTakenAt().toLocalDate();
-            logIndex.computeIfAbsent(scheduleId, k -> new HashMap<>()).put(logDate, log);
+        // 하루 예정 복용 횟수 = 해당 복약의 활성 스케줄 개수.
+        // (복용 시간은 바뀌어도 분석 기간 내 하루 복용 횟수는 불변이라는 도메인 가정)
+        Map<Long, Integer> expectedDosesByMed = new HashMap<>();
+        for (UserMedicationSchedule schedule : activeSchedules) {
+            expectedDosesByMed.merge(schedule.getUserMedication().getId(), 1, Integer::sum);
         }
 
-        Map<Long, List<UserMedicationSchedule>> schedulesByMed = schedules.stream()
-                .collect(Collectors.groupingBy(s -> s.getUserMedication().getId()));
+        // 복약별·날짜별 기록된 로그 집계 [taken, skipped].
+        // 시간 변경으로 비활성화된 옛 스케줄의 과거 로그도 user_medication 기준으로 그대로 집계된다.
+        Map<Long, Map<LocalDate, int[]>> recordedByMed = new HashMap<>();
+        for (UserMedicationLog log : logs) {
+            Long medId = log.getUserMedicationSchedule().getUserMedication().getId();
+            LocalDate logDate = log.getTakenAt().toLocalDate();
+            int[] tally = recordedByMed
+                    .computeIfAbsent(medId, k -> new HashMap<>())
+                    .computeIfAbsent(logDate, d -> new int[2]);
+            if (log.getStatus() == UserMedicationLogStatus.TAKEN) {
+                tally[0]++;
+            } else {
+                tally[1]++;
+            }
+        }
 
         Map<LocalDate, int[]> dailyCounts = new TreeMap<>();
         for (UserMedication med : medications) {
-            List<UserMedicationSchedule> medSchedules = schedulesByMed.getOrDefault(med.getId(), List.of());
-            if (medSchedules.isEmpty()) continue;
+            int expected = expectedDosesByMed.getOrDefault(med.getId(), 0);
+            if (expected == 0) continue;
 
+            Map<LocalDate, int[]> medRecorded = recordedByMed.getOrDefault(med.getId(), Map.of());
             LocalDate medStart = med.getStartedAt().isBefore(startDate) ? startDate : med.getStartedAt();
             LocalDate medEnd = med.getEndAt() == null ? endDate
                     : (med.getEndAt().isAfter(endDate) ? endDate : med.getEndAt());
 
             for (LocalDate date = medStart; !date.isAfter(medEnd); date = date.plusDays(1)) {
                 int[] counts = dailyCounts.computeIfAbsent(date, d -> new int[3]);
-                for (UserMedicationSchedule schedule : medSchedules) {
-                    UserMedicationLog log = logIndex.getOrDefault(schedule.getId(), Map.of()).get(date);
-                    if (log == null) {
-                        counts[2]++;
-                    } else if (log.getStatus() == UserMedicationLogStatus.TAKEN) {
-                        counts[0]++;
-                    } else {
-                        counts[1]++;
-                    }
-                }
+                int[] recorded = medRecorded.getOrDefault(date, new int[2]);
+                int taken = recorded[0];
+                int skipped = recorded[1];
+                int missed = Math.max(0, expected - (taken + skipped));
+                counts[0] += taken;
+                counts[1] += skipped;
+                counts[2] += missed;
             }
         }
 

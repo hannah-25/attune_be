@@ -88,7 +88,7 @@ public class MedicationController {
     @PatchMapping("/user-medications/{userMedicationId}")
     public ResponseEntity<UpdateMedicationResponse> updateMedication(
             @PathVariable Long userMedicationId,
-            @RequestBody UpdateMedicationRequest request
+            @Valid @RequestBody UpdateMedicationRequest request
     ) {
         return ResponseEntity.ok(medicationService.updateMedication(userMedicationId, request));
     }

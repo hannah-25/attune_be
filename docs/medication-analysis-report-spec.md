@@ -25,10 +25,12 @@ AI는 약효를 판단하는 분석가가 아니라, 서버가 계산한 기록 
 | 엔티티 | 분석에 사용하는 필드 |
 | --- | --- |
 | `UserMedication` | 상담, 약·용량, 활성 상태, `startedAt`, `endAt` |
-| `UserMedicationSchedule` | 예정 복용 시각 `doseTime` |
-| `UserMedicationLog` | 기록 시각 `takenAt`, `TAKEN · SKIPPED · MISSED`, 활성 상태 |
+| `UserMedicationSchedule` | 예정 복용 시각 `doseTime`, 활성 여부 `is_active` |
+| `UserMedicationLog` | 기록 시각 `takenAt`, `TAKEN · SKIPPED`, 활성 상태 |
 
-현재 실제 서비스에서는 `TAKEN`, `SKIPPED`만 생성합니다. `MISSED`는 enum에 존재하지만 생성 로직은 없으므로 MVP 분석에서 사용하지 않습니다.
+`UserMedicationLog`의 상태는 `TAKEN`, `SKIPPED` 두 가지입니다. 미복용(missed)은 별도 상태로 저장하지 않고, "예정 대비 기록 부재"로 분석에서 도출합니다.
+
+**하루 예정 복용 횟수 = 해당 복약의 활성(`is_active=true`) 스케줄 개수**로 계산합니다(복용 시간은 바뀌어도 분석 기간 내 하루 복용 횟수는 불변이라는 도메인 가정). 복용 시간 변경으로 비활성화된 옛 스케줄에 달린 과거 로그도 `user_medication` 기준으로 그대로 집계되므로, 시간 변경 이력과 무관하게 실제 복용 기록이 보존됩니다.
 
 `takenAt`은 사용자가 복용 또는 건너뛰기 버튼을 누른 시각입니다. 실제 복용 시각과 다를 수 있습니다.
 
@@ -90,8 +92,7 @@ MVP에서는 사용자의 **전체 복용 기록을 하나의 타임라인으로
 | --- | --- | --- |
 | `TAKEN` | 사용자가 복용했다고 기록 | 사용 |
 | `SKIPPED` | 사용자가 건너뛰기로 기록 | 사용 |
-| `UNRECORDED` | 예정 일정에 아무 기록도 없음 | 계산으로 생성 |
-| `MISSED` | 미복용 확정 상태 | 사용하지 않음 |
+| `UNRECORDED` | 예정 일정에 아무 기록도 없음 | 계산으로 생성 (하루 예정 횟수 − 기록 수) |
 
 `UNRECORDED`는 실제 미복용인지, 복용 후 기록하지 않은 것인지 알 수 없습니다. 따라서 미복용으로 표현하지 않습니다.
 
