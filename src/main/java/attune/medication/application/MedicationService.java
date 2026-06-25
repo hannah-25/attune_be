@@ -43,9 +43,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -73,7 +77,7 @@ public class MedicationService {
                 .map(UserMedication::getId)
                 .toList();
         Map<Long, List<UserMedicationSchedule>> schedulesByUserMedicationId = scheduleRepository
-                .findByUserMedicationIdInOrderByUserMedicationIdAscDoseTimeAsc(userMedicationIds)
+                .findByUserMedicationIdInAndIsActiveTrueOrderByUserMedicationIdAscDoseTimeAsc(userMedicationIds)
                 .stream()
                 .collect(Collectors.groupingBy(schedule -> schedule.getUserMedication().getId()));
 
@@ -145,19 +149,14 @@ public class MedicationService {
                 .build();
         UserMedication saved = userMedicationRepository.save(um);
 
-        long uniqueDoseTimeCount = request.schedules().stream()
-                .map(CreateMedicationRequest.ScheduleEntry::doseTime)
-                .distinct()
-                .count();
-        if (uniqueDoseTimeCount < request.schedules().size()) {
-            throw new DuplicateScheduleTimeException();
-        }
+        validateNoDuplicateDoseTime(request.schedules());
 
         List<UserMedicationSchedule> schedules = request.schedules().stream()
                 .map(entry -> UserMedicationSchedule.builder()
                         .userMedication(saved)
                         .doseTime(entry.doseTime())
                         .label(entry.label())
+                        .isActive(true)
                         .build())
                 .toList();
         scheduleRepository.saveAll(schedules);
@@ -182,7 +181,62 @@ public class MedicationService {
                 request.alarmActive(),
                 LocalDateTime.now()
         );
+        if (request.schedules() != null) {
+            replaceSchedules(um, request.schedules());
+        }
         return UpdateMedicationResponse.from(um);
+    }
+
+    /**
+     * 복용 시간 일정을 전달된 목록으로 전체 교체(full replace)한다.
+     * - 같은 doseTime이 이미 있으면 재활성화 + 라벨 갱신 (행 식별자·복용 로그 보존)
+     * - 새 doseTime이면 신규 생성
+     * - 요청에서 빠진 기존 활성 일정은 비활성화 (로그 보존을 위해 물리 삭제하지 않음)
+     */
+    private void replaceSchedules(UserMedication um, List<CreateMedicationRequest.ScheduleEntry> entries) {
+        if (entries.isEmpty()) {
+            throw new BadRequestException("복용 시간 일정은 최소 1개 이상이어야 합니다.");
+        }
+        validateNoDuplicateDoseTime(entries);
+
+        List<UserMedicationSchedule> existing = scheduleRepository.findByUserMedicationId(um.getId());
+        Map<LocalTime, UserMedicationSchedule> existingByDoseTime = existing.stream()
+                .collect(Collectors.toMap(UserMedicationSchedule::getDoseTime, schedule -> schedule));
+
+        Set<LocalTime> desiredDoseTimes = new HashSet<>();
+        List<UserMedicationSchedule> toSave = new ArrayList<>();
+        for (CreateMedicationRequest.ScheduleEntry entry : entries) {
+            desiredDoseTimes.add(entry.doseTime());
+            UserMedicationSchedule matched = existingByDoseTime.get(entry.doseTime());
+            if (matched != null) {
+                matched.activate(entry.label());
+                toSave.add(matched);
+            } else {
+                toSave.add(UserMedicationSchedule.builder()
+                        .userMedication(um)
+                        .doseTime(entry.doseTime())
+                        .label(entry.label())
+                        .isActive(true)
+                        .build());
+            }
+        }
+        for (UserMedicationSchedule schedule : existing) {
+            if (Boolean.TRUE.equals(schedule.getIsActive()) && !desiredDoseTimes.contains(schedule.getDoseTime())) {
+                schedule.deactivate();
+                toSave.add(schedule);
+            }
+        }
+        scheduleRepository.saveAll(toSave);
+    }
+
+    private void validateNoDuplicateDoseTime(List<CreateMedicationRequest.ScheduleEntry> entries) {
+        long uniqueDoseTimeCount = entries.stream()
+                .map(CreateMedicationRequest.ScheduleEntry::doseTime)
+                .distinct()
+                .count();
+        if (uniqueDoseTimeCount < entries.size()) {
+            throw new DuplicateScheduleTimeException();
+        }
     }
 
     @Transactional(readOnly = true)
@@ -237,7 +291,7 @@ public class MedicationService {
             throw new InvalidQuickLogRequestException();
         }
 
-        UserMedicationSchedule schedule = scheduleRepository.findByIdAndUserMedicationId(request.scheduleId(), userMedicationId)
+        UserMedicationSchedule schedule = scheduleRepository.findByIdAndUserMedicationIdAndIsActiveTrue(request.scheduleId(), userMedicationId)
                 .orElseThrow(MedicationScheduleNotFoundException::new);
 
         LocalDate today = now.toLocalDate();

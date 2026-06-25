@@ -133,6 +133,8 @@
 | quantity | DECIMAL(4,2) | NOT NULL | 1회 복용 수량 (1정, 0.5정 등) |
 | doseTime | TIME | NOT NULL | 복용 시간 |
 | label | VARCHAR(100) | | 복용 레이블 (아침/점심/저녁 등) |
+| is_active | BOOLEAN | NOT NULL, DEFAULT true | 활성 여부. 복용 시간 변경/중단 시 false로 소프트 삭제(복용 로그 보존을 위해 물리 삭제하지 않음) |
+| | | UNIQUE(user_medication_id, dose_time) | 같은 복약 내 동일 복용 시간 중복 방지 (재추가 시 기존 행 재활성화로 충돌 회피) |
 
 ---
 
@@ -144,7 +146,7 @@
 | user_medication_schedule_id | BIGINT | FK → UserMedicationSchedule.id, NOT NULL | 사용자 약물 ID |
 | takenAt | TIMESTAMP | NOT NULL | 복용 일시 |
 | | | UNIQUE(user_medication_schedule_id, takenAt) | 동일 스케줄의 같은 시간 중복 로그 방지 |
-| status | VARCHAR | NOT NULL | 복용 여부 enum값 (TAKEN, SKIPPED, MISSED) |
+| status | VARCHAR | NOT NULL | 복용 여부 enum값 (TAKEN, SKIPPED). 미복용(missed)은 로그를 남기지 않고 "예정 대비 기록 부재"로 분석에서 도출 |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | 소프트 딜리트 플래그 (복용 취소 시 false로 변경) |
 
 ---

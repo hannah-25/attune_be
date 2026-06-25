@@ -89,7 +89,8 @@
 | user_medication_id | BIGINT | N | FK -> `user_medications.id` | - | 사용자 복약 참조 |
 | dose_time | TIME | N |  | - | 복용 시각 |
 | label | VARCHAR(100) | Y |  | - | 라벨(아침/점심/저녁 등) |
-| (user_medication_id, dose_time) | - | - | UNIQUE | new | 동일 복약 내 동일 시각 중복 방지 |
+| is_active | BOOLEAN | N | DEFAULT true | new | 활성 여부. 복용 시간 변경/중단 시 false(소프트 삭제, 로그 보존) |
+| (user_medication_id, dose_time) | - | - | UNIQUE | new | 동일 복약 내 동일 시각 중복 방지 (재추가 시 기존 행 재활성화) |
 | medication_strength_id | BIGINT | - | - | deprecated | 제거됨 |
 | quantity | DECIMAL(4,2) | - | - | deprecated | 제거됨 |
 
@@ -100,7 +101,7 @@
 | id | BIGINT | N | PK, AUTO_INCREMENT | - | 로그 ID |
 | user_medication_schedule_id | BIGINT | N | FK -> `user_medication_schedules.id` | - | 스케줄 참조 |
 | taken_at | DATETIME/TIMESTAMP | N |  | - | 복용 시각 |
-| status | VARCHAR(50) | N | enum string | - | TAKEN/SKIPPED/MISSED |
+| status | VARCHAR(50) | N | enum string | - | TAKEN/SKIPPED (missed는 저장하지 않고 분석에서 도출) |
 | (user_medication_schedule_id, taken_at) | - | - | UNIQUE | - | 중복 로그 방지 |
 
 ## 3) 핵심 설계 원칙

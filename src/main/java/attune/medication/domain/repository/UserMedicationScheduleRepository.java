@@ -12,14 +12,15 @@ import java.util.Optional;
 
 public interface UserMedicationScheduleRepository extends JpaRepository<UserMedicationSchedule, Long> {
     List<UserMedicationSchedule> findByUserMedicationId(Long userMedicationId);
-    List<UserMedicationSchedule> findByUserMedicationIdInOrderByUserMedicationIdAscDoseTimeAsc(List<Long> userMedicationIds);
-    Optional<UserMedicationSchedule> findByIdAndUserMedicationId(Long id, Long userMedicationId);
+    List<UserMedicationSchedule> findByUserMedicationIdInAndIsActiveTrueOrderByUserMedicationIdAscDoseTimeAsc(List<Long> userMedicationIds);
+    Optional<UserMedicationSchedule> findByIdAndUserMedicationIdAndIsActiveTrue(Long id, Long userMedicationId);
 
     @Query("""
             SELECT ums FROM UserMedicationSchedule ums
             JOIN FETCH ums.userMedication um
             JOIN FETCH um.user u
             WHERE ums.doseTime = :doseTime
+              AND ums.isActive = true
               AND um.isActive = true
               AND um.alarmActive = true
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
@@ -34,6 +35,7 @@ public interface UserMedicationScheduleRepository extends JpaRepository<UserMedi
                     (:wrapsMidnight = false AND ums.doseTime >= :from AND ums.doseTime <= :to)
                  OR (:wrapsMidnight = true AND (ums.doseTime >= :from OR ums.doseTime <= :to))
               )
+              AND ums.isActive = true
               AND um.isActive = true
               AND um.alarmActive = true
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
