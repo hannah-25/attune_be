@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# 테스트 실행. 인자는 그대로 gradle 에 전달 (예: --tests "attune.Xxx").
+source "$(dirname "$0")/_lib.sh"
+log "test"
+if ! "$GRADLE" test "$@"; then
+  fail "테스트 실패." "리포트: build/reports/tests/test/index.html · 단일재현: ./gradlew test --tests \"attune.Xxx.method\" --info"
+fi
+ok "테스트 통과"

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# 문서 점검: (1) 마크다운 상대링크 깨짐 (2) generated 문서 존재.
+# 깨진 링크가 있으면 종료코드 1.
+source "$(dirname "$0")/_lib.sh"
+set +e  # 점검 스크립트는 개별 명령 실패로 중단되지 않게 한다.
+
+log "마크다운 상대 링크 점검"
+broken=0
+# 추적된 .md + 작업트리의 .md(신규 포함) 모두 점검
+# find 는 `./docs/x.md`, git 은 `docs/x.md` 로 출력 → find 쪽 `./` 접두사를 제거해 중복 제거가 먹히게 한다.
+files="$( { git ls-files '*.md'; find . -name '*.md' -not -path './build/*' -not -path './.git/*' | sed 's|^\./||'; } 2>/dev/null | sort -u )"
+while IFS= read -r md; do
+  [ -f "$md" ] || continue
+  dir="$(dirname "$md")"
+  # ](target) 형태의 로컬 링크만 추출
+  targets="$(grep -oE '\]\(([^)]+)\)' "$md" 2>/dev/null | sed -E 's/^\]\(//; s/\)$//')"
+  [ -z "$targets" ] && continue
+  while IFS= read -r target; do
+    [ -z "$target" ] && continue
+    # 외부/앵커/절대경로(IDE 생성 머신 종속 링크)는 점검 대상이 아니다 — 상대 링크만 검증.
+    case "$target" in http*|mailto:*|\#*|/*|[A-Za-z]:*) continue ;; esac
+    path="${target%%#*}"
+    [ -z "$path" ] && continue
+    if [ ! -e "$dir/$path" ]; then
+      printf '  깨진 링크: %s -> %s\n' "$md" "$target"
+      broken=$((broken + 1))
+    fi
+  done <<< "$targets"
+done <<< "$files"
+
+if [ "$broken" -gt 0 ]; then
+  warn "깨진 링크 ${broken}건"
+else
+  ok "깨진 상대 링크 없음"
+fi
+
+log "generated 문서 존재 점검"
+for f in docs/generated/project-map.md docs/generated/api-index.md docs/generated/data-schema.md; do
+  if [ -f "$f" ]; then
+    ok "존재: $f"
+  else
+    warn "없음: $f → scripts/agent/generate-* 로 생성"
+  fi
+done
+
+[ "$broken" -gt 0 ] && exit 1
+exit 0

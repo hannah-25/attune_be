@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Spring Boot 4 / Java 17 기반의 헥사고날 아키텍처 백엔드 프로젝트.
 
+> **하네스(Harness) 시스템**: AI 에이전트 작업의 단일 진입점은 [`AGENTS.md`](./AGENTS.md) 이며,
+> 구조화된 지식은 [`docs/README.md`](./docs/README.md) 에 있다. 작업 루프는
+> [`docs/agent/agent-workflow.md`](./docs/agent/agent-workflow.md), 표준 명령어는 [`scripts/agent/`](./scripts/agent/README.md).
+> 아래 내용은 그대로 유효하며, 더 자세한 규칙은 위 문서들로 연결된다.
+
 ## 명령어
 
 ```bash
@@ -90,7 +95,7 @@ attune/<domain>/
 
 코드/구조를 변경한 작업이 끝나면 영향받는 문서를 같은 흐름에서 갱신한다. 매핑은 다음과 같다.
 
-- 도메인 모듈 추가/제거/이름 변경 → `docs/architecture.md` + `CLAUDE.md` 도메인 모듈 표
+- 도메인 모듈 추가/제거/이름 변경 → `ARCHITECTURE.md` + `docs/architecture/index.md` + `CLAUDE.md` 도메인 모듈 표
 - 엔티티/컬럼 추가·변경 → `docs/db_schema.md`
 - 인증·토큰·시크릿 흐름 변경 → `docs/security.md`
 - 프로파일·DB·JPA 설정 변경 → `docs/database.md`
@@ -103,7 +108,7 @@ attune/<domain>/
 
 | 문서 | 내용 |
 |------|------|
-| [`docs/architecture.md`](./docs/architecture.md) | 헥사고날 구조, 도메인 모듈 목록 |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | 헥사고날 구조, 도메인 모듈 목록 (정본) |
 | [`docs/security.md`](./docs/security.md) | JWT 인증/토큰 흐름, 시크릿 관리 |
 | [`docs/database.md`](./docs/database.md) | DB 프로파일, JPA 설정, 운영 규칙 |
 | [`docs/db_schema.md`](./docs/db_schema.md) | 전체 테이블·컬럼 스키마 |

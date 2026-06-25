@@ -54,6 +54,9 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'      // 1. API (필수)
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'       // 2. 구현체 (필수)
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'    // 3. JSON 처리 (필수)
+
+	// 아키텍처 규칙 검증 (ArchUnit) — src/test/java/attune/architecture
+	testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
 }
 
 tasks.named('test') {
