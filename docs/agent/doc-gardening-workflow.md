@@ -6,7 +6,7 @@
 
 | 코드 변경 | 갱신할 문서 |
 |-----------|-------------|
-| 도메인 모듈 추가/제거/이름변경 | `ARCHITECTURE.md` 모듈표, `docs/architecture/index.md`, `CLAUDE.md` 표, `docs/generated/project-map.md` |
+| 도메인 모듈 추가/제거/이름변경 | `ARCHITECTURE.md` 모듈표, `docs/architecture/index.md`, `CLAUDE.md` 표, `docs/generated/project-map.md` (`scripts/agent/generate-project-map`) |
 | 엔티티/컬럼 추가·변경 | `docs/db_schema.md`, `docs/generated/data-schema.md` |
 | API 엔드포인트 추가/변경/삭제 | `docs/api-guide.md`, `docs/generated/api-index.md` |
 | 인증/토큰/시크릿 흐름 | `docs/security.md`, `docs/architecture/security-rules.md` |

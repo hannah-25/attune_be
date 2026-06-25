@@ -27,7 +27,22 @@
 | [`database.md`](./database.md) | DB 프로파일, JPA 설정, 운영 규칙 |
 | [`async-mail.md`](./async-mail.md) | 비동기 처리 및 메일 발송 |
 | [`notes.md`](./notes.md) | 개발 중 발견된 수정/개선 TODO |
-| 그 외 `*-plan.md`, `*-spec.md`, `*-followup.md` | 기능별 설계/스펙/후속작업 기록 |
+
+### 기능별 설계/스펙/감사 기록
+
+과거에 작성된 기능 단위 문서. 이력 참고용으로 유효하다(최신 정본은 코드 + `generated/`):
+
+| 문서 | 내용 |
+|------|------|
+| [`medication-analysis-report-spec.md`](./medication-analysis-report-spec.md) | 약물 치료 경과 리포트 기획 명세 |
+| [`medication-analysis-report-plan.md`](./medication-analysis-report-plan.md) | 약물 치료 경과 리포트 구현 계획 |
+| [`medication_consultation_model.md`](./medication_consultation_model.md) | Medication–Consultation 데이터 모델 |
+| [`medication_api_entity_audit.md`](./medication_api_entity_audit.md) | Medication API↔Entity 구조 검토 |
+| [`user_medications_api_spec.md`](./user_medications_api_spec.md) | User Medications API 스펙 |
+| [`token-refresh-api-spec.md`](./token-refresh-api-spec.md) | Token Refresh API 스펙 (프론트) |
+| 그 외 `*-followup.md`, `journal-tag-*.md` | 후속작업/마이그레이션 기록 |
+
+> 새 설계·계획 문서는 [`exec-plans/`](./exec-plans/template.md) 체계를 사용한다. 위 문서들은 점진적으로 그쪽으로 이관하거나 코드 정본으로 흡수한다.
 
 ## 문서 규칙
 

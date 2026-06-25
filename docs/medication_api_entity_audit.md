@@ -12,24 +12,24 @@
 
 | 체크 항목 | 결과 | 근거 |
 |---|---|---|
-| `UserMedication`가 `medication_id` 대신 `medication_dosage_id` 참조 | PASS | `@JoinColumn(name = "medication_dosage_id")` ([UserMedication.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/domain/model/UserMedication.java)) |
-| `consultation_id` nullable 허용 | PASS | `@JoinColumn(name = "consultation_id")` + null 분기 생성 로직 ([UserMedication.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/domain/model/UserMedication.java), [MedicationService.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/MedicationService.java)) |
-| `MedicationDosage` 유니크 `(medication_id, amount)` | PASS | 엔티티 유니크 제약 ([MedicationDosage.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/domain/model/MedicationDosage.java)) |
-| `UserMedicationSchedule` 유니크 `(user_medication_id, dose_time)` | PASS | 엔티티 유니크 제약 ([UserMedicationSchedule.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/domain/model/UserMedicationSchedule.java)) |
-| Create API가 `medicationDosageId` 기반으로 생성 | PASS | DTO/서비스 반영 ([CreateMedicationRequest.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/dto/request/CreateMedicationRequest.java), [MedicationService.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/MedicationService.java)) |
+| `UserMedication`가 `medication_id` 대신 `medication_dosage_id` 참조 | PASS | `@JoinColumn(name = "medication_dosage_id")` ([UserMedication.java](../src/main/java/attune/medication/domain/model/UserMedication.java)) |
+| `consultation_id` nullable 허용 | PASS | `@JoinColumn(name = "consultation_id")` + null 분기 생성 로직 ([UserMedication.java](../src/main/java/attune/medication/domain/model/UserMedication.java), [MedicationService.java](../src/main/java/attune/medication/application/MedicationService.java)) |
+| `MedicationDosage` 유니크 `(medication_id, amount)` | PASS | 엔티티 유니크 제약 ([MedicationDosage.java](../src/main/java/attune/medication/domain/model/MedicationDosage.java)) |
+| `UserMedicationSchedule` 유니크 `(user_medication_id, dose_time)` | PASS | 엔티티 유니크 제약 ([UserMedicationSchedule.java](../src/main/java/attune/medication/domain/model/UserMedicationSchedule.java)) |
+| Create API가 `medicationDosageId` 기반으로 생성 | PASS | DTO/서비스 반영 ([CreateMedicationRequest.java](../src/main/java/attune/medication/application/dto/request/CreateMedicationRequest.java), [MedicationService.java](../src/main/java/attune/medication/application/MedicationService.java)) |
 | 구 구조 필드(`hospital_id`, `alarm_active`, `quantity`, `medication_strength_id`) 미사용 | PASS | medication/consultation 패키지 검색 결과 사용 흔적 없음 |
-| 로그 조회 조인 경로가 `user_medication -> medication_dosage -> medication` | PASS | JPQL join fetch 반영 ([UserMedicationLogRepository.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/domain/repository/UserMedicationLogRepository.java)) |
-| consultation 소유권 검증(`user_id`, `is_deleted`) | PASS | `findByIdAndUser_IdAndIsDeletedFalse` 사용 ([ConsultationRepository.java](/D:/hannah-dev/attune-be/src/main/java/attune/consultation/domain/repository/ConsultationRepository.java), [MedicationService.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/MedicationService.java)) |
+| 로그 조회 조인 경로가 `user_medication -> medication_dosage -> medication` | PASS | JPQL join fetch 반영 ([UserMedicationLogRepository.java](../src/main/java/attune/medication/domain/repository/UserMedicationLogRepository.java)) |
+| consultation 소유권 검증(`user_id`, `is_deleted`) | PASS | `findByIdAndUser_IdAndIsDeletedFalse` 사용 ([ConsultationRepository.java](../src/main/java/attune/consultation/domain/repository/ConsultationRepository.java), [MedicationService.java](../src/main/java/attune/medication/application/MedicationService.java)) |
 
 ## 3) 수정 완료 항목
 
 ### A. 응답 필드명 의미 정합화
 
 - `UpdateMedicationResponse.medicationId` -> `userMedicationId`로 변경  
-  ([UpdateMedicationResponse.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/dto/response/UpdateMedicationResponse.java))
+  ([UpdateMedicationResponse.java](../src/main/java/attune/medication/application/dto/response/UpdateMedicationResponse.java))
 
 - `MedicationPeriodLogResponse.LogEntry.medicationId` -> `userMedicationId`로 변경  
-  ([MedicationPeriodLogResponse.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/dto/response/MedicationPeriodLogResponse.java))
+  ([MedicationPeriodLogResponse.java](../src/main/java/attune/medication/application/dto/response/MedicationPeriodLogResponse.java))
 
 ### B. `QuickLogRequest`의 `POSTPONE` + `scheduleId` 필수 정책
 
@@ -37,9 +37,9 @@
   - `action == POSTPONE`이면 `scheduleId` 없이 허용
   - 그 외 액션은 `scheduleId` 필수
 - 반영 파일:
-  - [QuickLogRequest.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/dto/request/QuickLogRequest.java)
-  - [MedicationService.java](/D:/hannah-dev/attune-be/src/main/java/attune/medication/application/MedicationService.java)
-  - [InvalidQuickLogRequestException.java](/D:/hannah-dev/attune-be/src/main/java/attune/common/error/badrequest/InvalidQuickLogRequestException.java)
+  - [QuickLogRequest.java](../src/main/java/attune/medication/application/dto/request/QuickLogRequest.java)
+  - [MedicationService.java](../src/main/java/attune/medication/application/MedicationService.java)
+  - [InvalidQuickLogRequestException.java](../src/main/java/attune/common/error/badrequest/InvalidQuickLogRequestException.java)
 
 ## 4) 참고 DDL 반영 상태
 
@@ -48,7 +48,7 @@
   - `consultation_id BIGINT NULL`
   - `(user_medication_id, dose_time)` 유니크
   - `hospital_id/alarm_active/quantity` 제거  
-  ([20260530_medication_schema_refactor.sql](/D:/hannah-dev/attune-be/docs/sql/20260530_medication_schema_refactor.sql))
+  ([20260530_medication_schema_refactor.sql](../docs/sql/20260530_medication_schema_refactor.sql))
 
 ## 5) API 경로 명확화(혼동 제거)
 

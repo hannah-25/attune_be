@@ -85,7 +85,7 @@ attune/<domain>/
 
 ## 5. 알려진 드리프트 / 주의
 
-- `docs/architecture.md`(구버전)는 모듈 일부만 나열하고 레이아웃 표기가 낡았다 → 본 문서가 정본. 정리 대상은 [`docs/exec-plans/tech-debt-tracker.md`](./docs/exec-plans/tech-debt-tracker.md).
+- (정리 완료) 구버전 `docs/architecture.md` 는 본 문서로 통합·삭제되었다. 도메인 구조의 정본은 본 문서 + [`docs/architecture/`](./docs/architecture/index.md).
 - 일부 도메인은 `port/`, `infrastructure/`, `application/error/` 를 갖고 일부는 갖지 않는다(선택적). 새 모듈은 가장 단순한 형태에서 필요할 때 추가한다.
 
 상세 규칙 색인: [`docs/architecture/index.md`](./docs/architecture/index.md)
