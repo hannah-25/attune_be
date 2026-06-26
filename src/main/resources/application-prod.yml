@@ -32,6 +32,7 @@ logging:
       max-history: 30  # 30일 보관
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId:-no-request-id}] %logger{36} - %msg%n'
+    file: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId:-no-request-id}] %logger{36} - %msg%n'
 
 # 운영환경 보안 설정
 server:

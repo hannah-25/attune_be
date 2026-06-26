@@ -29,6 +29,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String requestId = resolveRequestId(request);
+        request.setAttribute(MDC_KEY, requestId);
         response.setHeader(HEADER_NAME, requestId);
         MDC.put(MDC_KEY, requestId);
 
@@ -39,7 +40,20 @@ public class RequestIdFilter extends OncePerRequestFilter {
         }
     }
 
+    // ERROR 디스패치(서블릿 /error)에서도 필터를 재실행해 동일 requestId를 MDC에 복원한다.
+    // 기본값(true)이면 에러 로그에 requestId가 누락된다.
+    @Override
+    protected boolean shouldNotFilterErrorDispatch() {
+        return false;
+    }
+
     private String resolveRequestId(HttpServletRequest request) {
+        // ERROR 디스패치로 재진입한 경우 첫 디스패치에서 저장한 ID를 재사용한다.
+        Object cached = request.getAttribute(MDC_KEY);
+        if (cached instanceof String cachedId && StringUtils.hasText(cachedId)) {
+            return cachedId;
+        }
+
         String requestId = request.getHeader(HEADER_NAME);
         if (isSafeRequestId(requestId)) {
             return requestId;

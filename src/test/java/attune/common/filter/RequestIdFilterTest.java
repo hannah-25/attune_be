@@ -51,6 +51,26 @@ class RequestIdFilterTest {
     }
 
     @Test
+    void reusesRequestIdOnErrorDispatchReentry() throws ServletException, IOException {
+        // 첫 디스패치(REQUEST)
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, (req, res) -> {});
+
+        String firstId = response.getHeader(RequestIdFilter.HEADER_NAME);
+        assertThat(firstId).isNotBlank();
+        // 첫 디스패치 종료 후 MDC는 비워진다.
+        assertThat(MDC.get(RequestIdFilter.MDC_KEY)).isNull();
+
+        // ERROR 디스패치로 재진입(같은 request 객체) — attribute에 저장된 ID를 재사용해야 한다.
+        AtomicReference<String> idDuringErrorDispatch = new AtomicReference<>();
+        filter.doFilter(request, response, (req, res) ->
+                idDuringErrorDispatch.set(MDC.get(RequestIdFilter.MDC_KEY)));
+
+        assertThat(idDuringErrorDispatch.get()).isEqualTo(firstId);
+    }
+
+    @Test
     void replacesUnsafeIncomingRequestId() throws ServletException, IOException {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
