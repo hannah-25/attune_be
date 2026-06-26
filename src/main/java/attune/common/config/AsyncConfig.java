@@ -1,10 +1,13 @@
 package attune.common.config;
 
+import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 @Configuration
@@ -27,7 +30,31 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setMaxPoolSize(maxPoolSize);
         executor.setQueueCapacity(queueCapacity);
         executor.setThreadNamePrefix(threadNamePrefix);
+        executor.setTaskDecorator(mdcTaskDecorator());
         executor.initialize();
         return executor;
+    }
+
+    private TaskDecorator mdcTaskDecorator() {
+        return runnable -> {
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
+            return () -> {
+                Map<String, String> previousContextMap = MDC.getCopyOfContextMap();
+                try {
+                    if (contextMap == null) {
+                        MDC.clear();
+                    } else {
+                        MDC.setContextMap(contextMap);
+                    }
+                    runnable.run();
+                } finally {
+                    if (previousContextMap == null) {
+                        MDC.clear();
+                    } else {
+                        MDC.setContextMap(previousContextMap);
+                    }
+                }
+            };
+        };
     }
 }

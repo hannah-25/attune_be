@@ -77,7 +77,7 @@ jobs:
 
             for attempt in $(seq 1 120); do
               health_status="$(curl --silent --output /tmp/attune-prod-health.json \
-                --write-out '%{http_code}' http://localhost:8080/actuator/health || true)"
+                --write-out '%{http_code}' http://localhost:8080/actuator/health/readiness || true)"
 
               if [ "$health_status" = "200" ]; then
                 cat /tmp/attune-prod-health.json
