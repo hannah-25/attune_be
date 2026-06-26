@@ -67,7 +67,7 @@ public class MedicationService {
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
-        UUID userId = getCurrentUserId();
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         List<UserMedication> userMedications = userMedicationRepository.findAllByUserIdWithDetails(userId);
         if (userMedications.isEmpty()) {
             return List.of();
@@ -128,7 +128,7 @@ public class MedicationService {
 
     @Transactional
     public CreateMedicationResponse createMedication(CreateMedicationRequest request) {
-        User userRef = userRepository.getReferenceById(getCurrentUserId());
+        User userRef = userRepository.getReferenceById(SecurityUtils.getCurrentUserUuid());
         Consultation consultation = request.consultationId() == null
                 ? null
                 : getOwnedConsultationOrThrow(request.consultationId());
@@ -266,7 +266,7 @@ public class MedicationService {
         validateRequiredDateRange(startDate, endDate);
 
         List<UserMedicationLog> logs = logRepository.findAllByUserIdAndTakenAtBetween(
-                getCurrentUserId(),
+                SecurityUtils.getCurrentUserUuid(),
                 toStartOfDay(startDate),
                 toExclusiveEndOfDay(endDate)
         );
@@ -334,10 +334,6 @@ public class MedicationService {
         return new QuickLogResponse(saved.getId(), request.action(), now);
     }
 
-    private UUID getCurrentUserId() {
-        return SecurityUtils.getCurrentUserUuid();
-    }
-
     private Medication getMedicationOrThrow(Long medicationId) {
         return medicationRepository.findById(medicationId)
                 .orElseThrow(MedicationNotFoundException::new);
@@ -350,12 +346,12 @@ public class MedicationService {
     }
 
     private Consultation getOwnedConsultationOrThrow(Long consultationId) {
-        return consultationRepository.findByIdAndUser_IdAndIsDeletedFalse(consultationId, getCurrentUserId())
+        return consultationRepository.findByIdAndUser_IdAndIsDeletedFalse(consultationId, SecurityUtils.getCurrentUserUuid())
                 .orElseThrow(ConsultationNotFoundException::new);
     }
 
     private UserMedication getOwnedUserMedicationOrThrow(Long userMedicationId) {
-        return userMedicationRepository.findByIdAndUserId(userMedicationId, getCurrentUserId())
+        return userMedicationRepository.findByIdAndUserId(userMedicationId, SecurityUtils.getCurrentUserUuid())
                 .orElseThrow(MedicationNotFoundException::new);
     }
 
