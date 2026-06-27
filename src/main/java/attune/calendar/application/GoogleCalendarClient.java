@@ -21,6 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static attune.common.util.ExceptionUtils.sanitized;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -77,11 +79,11 @@ public class GoogleCalendarClient {
         } catch (RestClientResponseException e) {
             log.warn("Failed to fetch Google account email: status={}",
                     e.getStatusCode(),
-                    sanitizedException("Google account email API error: " + e.getStatusCode(), e));
+                    sanitized("Google account email API error: " + e.getStatusCode(), e));
             return null;
         } catch (RuntimeException e) {
             log.warn("Failed to fetch Google account email",
-                    sanitizedException("Runtime error during fetchAccountEmail", e));
+                    sanitized("Runtime error during fetchAccountEmail", e));
             return null;
         }
     }
@@ -302,14 +304,8 @@ public class GoogleCalendarClient {
         log.error("{}: status={}",
                 logPrefix,
                 e.getStatusCode(),
-                sanitizedException("Google API Error: " + e.getStatusCode(), e));
+                sanitized("Google API Error: " + e.getStatusCode(), e));
         return new InternalServerException(clientMessage + " (" + e.getStatusCode() + ")");
-    }
-
-    private RuntimeException sanitizedException(String message, Exception e) {
-        RuntimeException sanitized = new RuntimeException(message);
-        sanitized.setStackTrace(e.getStackTrace());
-        return sanitized;
     }
 
     public record GoogleToken(String accessToken, String refreshToken, LocalDateTime expiresAt) {
