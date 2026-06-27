@@ -75,10 +75,13 @@ public class GoogleCalendarClient {
             Object email = response == null ? null : response.get("email");
             return email instanceof String value && !value.isBlank() ? value : null;
         } catch (RestClientResponseException e) {
-            log.warn("Failed to fetch Google account email: status={}", e.getStatusCode());
+            log.warn("Failed to fetch Google account email: status={}",
+                    e.getStatusCode(),
+                    sanitizedException("Google account email API error: " + e.getStatusCode(), e));
             return null;
         } catch (RuntimeException e) {
-            log.warn("Failed to fetch Google account email: type={}", e.getClass().getSimpleName());
+            log.warn("Failed to fetch Google account email",
+                    sanitizedException("Runtime error during fetchAccountEmail", e));
             return null;
         }
     }
@@ -296,8 +299,17 @@ public class GoogleCalendarClient {
                                                         RestClientResponseException e) {
         // PII 금지: Google 응답 body는 일정 제목/설명, 계정 정보, 토큰 오류 세부정보를 포함할 수 있다.
         // RestClientResponseException 자체도 body를 들고 있으므로 cause로 보존하지 않는다.
-        log.error("{}: status={}", logPrefix, e.getStatusCode());
+        log.error("{}: status={}",
+                logPrefix,
+                e.getStatusCode(),
+                sanitizedException("Google API Error: " + e.getStatusCode(), e));
         return new InternalServerException(clientMessage + " (" + e.getStatusCode() + ")");
+    }
+
+    private RuntimeException sanitizedException(String message, Exception e) {
+        RuntimeException sanitized = new RuntimeException(message);
+        sanitized.setStackTrace(e.getStackTrace());
+        return sanitized;
     }
 
     public record GoogleToken(String accessToken, String refreshToken, LocalDateTime expiresAt) {

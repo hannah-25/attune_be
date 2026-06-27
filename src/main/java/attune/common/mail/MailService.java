@@ -64,8 +64,14 @@ public class MailService {
             sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
             log.info("문의 이메일 발송 완료");
         } catch (Exception e) {
-            log.error("문의 이메일 발송 실패 - errorType={}", e.getClass().getSimpleName());
+            log.error("문의 이메일 발송 실패", sanitizedException("Mail send failed", e));
         }
+    }
+
+    private RuntimeException sanitizedException(String message, Exception e) {
+        RuntimeException sanitized = new RuntimeException(message);
+        sanitized.setStackTrace(e.getStackTrace());
+        return sanitized;
     }
 
 

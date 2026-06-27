@@ -5,6 +5,7 @@ import attune.calendar.domain.model.CalendarProvider;
 import attune.common.error.InternalServerException;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,6 +73,11 @@ class GoogleCalendarClientTest {
             assertThat(message).doesNotContain("정신과");
             assertThat(message).doesNotContain("person@example.com");
         });
+        assertThat(logThrowableMessages()).contains("Google API Error: 500 INTERNAL_SERVER_ERROR");
+        assertThat(logThrowableMessages()).allSatisfy(message -> {
+            assertThat(message).doesNotContain("정신과");
+            assertThat(message).doesNotContain("person@example.com");
+        });
         server.verify();
     }
 
@@ -86,6 +92,11 @@ class GoogleCalendarClientTest {
 
         assertThat(result).isNull();
         assertThat(logMessages()).allSatisfy(message -> {
+            assertThat(message).doesNotContain("정신과");
+            assertThat(message).doesNotContain("person@example.com");
+        });
+        assertThat(logThrowableMessages()).contains("Google account email API error: 401 UNAUTHORIZED");
+        assertThat(logThrowableMessages()).allSatisfy(message -> {
             assertThat(message).doesNotContain("정신과");
             assertThat(message).doesNotContain("person@example.com");
         });
@@ -108,6 +119,14 @@ class GoogleCalendarClientTest {
     private java.util.List<String> logMessages() {
         return appender.list.stream()
                 .map(ILoggingEvent::getFormattedMessage)
+                .toList();
+    }
+
+    private java.util.List<String> logThrowableMessages() {
+        return appender.list.stream()
+                .map(ILoggingEvent::getThrowableProxy)
+                .filter(java.util.Objects::nonNull)
+                .map(IThrowableProxy::getMessage)
                 .toList();
     }
 }

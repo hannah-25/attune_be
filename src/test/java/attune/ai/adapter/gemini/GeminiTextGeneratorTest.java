@@ -83,6 +83,7 @@ class GeminiTextGeneratorTest {
                     assertThat(e).hasMessage("Gemini response generation failed.");
                     assertThat(e.getCause()).hasMessage("Gemini HTTP 503");
                     assertThat(e.getCause()).hasMessageNotContaining("복약 기록");
+                    assertThat(e.getCause().getStackTrace()).isNotEmpty();
                 });
         server.verify();
     }
@@ -110,6 +111,7 @@ class GeminiTextGeneratorTest {
                     assertThat(e).hasMessage("Gemini response generation failed.");
                     assertThat(e.getCause()).hasMessage("Gemini HTTP 400");
                     assertThat(e.getCause()).hasMessageNotContaining("복약 기록");
+                    assertThat(e.getCause().getStackTrace()).isNotEmpty();
                 });
         server.verify();
     }
