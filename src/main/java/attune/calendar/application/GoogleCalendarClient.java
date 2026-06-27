@@ -74,8 +74,11 @@ public class GoogleCalendarClient {
                     .body(new ParameterizedTypeReference<>() {});
             Object email = response == null ? null : response.get("email");
             return email instanceof String value && !value.isBlank() ? value : null;
+        } catch (RestClientResponseException e) {
+            log.warn("Failed to fetch Google account email: status={}", e.getStatusCode());
+            return null;
         } catch (RuntimeException e) {
-            log.warn("Failed to fetch Google account email", e);
+            log.warn("Failed to fetch Google account email: type={}", e.getClass().getSimpleName());
             return null;
         }
     }
@@ -89,9 +92,7 @@ public class GoogleCalendarClient {
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
         } catch (RestClientResponseException e) {
-            log.error("Google CalendarList API error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new InternalServerException(
-                    "Google Calendar 목록 조회 오류 (" + e.getStatusCode() + "): " + e.getResponseBodyAsString(), e);
+            throw calendarApiException("Google CalendarList API error", "Google Calendar 목록 조회 오류", e);
         }
 
         Object items = response == null ? null : response.get("items");
@@ -144,9 +145,7 @@ public class GoogleCalendarClient {
                         .retrieve()
                         .body(new ParameterizedTypeReference<>() {});
             } catch (RestClientResponseException e) {
-                log.error("Google Calendar API error: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-                throw new InternalServerException(
-                        "Google Calendar API 오류 (" + e.getStatusCode() + "): " + e.getResponseBodyAsString(), e);
+                throw calendarApiException("Google Calendar API error", "Google Calendar API 오류", e);
             }
 
             if (response == null) {
@@ -178,6 +177,8 @@ public class GoogleCalendarClient {
                     .body(body)
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
+        } catch (RestClientResponseException e) {
+            throw calendarApiException("Google Calendar token API error", "Google Calendar token exchange failed", e);
         } catch (RuntimeException e) {
             throw new InternalServerException("Google Calendar token exchange failed", e);
         }
@@ -288,6 +289,15 @@ public class GoogleCalendarClient {
 
     private String string(Object value) {
         return value instanceof String text ? text : null;
+    }
+
+    private InternalServerException calendarApiException(String logPrefix,
+                                                        String clientMessage,
+                                                        RestClientResponseException e) {
+        // PII 금지: Google 응답 body는 일정 제목/설명, 계정 정보, 토큰 오류 세부정보를 포함할 수 있다.
+        // RestClientResponseException 자체도 body를 들고 있으므로 cause로 보존하지 않는다.
+        log.error("{}: status={}", logPrefix, e.getStatusCode());
+        return new InternalServerException(clientMessage + " (" + e.getStatusCode() + ")");
     }
 
     public record GoogleToken(String accessToken, String refreshToken, LocalDateTime expiresAt) {

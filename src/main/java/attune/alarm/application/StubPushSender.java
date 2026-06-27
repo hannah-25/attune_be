@@ -18,11 +18,17 @@ public class StubPushSender implements PushSender {
 
     @Override
     public void send(NotificationSubscription subscription, PushMessage message) {
-        log.info("[STUB PUSH] userId={} platform={} provider={} title=\"{}\" body=\"{}\"",
+        // PII 금지: title/body 본문은 복약 라벨·일정 제목·할 일·게시글 제목 등 사용자 콘텐츠를 담는다.
+        // stub은 "발송이 일어났는지"만 확인하면 되므로 본문 대신 길이만 남긴다(observability.md 정책).
+        log.info("[STUB PUSH] userId={} platform={} provider={} titleLen={} bodyLen={}",
                 subscription.getUserId(),
                 subscription.getPlatform(),
                 subscription.getProvider(),
-                message.title(),
-                message.body());
+                length(message.title()),
+                length(message.body()));
+    }
+
+    private static int length(String value) {
+        return value == null ? 0 : value.length();
     }
 }

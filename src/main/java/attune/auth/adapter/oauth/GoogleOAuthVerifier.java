@@ -111,7 +111,7 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
         } catch (UnauthorizedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[GoogleOAuthVerifier] 토큰 검증 중 예외 발생: {}", e.getMessage(), e);
+            log.warn("[GoogleOAuthVerifier] token verification failed: errorType={}", e.getClass().getSimpleName());
             throw new UnauthorizedException("Google 토큰 검증에 실패했습니다.");
         }
     }

@@ -19,7 +19,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 - `@Async` executor는 MDC를 전달하므로, 요청 중 시작된 비동기 작업 로그도 같은 `requestId`로 검색할 수 있다.
 - `attune.calendar` 는 기본 DEBUG. 특정 모듈 디버깅은 `logging.level.attune.<module>: DEBUG` 추가.
 - 백그라운드 실행 로그: `bootRun.out.log` / `bootRun.err.log`(루트).
-- **민감정보 로깅 금지**: 이메일 주소·JWT·비밀번호·인증코드, 증상/일기/복약/AI 프롬프트·응답 본문은 로그에 남기지 않는다. 식별이 필요하면 `userId`(UUID) 같은 내부 식별자만 사용한다. 예: 발송 실패 로그는 `email` 대신 `userId={}`로 남긴다.
+- **민감정보 로깅 금지**: 이메일 주소·JWT·비밀번호·인증코드, 증상/일기/복약/AI 프롬프트·응답 본문은 로그에 남기지 않는다. 외부 API response body와 push title/body도 사용자 콘텐츠를 포함할 수 있으므로 로그와 예외 cause에 보존하지 않는다. 식별이 필요하면 `userId`(UUID) 같은 내부 식별자만 사용한다. 예: 발송 실패 로그는 `email` 대신 `userId={}`로 남긴다.
 
 ## 테스트 실패 로그 읽기
 

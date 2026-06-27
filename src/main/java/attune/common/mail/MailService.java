@@ -64,7 +64,7 @@ public class MailService {
             sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
             log.info("문의 이메일 발송 완료");
         } catch (Exception e) {
-            log.error("문의 이메일 발송 실패 — error={}", e.getMessage(), e);
+            log.error("문의 이메일 발송 실패 - errorType={}", e.getClass().getSimpleName());
         }
     }
 
