@@ -81,8 +81,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ✅ 헬스/인포는 무조건 허용
-                        .requestMatchers("/actuator/**").permitAll()
+                        // 헬스/인포는 무조건 허용 (배포 게이트·컨테이너가 localhost로 폴링)
+                        .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                        // metrics 등 나머지 actuator는 외부 노출 차단 (운영 정보 보호)
+                        .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(ApiVersion.V1 + "/health/**").permitAll()
 
                         // 인증 관련 엔드포인트
@@ -155,7 +157,8 @@ public class SecurityConfig {
                 "Location", // 리다이렉트 위치
                 "Content-Disposition", // 파일 다운로드
                 "X-Export-Message", // 커스텀: 내보내기 메시지
-                "X-Export-Status" // 커스텀: 내보내기 상태
+                "X-Export-Status", // 커스텀: 내보내기 상태
+                "X-Request-Id"
         ));
 
 

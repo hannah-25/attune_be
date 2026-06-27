@@ -63,7 +63,7 @@ public class MailEventListener {
                 try {
                     mailService.sendNoticeEmail(user.getEmail(), event.title(), event.content());
                 } catch (Exception e) {
-                    log.error("공지 이메일 발송 실패 - email: {}", user.getEmail(), e);
+                    log.error("공지 이메일 발송 실패 - userId={}", user.getId(), e);
                 }
             });
             pageable = pageable.next();

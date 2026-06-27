@@ -68,11 +68,18 @@ management:
     health:
       show-details: never
       show-components: never
+      probes:
+        enabled: true            # /actuator/health/{liveness,readiness} 노출
+      group:
+        # readiness: 트래픽 수신 준비 — DB 장애를 실패로 반영 (배포 게이트가 이 신호를 사용)
+        readiness:
+          include: readinessState, db
+        # liveness: JVM 생존만 검사(기본값 livenessState). 외부 의존성으로 불필요한 재시작 방지
   health:
     db:
-      enabled: false
+      enabled: true              # DB 다운을 health/readiness 실패로 반영
     diskspace:
-      enabled: false
+      enabled: true              # 디스크 부족 감지
 
 
 
@@ -83,7 +90,7 @@ management:
 # Logging 설정
 logging:
   pattern:
-    console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+    console: '%d{HH:mm:ss.SSS} [%thread] %-5level [%X{requestId:-no-request-id}] %logger{36} - %msg%n'
   level:
     attune.calendar: DEBUG
 

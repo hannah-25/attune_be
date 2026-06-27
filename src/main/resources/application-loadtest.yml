@@ -1,0 +1,28 @@
+# Load test profile.
+#
+# Usage:
+#   SPRING_PROFILES_ACTIVE=dev,loadtest
+#
+# Keep the regular dev profile unchanged. Enable this profile only while
+# measuring dev-server baseline performance.
+
+logging:
+  level:
+    root: INFO
+    attune: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: OFF
+    org.hibernate.orm.jdbc.bind: OFF
+
+# health probe / DB·diskspace indicator는 application.yml(base)에서 이미 켜진다.
+# 여기서는 부하 테스트 식별용 메트릭 태그만 덧붙인다.
+management:
+  metrics:
+    tags:
+      environment: loadtest
+
+notification:
+  push:
+    # Prevent dev load tests from sending real browser push notifications.
+    provider: stub

@@ -4,15 +4,22 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 
 ## Health / 상태
 
-- Health: `GET /actuator/health` (배포 게이트가 이걸 폴링). 노출 엔드포인트: `health, info, metrics`.
-- Metrics: `GET /actuator/metrics`. 태그 `application=attune`.
-- 주의: `application.yml` 에서 health 의 `db`·`diskspace` 인디케이터는 꺼져 있다 → DB 다운이 health 200을 막지 않는다. DB 연결은 별도 확인.
+- Health(aggregate): `GET /actuator/health`. `db`·`diskspace` 외에 Redis 등 모든 가용 indicator가 합산된다 → 일부 의존성 장애 시 503. **배포 게이트는 이 aggregate를 쓰지 않는다**(아래 readiness 참조).
+- Liveness: `GET /actuator/health/liveness` — JVM 생존만 검사. 외부 의존성 장애로 불필요하게 실패하지 않는다.
+- Readiness: `GET /actuator/health/readiness` — `readinessState + db`. **배포 게이트(`deploy-prod`/`deploy-dev`)가 이 endpoint를 폴링**한다. DB 장애는 실패로 반영하되 Redis/메일에는 묶이지 않는다.
+- 보안: `/actuator/health/**`·`/actuator/info`만 공개. `/actuator/metrics` 등 나머지 actuator는 Spring Security에서 `denyAll`로 외부 노출을 차단한다(메트릭은 in-process Micrometer로만 수집). 메트릭 태그 `application=attune`.
+  - 추후 운영 접근정책 확정 시 management port/네트워크 레벨 제한으로 강화 예정.
+- dev 서버 부하 테스트 시에는 `SPRING_PROFILES_ACTIVE=dev,loadtest`를 사용한다. health/probe는 base에서 켜지며, 이 프로파일은 로그 레벨을 낮추고 메트릭에 `environment=loadtest` 태그를 붙이며 web-push를 stub으로 바꾼다.
 
 ## 로컬 로그
 
-- `./gradlew bootRun` 콘솔 로그. 패턴: `HH:mm:ss.SSS [thread] LEVEL logger - msg`.
+- `./gradlew bootRun` 콘솔 로그. 패턴: `HH:mm:ss.SSS [thread] LEVEL [requestId] logger - msg`.
+- 모든 HTTP 요청은 `X-Request-Id`를 응답 헤더로 반환한다. 클라이언트가 안전한 `X-Request-Id`를 보내면 그대로 사용하고, 없거나 안전하지 않으면 서버가 UUID를 생성한다.
+- 애플리케이션 로그는 SLF4J MDC의 `requestId`를 포함한다. 요청 밖에서 발생한 로그는 `no-request-id`로 표시된다.
+- `@Async` executor는 MDC를 전달하므로, 요청 중 시작된 비동기 작업 로그도 같은 `requestId`로 검색할 수 있다.
 - `attune.calendar` 는 기본 DEBUG. 특정 모듈 디버깅은 `logging.level.attune.<module>: DEBUG` 추가.
 - 백그라운드 실행 로그: `bootRun.out.log` / `bootRun.err.log`(루트).
+- **민감정보 로깅 금지**: 이메일 주소·JWT·비밀번호·인증코드, 증상/일기/복약/AI 프롬프트·응답 본문은 로그에 남기지 않는다. 식별이 필요하면 `userId`(UUID) 같은 내부 식별자만 사용한다. 예: 발송 실패 로그는 `email` 대신 `userId={}`로 남긴다.
 
 ## 테스트 실패 로그 읽기
 
@@ -28,6 +35,13 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 | Mail(SMTP) | 메일 발송 비동기 로그, [`../async-mail.md`](../async-mail.md) |
 | web-push | `provider` 가 `stub`(local) vs `web-push`(dev/prod). 발송 이력 |
 | Gemini | `ai`/`medicationAnalysis` 클라이언트 응답 검증기 로그 |
+
+## 부하 테스트
+
+- 기본 대상은 dev 서버이며, 실행 프로파일은 `dev,loadtest`를 권장한다.
+- 부하 테스트 중에는 회원가입/메일 발송, 실제 푸시 발송, Gemini 호출을 기본 시나리오에 넣지 않는다. Gemini는 비용과 외부 API rate limit 영향을 분리하기 위해 별도 테스트로 측정한다.
+- 우선 측정할 API는 인증된 조회/기록 흐름이다: 로그인 토큰 준비 → 오늘 조회 → 복약 기록 → 일정 조회 → 일지/태그 조회.
+- 결과에는 동시 사용자 수, duration, p95/p99, 5xx 비율, Hikari active/pending, JVM heap/GC를 함께 기록한다.
 
 ## 인증/API 실패 디버깅
 
