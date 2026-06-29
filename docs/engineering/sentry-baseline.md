@@ -21,7 +21,9 @@
 - `profiles-sample-rate=0.0`
 - `sentry.logging.enabled=true`, `sentry.logging.minimum-event-level=error` (handled 예외 캡처용, ERROR 한정)
 
-또한 애플리케이션은 다음 항목을 제거하는 `BeforeSendCallback`을 등록한다.
+또한 애플리케이션은 오류 이벤트(`BeforeSendCallback`)와 트랜잭션 이벤트(`BeforeSendTransactionCallback`)
+양쪽에서 다음 항목을 제거한다. 트랜잭션 콜백은 향후 `traces-sample-rate>0`으로 tracing을 켜더라도
+PII가 새지 않도록 하는 defense-in-depth다. 두 콜백 빈은 `sentry.enabled=true`일 때만 등록된다(`@ConditionalOnProperty`).
 
 - Sentry user
 - request body

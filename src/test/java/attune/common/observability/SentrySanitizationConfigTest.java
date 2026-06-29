@@ -2,10 +2,13 @@ package attune.common.observability;
 
 import io.sentry.SentryEvent;
 import io.sentry.protocol.Request;
+import io.sentry.protocol.SentryTransaction;
+import io.sentry.protocol.TransactionInfo;
 import io.sentry.protocol.User;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +30,29 @@ class SentrySanitizationConfigTest {
         event.setRequest(request);
 
         SentryEvent sanitized = config.sanitize(event);
+
+        assertThat(sanitized.getUser()).isNull();
+        assertThat(sanitized.getRequest().getCookies()).isNull();
+        assertThat(sanitized.getRequest().getData()).isNull();
+        assertThat(sanitized.getRequest().getQueryString()).isNull();
+        assertThat(sanitized.getRequest().getHeaders())
+                .containsOnly(Map.entry("X-Request-Id", "request-1"));
+    }
+
+    @Test
+    void sanitizesTransactionUserAndRequest() {
+        SentryTransaction transaction = new SentryTransaction(
+                "test-tx", null, null, List.of(), Map.of(), new TransactionInfo("manual"));
+        transaction.setUser(new User());
+
+        Request request = new Request();
+        request.setCookies("SESSION=secret");
+        request.setData("{\"symptom\":\"sensitive\"}");
+        request.setQueryString("token=secret");
+        request.setHeaders(headers());
+        transaction.setRequest(request);
+
+        SentryTransaction sanitized = config.sanitizeTransaction(transaction);
 
         assertThat(sanitized.getUser()).isNull();
         assertThat(sanitized.getRequest().getCookies()).isNull();
