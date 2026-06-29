@@ -1,8 +1,10 @@
 # 진행 상황: 운영 관측성 기반 구축
 
 - 관련 계획: [`2026-06-26-production-observability.md`](./2026-06-26-production-observability.md)
-- 관련 PR: [#85](https://github.com/hannah-25/attune_be/pull/85) (`feature/production-observability-health-probes` → `develop`, MERGED)
-- 최종 갱신: 2026-06-28
+- 관련 PR:
+  - [#85](https://github.com/hannah-25/attune_be/pull/85) (`feature/production-observability-health-probes` → `develop`, MERGED)
+  - [#86](https://github.com/hannah-25/attune_be/pull/86) (`feature/observability-pii-log-audit` → `develop`, MERGED)
+- 최종 갱신: 2026-06-29
 
 > 계획서의 단계(Step 1~6)에 대한 **현재 진척**과 **남은 작업**을 한눈에 본다.
 > 상세 설계·위험·롤백은 계획서를, 결정 이력은 계획서의 "의사결정 로그"를 참고.
@@ -12,7 +14,7 @@
 | 단계 | 내용 | 상태 |
 |------|------|------|
 | Step 1 | 인프라·보안 결정 게이트 (AWS/Sentry/Slack/IAM) | ⛔ 외부 결정 대기 |
-| Step 2 | 안전한 health / Actuator 접근 제어 | ✅ 앱 레벨 완료 (네트워크 레벨 후속) |
+| Step 2 | 안전한 health / Actuator 접근 제어 | ✅ 앱 레벨 + dev/prod loopback management port 완료 |
 | Step 3 | 구조화 로그·요청 상관관계 | 🟡 requestId·외부 호출 PII 감사 1차 완료, JSON 로그 후속 |
 | Step 4 | 메트릭·도메인 계측 (CloudWatch) | ⛔ Step 1 결정 후 |
 | Step 5 | 오류 추적·알림 (Sentry/대시보드) | ⛔ Step 1 결정 후 |
@@ -73,7 +75,10 @@ PR #85는 **외부 계정 결정이 필요 없는 코드/설정 범위**만 다�
 - [ ] **Step 6 성능 기준선**: k6 부하 테스트(이미 `loadtest` 프로파일 준비), 동시 사용자·p95·오류율 기록, 장애 주입 검증(5xx/DB 차단/Gemini 429·timeout/scheduler 실패), 초기 2주 임계값·샘플링 조정.
 
 ### D. 후속 보강 — 외부 결정 불필요 (코드/설정)
-- [ ] management port/네트워크 레벨 actuator 접근 제한 (현재는 앱 레벨 `denyAll`만).
+- [x] management port/네트워크 레벨 actuator 접근 제한.
+  - dev/prod management server를 `127.0.0.1:8081` 기본값으로 분리.
+  - deploy-dev/deploy-prod readiness gate를 EC2 내부 `http://127.0.0.1:8081/actuator/health/readiness` 폴링으로 변경.
+  - `ManagementServerProfileConfigTest`로 dev/prod management port/address 설정 고정.
 - [x] Step 3 심화 1차: 외부 호출(Gemini/메일/push/calendar) 로그 PII 점검.
   - `StubPushSender`는 title/body 본문 대신 길이만 로그에 남기도록 변경하고 회귀 테스트 추가.
   - `AdminNotificationSender`는 push title 본문 대신 길이만 로그에 남기도록 변경.

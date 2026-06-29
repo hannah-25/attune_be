@@ -6,7 +6,7 @@
 push develop ─> GitHub Actions(deploy-dev) ─> gradle build(-x test)
    ─> Docker build/push (hannah098/attune-be:dev)
    ─> EC2 SSH: docker pull/run (host network, SPRING_PROFILES_ACTIVE=dev)
-   ─> /actuator/health/readiness 200 대기(최대 600s)
+   ─> 127.0.0.1:8081 /actuator/health/readiness 200 대기(최대 600s)
 ```
 
 운영(prod)은 `deploy-prod.yml`. 동일 패턴.
@@ -16,7 +16,7 @@ push develop ─> GitHub Actions(deploy-dev) ─> gradle build(-x test)
 1. 배포는 **워크플로를 통해서만**. 에이전트가 운영 SSH/배포를 임의 실행하지 않는다.
 2. 배포 빌드는 테스트를 스킵(`-x test`)하므로, **검증 책임은 `ci.yml`** 에 있다. 테스트 깨진 채 develop 머지 금지.
 3. dev 배포는 `APP_MIGRATION_DEFAULTTAGS_ENABLED=false` 환경변수로 마이그레이션 토글을 끈 채 기동한다(중복 시드 방지).
-4. readiness 헬스체크가 600초 내 200이 아니면 배포 실패로 간주하고 컨테이너 로그를 확인한다. readiness는 `readinessState + db` 기준이며, Redis/메일 등 비필수 의존성 장애에는 묶지 않는다.
+4. readiness 헬스체크가 600초 내 200이 아니면 배포 실패로 간주하고 컨테이너 로그를 확인한다. dev/prod는 management server를 `127.0.0.1:8081`에 바인딩하고, 배포 워크플로는 EC2 내부에서 `http://127.0.0.1:8081/actuator/health/readiness`를 폴링한다. readiness는 `readinessState + db` 기준이며, Redis/메일 등 비필수 의존성 장애에는 묶지 않는다.
 5. 롤백: 직전 이미지 태그로 `docker run` 하거나, 문제 커밋을 revert 후 재배포.
 
 ## 배포 전 확인

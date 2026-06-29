@@ -23,8 +23,8 @@
 
 ## 현재 상태
 
-- Actuator 노출: `health`, `info`, `metrics`; simple meter registry만 활성화.
-- 배포: GitHub Actions가 EC2에서 host network Docker 컨테이너를 기동하고 `/actuator/health`를 최대 600초 폴링.
+- Actuator 노출: dev/prod는 management server `127.0.0.1:8081`에 바인딩한다. `/actuator/health/**`·`/actuator/info`만 허용하고 `/actuator/metrics` 등 나머지는 앱 레벨 `denyAll`. simple meter registry만 활성화.
+- 배포: GitHub Actions가 EC2에서 host network Docker 컨테이너를 기동하고 `http://127.0.0.1:8081/actuator/health/readiness`를 최대 600초 폴링.
 - 운영 로그: root `WARN`, `attune` `INFO`, 파일 롤링(10MB, 30일)과 콘솔 텍스트 로그.
 - 데이터베이스: Hikari pool과 leak detection은 구성되어 있으나 운영 모니터링/알림은 없음.
 - 외부·비동기 처리: Redis, MySQL, SMTP, web-push, Gemini, `@Async`, 분 단위 알림 scheduler가 존재.
@@ -170,6 +170,7 @@
 - 2026-06-27: Step 2(health probe·actuator 접근 제어) 구현. liveness/readiness probe를 base(`application.yml`)에서 활성화하고, `db`·`diskspace` health indicator를 켰다. readiness 그룹은 `readinessState + db`로 한정해 Redis/메일 등 비필수 의존성과의 과결합을 피한다(Redis health는 aggregate `/actuator/health`에만 포함). 배포 게이트(`deploy-prod`/`deploy-dev`)는 aggregate 대신 `/actuator/health/readiness`를 폴링하도록 변경했다. SecurityConfig에서 `/actuator/health/**`·`/actuator/info`만 공개하고 `/actuator/metrics` 등 나머지는 `denyAll`로 차단했다. 메트릭은 in-process Micrometer로만 수집하므로 HTTP 차단이 무방하다. management port/네트워크 레벨 제한은 운영 접근정책 확정 후 후속.
 - 2026-06-27: Step 3(민감정보 로그) 1차. 공지 메일 발송 실패 로그가 `email` 주소를 남기던 것을 `userId`로 교체했다. 로그/Sentry/메트릭의 PII 금지 정책을 `observability.md`에 명문화했다. 로그의 `userId`(UUID) 사용은 디버깅 식별자로 허용하되 메트릭 태그로는 쓰지 않는다.
 - 2026-06-28: Step 3 심화 1차 완료. `StubPushSender`와 `AdminNotificationSender`는 push title/body 본문 대신 길이만 로그에 남기도록 변경했다. `GoogleCalendarClient`와 `GeminiTextGenerator`는 외부 API response body를 로그 메시지와 예외 cause에 보존하지 않도록 변경했다. 문의 메일 실패 로그와 Google OAuth 검증 예외 로그는 원본 예외/메시지 대신 에러 타입만 남긴다. 외부 API response body와 push 본문 금지 정책을 `observability.md`에 추가했다.
+- 2026-06-29: Step 2 후속. dev/prod management server를 public 앱 포트와 분리해 기본 `127.0.0.1:8081`에 바인딩한다. deploy-dev/deploy-prod readiness gate는 EC2 내부 `http://127.0.0.1:8081/actuator/health/readiness`를 폴링한다. local 프로파일은 기존 단일 포트 동작을 유지한다.
 - TODO(owner, YYYY-MM-DD, reason): CloudWatch/Sentry 예산, 리전, 보관 기간, Slack 운영 채널 및 EC2 IAM 적용 담당자를 확정한다.
 
 ## 완료 조건
@@ -177,7 +178,7 @@
 - [ ] 중앙 로그에서 request ID로 API 오류를 검색할 수 있다. 애플리케이션 로그의 requestId 주입은 완료했으며, 중앙 로그 수집 연동은 남아 있다.
 - [ ] 운영 dashboard에서 HTTP, JVM/컨테이너, Hikari, 외부 의존성, scheduler 상태를 볼 수 있다.
 - [x] readiness는 DB 장애를 실패로 보고, liveness는 외부 의존성 장애에 의해 불필요하게 실패하지 않는다. (readiness=`readinessState+db`, 배포 게이트가 readiness 폴링)
-- [x] Actuator metrics와 health 상세는 public internet에서 접근할 수 없다. (앱 레벨 `denyAll`; 네트워크 레벨 제한은 후속) `ActuatorSecurityTest`로 검증.
+- [x] Actuator metrics와 health 상세는 public internet에서 접근할 수 없다. (dev/prod management server=`127.0.0.1:8081`, metrics는 앱 레벨 `denyAll`) `ActuatorSecurityTest`와 `ManagementServerProfileConfigTest`로 검증.
 - [ ] 정의된 장애 조건이 Slack 알림과 runbook으로 연결된다.
 - [ ] Sentry와 로그/메트릭 표본에 개인정보·JWT·요청 본문이 없다.
 - [ ] 부하 기준선과 알림 임계값 조정 기록이 문서화되어 있다.

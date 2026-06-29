@@ -4,11 +4,10 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 
 ## Health / 상태
 
-- Health(aggregate): `GET /actuator/health`. `db`·`diskspace` 외에 Redis 등 모든 가용 indicator가 합산된다 → 일부 의존성 장애 시 503. **배포 게이트는 이 aggregate를 쓰지 않는다**(아래 readiness 참조).
-- Liveness: `GET /actuator/health/liveness` — JVM 생존만 검사. 외부 의존성 장애로 불필요하게 실패하지 않는다.
-- Readiness: `GET /actuator/health/readiness` — `readinessState + db`. **배포 게이트(`deploy-prod`/`deploy-dev`)가 이 endpoint를 폴링**한다. DB 장애는 실패로 반영하되 Redis/메일에는 묶이지 않는다.
-- 보안: `/actuator/health/**`·`/actuator/info`만 공개. `/actuator/metrics` 등 나머지 actuator는 Spring Security에서 `denyAll`로 외부 노출을 차단한다(메트릭은 in-process Micrometer로만 수집). 메트릭 태그 `application=attune`.
-  - 추후 운영 접근정책 확정 시 management port/네트워크 레벨 제한으로 강화 예정.
+- Health(aggregate): dev/prod는 `GET http://127.0.0.1:8081/actuator/health`, local은 `GET /actuator/health`. `db`·`diskspace` 외에 Redis 등 모든 가용 indicator가 합산된다 → 일부 의존성 장애 시 503. **배포 게이트는 이 aggregate를 쓰지 않는다**(아래 readiness 참조).
+- Liveness: dev/prod는 `GET http://127.0.0.1:8081/actuator/health/liveness` — JVM 생존만 검사. 외부 의존성 장애로 불필요하게 실패하지 않는다.
+- Readiness: dev/prod는 `GET http://127.0.0.1:8081/actuator/health/readiness` — `readinessState + db`. **배포 게이트(`deploy-prod`/`deploy-dev`)가 EC2 내부 loopback endpoint를 폴링**한다. DB 장애는 실패로 반영하되 Redis/메일에는 묶이지 않는다.
+- 보안: dev/prod의 actuator는 public 앱 포트(8080)와 분리된 management server `127.0.0.1:8081`에 바인딩한다. `/actuator/health/**`·`/actuator/info`만 허용하고 `/actuator/metrics` 등 나머지는 Spring Security에서 `denyAll`로 차단한다(메트릭은 in-process Micrometer로만 수집). 메트릭 태그 `application=attune`.
 - dev 서버 부하 테스트 시에는 `SPRING_PROFILES_ACTIVE=dev,loadtest`를 사용한다. health/probe는 base에서 켜지며, 이 프로파일은 로그 레벨을 낮추고 메트릭에 `environment=loadtest` 태그를 붙이며 web-push를 stub으로 바꾼다.
 
 ## 로컬 로그
