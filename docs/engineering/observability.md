@@ -27,7 +27,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 | 태그 | 값 |
 |------|----|
 | `application` | `attune` |
-| `environment` | `dev`, `prod`, `loadtest` |
+| `environment` | `local`, `dev`, `prod`, `loadtest` |
 | `release` | `APP_RELEASE`, 없으면 `unknown` |
 
 1차 custom metric 후보(10개 이하):
