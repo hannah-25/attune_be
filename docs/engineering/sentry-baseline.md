@@ -4,7 +4,7 @@
 
 ## 런타임 정책
 
-- 의존성: `io.sentry:sentry-spring-boot-4-starter`.
+- 의존성: `io.sentry:sentry-spring-boot-4-starter` + `io.sentry:sentry-logback`. starter는 Logback appender를 포함하지 않으므로, log appender 캡처를 쓰려면 `sentry-logback`을 **반드시 함께** 추가해야 한다(없으면 `sentry.logging.enabled=true`가 무효가 되어 이벤트가 0건이 된다).
 - 기본값: `sentry.enabled=${SENTRY_ENABLED:false}`.
 - 운영 활성화에는 `SENTRY_ENABLED=true`, `SENTRY_DSN`, `APP_RELEASE`가 필요하다.
 - secret은 GitHub Secrets, `application-secret.yml`, 환경 변수를 통해 주입한다. DSN은 커밋하지 않는다.
