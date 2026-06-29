@@ -90,6 +90,23 @@ management:
 
 
 # Logging 설정
+sentry:
+  enabled: ${SENTRY_ENABLED:false}
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${APP_RELEASE:unknown}
+  send-default-pii: false
+  max-request-body-size: none
+  sample-rate: ${SENTRY_SAMPLE_RATE:1.0}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  profiles-sample-rate: ${SENTRY_PROFILES_SAMPLE_RATE:0.0}
+  attach-stacktrace: true
+  attach-threads: false
+  logging:
+    enabled: false
+  in-app-includes:
+    - attune
+
 logging:
   pattern:
     console: '%d{HH:mm:ss.SSS} [%thread] %-5level [%X{requestId:-no-request-id}] %logger{36} - %msg%n'

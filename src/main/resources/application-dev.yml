@@ -51,3 +51,6 @@ management:
   metrics:
     tags:
       environment: dev
+
+sentry:
+  environment: ${SENTRY_ENVIRONMENT:dev}

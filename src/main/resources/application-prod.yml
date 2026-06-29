@@ -74,3 +74,6 @@ management:
   metrics:
     tags:
       environment: prod
+
+sentry:
+  environment: ${SENTRY_ENVIRONMENT:prod}

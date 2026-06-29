@@ -44,6 +44,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'io.sentry:sentry-spring-boot-4-starter:8.46.0'
 	implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
 	implementation 'nl.martijndwars:web-push:5.1.2'
 	implementation 'org.apache.httpcomponents:httpclient:4.5.13'

@@ -17,7 +17,7 @@
 | Step 2 | 안전한 health / Actuator 접근 제어 | ✅ 앱 레벨 + dev/prod loopback management port 완료 |
 | Step 3 | 구조화 로그·요청 상관관계 | 🟡 requestId·외부 호출 PII 감사 1차 완료, JSON 로그 후속 |
 | Step 4 | 메트릭·도메인 계측 (CloudWatch) | 🟡 in-process custom meter 구현, CloudWatch export/IAM 후속 |
-| Step 5 | 오류 추적·알림 (Sentry/대시보드) | 🟡 Sentry Free/CloudWatch Alarm 중심 정책 결정 |
+| Step 5 | 오류 추적·알림 (Sentry/대시보드) | 🟡 Sentry baseline 구현, DSN/알림 후속 |
 | Step 6 | 성능 기준선·운영 검증 (부하 테스트) | 🟡 loadtest 프로파일 준비됨 |
 
 ---
@@ -70,11 +70,11 @@ PR #85는 **외부 계정 결정이 필요 없는 코드/설정 범위**만 다�
 - [x] Sentry: Free/Developer 범위, 오류 이벤트 중심, PII 차단
 - [x] Slack 운영 채널: `#attune-prod`
 - [ ] EC2 IAM instance profile 적용 담당자/시점 확정
-- [ ] Sentry DSN 발급 및 GitHub Secret/application-secret 주입
+- [ ] Sentry DSN 발급 및 GitHub Secret/application-secret 주입 (`docs/engineering/sentry-baseline.md` 기준)
 
 ### C. 결정 후 구현할 단계 (Step 4·5·6)
 - [ ] **Step 4 메트릭**: Gemini/mail/push/scheduler custom metric은 in-process Micrometer meter로 구현됨. Micrometer CloudWatch registry, EC2 IAM 권한 적용, HTTP/JVM/Hikari CloudWatch 전송 확인은 후속.
-- [ ] **Step 5 오류추적·알림**: Sentry Spring integration(prod 한정, PII 차단, 환경/release 태그), CloudWatch Alarm 중심 Slack 알림(`#attune-prod`) + runbook 링크.
+- [ ] **Step 5 오류추적·알림**: Sentry Spring Boot 4 baseline은 구현됨(기본 disabled, PII sanitizer). Sentry DSN 주입/운영 enablement, CloudWatch Alarm 중심 Slack 알림(`#attune-prod`) + runbook 링크는 후속.
 - [ ] **Step 6 성능 기준선**: k6 부하 테스트(이미 `loadtest` 프로파일 준비), 동시 사용자·p95·오류율 기록, 장애 주입 검증(5xx/DB 차단/Gemini 429·timeout/scheduler 실패), 초기 2주 임계값·샘플링 조정.
 
 ### D. 후속 보강 — 외부 결정 불필요 (코드/설정)
