@@ -4,6 +4,7 @@ import attune.ai.application.AiTextGenerator;
 import attune.ai.config.GeminiProperties;
 import attune.common.error.internalserver.GeminiGenerationException;
 import attune.common.error.serviceunavailable.GeminiUnavailableException;
+import attune.common.observability.ObservabilityMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,10 +15,14 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
 import static attune.common.util.ExceptionUtils.sanitized;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_FAILURE;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_QUOTA;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_SUCCESS;
 
 @Slf4j
 @Component
@@ -32,6 +37,7 @@ public class GeminiTextGenerator implements AiTextGenerator {
 
     private final RestClient restClient;
     private final GeminiProperties properties;
+    private final ObservabilityMetrics metrics;
     private final Sleeper sleeper;
 
     /** 백오프 대기 추상화. 운영에서는 {@link Thread#sleep(long)}, 테스트에서는 즉시 반환 구현을 주입한다. */
@@ -43,18 +49,21 @@ public class GeminiTextGenerator implements AiTextGenerator {
     @Autowired
     public GeminiTextGenerator(
             @Qualifier("geminiRestClient") RestClient restClient,
-            GeminiProperties properties
+            GeminiProperties properties,
+            ObservabilityMetrics metrics
     ) {
-        this(restClient, properties, Thread::sleep);
+        this(restClient, properties, metrics, Thread::sleep);
     }
 
     GeminiTextGenerator(
             RestClient restClient,
             GeminiProperties properties,
+            ObservabilityMetrics metrics,
             Sleeper sleeper
     ) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
         this.properties = Objects.requireNonNull(properties, "properties");
+        this.metrics = Objects.requireNonNull(metrics, "metrics");
         this.sleeper = Objects.requireNonNull(sleeper, "sleeper");
     }
 
@@ -69,6 +78,28 @@ public class GeminiTextGenerator implements AiTextGenerator {
     }
 
     private String callGemini(GeminiRequest request) {
+        long startedAt = System.nanoTime();
+        String outcome = OUTCOME_FAILURE;
+        try {
+            String result = callGeminiWithRetry(request);
+            outcome = OUTCOME_SUCCESS;
+            return result;
+        } catch (GeminiUnavailableException e) {
+            if (isQuotaFailure(e)) {
+                outcome = OUTCOME_QUOTA;
+            }
+            throw e;
+        } finally {
+            metrics.recordGeminiRequest(Duration.ofNanos(System.nanoTime() - startedAt), outcome);
+        }
+    }
+
+    private boolean isQuotaFailure(GeminiUnavailableException e) {
+        Throwable cause = e.getCause();
+        return cause != null && "Gemini HTTP 429".equals(cause.getMessage());
+    }
+
+    private String callGeminiWithRetry(GeminiRequest request) {
         if (!StringUtils.hasText(properties.apiKey())) {
             throw new GeminiGenerationException("GEMINI_API_KEY is not configured.");
         }

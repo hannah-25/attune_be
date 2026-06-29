@@ -1,5 +1,6 @@
 package attune.alarm.application;
 
+import attune.common.observability.ObservabilityMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -25,10 +26,13 @@ class ReportAlarmSchedulerTest {
     @Test
     void sendWeeklyReportAlarmsDelegatestoSender() {
         WeeklyReportAlarmSender sender = mock(WeeklyReportAlarmSender.class);
-        ReportAlarmScheduler scheduler = new ReportAlarmScheduler(sender);
+        ObservabilityMetrics metrics = mock(ObservabilityMetrics.class);
+        ReportAlarmScheduler scheduler = new ReportAlarmScheduler(sender, metrics);
 
         scheduler.sendWeeklyReportAlarms();
 
         verify(sender).send();
+        verify(metrics).recordSchedulerRun("weekly_report_alarm", "success");
+        verify(metrics).recordSchedulerSuccess("weekly_report_alarm");
     }
 }

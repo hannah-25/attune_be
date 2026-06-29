@@ -41,6 +41,8 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 | `attune.scheduler.runs` | counter | `scheduler`, `outcome` | 주요 scheduler 실행 성공/실패 추적 |
 | `attune.scheduler.last.success` | gauge | `scheduler` | scheduler 마지막 성공 epoch seconds |
 
+현재 애플리케이션에는 위 custom metric을 in-process Micrometer meter로 생성한다. CloudWatch 전송 registry, EC2 IAM 권한, dashboard/alarm 리소스 생성은 후속 운영 설정 단계에서 붙인다. `attune.mail.requests`는 1차 구현에서 `type=general`로 기록하고, 메일 템플릿별 세분화는 필요 시 별도 PR에서 확장한다.
+
 1차 alarm 후보(10개 이하):
 
 | 알림 | 조건 초안 |
