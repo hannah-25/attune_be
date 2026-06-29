@@ -71,3 +71,6 @@ management:
     # public 앱 포트(8080)와 분리해 actuator 노출면을 줄인다.
     port: ${MANAGEMENT_SERVER_PORT:8081}
     address: ${MANAGEMENT_SERVER_ADDRESS:127.0.0.1}
+  metrics:
+    tags:
+      environment: prod
