@@ -10,6 +10,49 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 - 보안: dev/prod의 actuator는 public 앱 포트(8080)와 분리된 management server `127.0.0.1:8081`에 바인딩한다. `/actuator/health/**`·`/actuator/info`만 허용하고 `/actuator/metrics` 등 나머지는 Spring Security에서 `denyAll`로 차단한다(메트릭은 in-process Micrometer로만 수집). 메트릭 태그 `application=attune`.
 - dev 서버 부하 테스트 시에는 `SPRING_PROFILES_ACTIVE=dev,loadtest`를 사용한다. health/probe는 base에서 켜지며, 이 프로파일은 로그 레벨을 낮추고 메트릭에 `environment=loadtest` 태그를 붙이며 web-push를 stub으로 바꾼다.
 
+## 운영 관측성 예산 / 정책
+
+- AWS 리전: `ap-northeast-2` (EC2 AZ: `ap-northeast-2c`).
+- 월 비용 상한: 10,000 KRW 이하.
+- CloudWatch Logs 보관: 7일로 시작한다. 30일 보관은 실제 로그량과 비용을 본 뒤 재검토한다.
+- CloudWatch custom metrics: 1차는 10개 이하로 제한한다.
+- CloudWatch alarms: 1차는 10개 이하로 제한한다.
+- Sentry: Free/Developer 범위로 시작한다. 오류 이벤트 중심으로 쓰고, performance trace/log/replay/profiling은 비활성 또는 최소 샘플링으로 둔다.
+- Slack 운영 채널: `#attune-prod`. 1차 Slack 알림은 CloudWatch Alarm 중심으로 연결한다.
+
+## 메트릭 태그 / 1차 카탈로그
+
+공통 태그:
+
+| 태그 | 값 |
+|------|----|
+| `application` | `attune` |
+| `environment` | `local`, `dev`, `prod`, `loadtest` |
+| `release` | `APP_RELEASE`, 없으면 `unknown` |
+
+1차 custom metric 후보(10개 이하):
+
+| 이름 | 타입 | 태그 | 목적 |
+|------|------|------|------|
+| `attune.gemini.requests` | counter | `outcome` | Gemini 성공/실패/쿼터 실패 추적 |
+| `attune.gemini.duration` | timer | `outcome` | Gemini 호출 지연 추적 |
+| `attune.mail.requests` | counter | `outcome`, `type` | 메일 발송 성공/실패 추적 |
+| `attune.push.requests` | counter | `outcome`, `provider` | push 성공/실패/invalid subscription 추적 |
+| `attune.scheduler.runs` | counter | `scheduler`, `outcome` | 주요 scheduler 실행 성공/실패 추적 |
+| `attune.scheduler.last.success` | gauge | `scheduler` | scheduler 마지막 성공 epoch seconds |
+
+1차 alarm 후보(10개 이하):
+
+| 알림 | 조건 초안 |
+|------|----------|
+| Readiness 실패 | `http://127.0.0.1:8081/actuator/health/readiness` 5분 실패 |
+| API 5xx 증가 | 5분 5xx 비율 2% 초과 |
+| Hikari pool 압박 | pending connection 발생 또는 pool 사용률 80% 초과 |
+| Gemini 실패율 증가 | 10분 실패율 10% 초과 또는 quota 실패 발생 |
+| Mail 실패 증가 | 10분 실패율 5% 초과 |
+| Push 실패 증가 | 10분 실패율 10% 초과 |
+| Scheduler 지연 | 마지막 성공 시각이 허용 주기 초과 |
+
 ## 로컬 로그
 
 - `./gradlew bootRun` 콘솔 로그. 패턴: `HH:mm:ss.SSS [thread] LEVEL [requestId] logger - msg`.

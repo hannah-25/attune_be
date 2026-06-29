@@ -13,11 +13,11 @@
 
 | 단계 | 내용 | 상태 |
 |------|------|------|
-| Step 1 | 인프라·보안 결정 게이트 (AWS/Sentry/Slack/IAM) | ⛔ 외부 결정 대기 |
+| Step 1 | 인프라·보안 결정 게이트 (AWS/Sentry/Slack/IAM) | 🟡 기본 정책 결정, IAM 적용 후속 |
 | Step 2 | 안전한 health / Actuator 접근 제어 | ✅ 앱 레벨 + dev/prod loopback management port 완료 |
 | Step 3 | 구조화 로그·요청 상관관계 | 🟡 requestId·외부 호출 PII 감사 1차 완료, JSON 로그 후속 |
-| Step 4 | 메트릭·도메인 계측 (CloudWatch) | ⛔ Step 1 결정 후 |
-| Step 5 | 오류 추적·알림 (Sentry/대시보드) | ⛔ Step 1 결정 후 |
+| Step 4 | 메트릭·도메인 계측 (CloudWatch) | 🟡 비용 제한형 카탈로그/공통 태그 준비 |
+| Step 5 | 오류 추적·알림 (Sentry/대시보드) | 🟡 Sentry Free/CloudWatch Alarm 중심 정책 결정 |
 | Step 6 | 성능 기준선·운영 검증 (부하 테스트) | 🟡 loadtest 프로파일 준비됨 |
 
 ---
@@ -63,15 +63,18 @@ PR #85는 **외부 계정 결정이 필요 없는 코드/설정 범위**만 다�
 ### A. PR #85 마무리
 - [x] 사람 리뷰 승인 → **머지** (현재 MERGED)
 
-### B. 외부 결정이 필요한 항목 — ⛔ 진행 막힘 (Step 1)
-사람이 정해줘야 후속(C)을 진행할 수 있다. 계획서 TODO와 동일.
-- [ ] AWS 계정/리전, CloudWatch log group·보관기간(권장 30일), **월 비용 상한**
-- [ ] Sentry 프로젝트/DSN/샘플링·PII 차단 정책
-- [ ] 알림용 **Slack 운영 채널**, EC2 IAM 적용 담당자
+### B. 외부 결정 / 적용 항목 (Step 1)
+- [x] AWS 리전: `ap-northeast-2` (EC2 AZ: `ap-northeast-2c`)
+- [x] 월 비용 상한: 10,000 KRW 이하
+- [x] CloudWatch Logs 보관기간: 7일로 시작
+- [x] Sentry: Free/Developer 범위, 오류 이벤트 중심, PII 차단
+- [x] Slack 운영 채널: `#attune-prod`
+- [ ] EC2 IAM instance profile 적용 담당자/시점 확정
+- [ ] Sentry DSN 발급 및 GitHub Secret/application-secret 주입
 
 ### C. 결정 후 구현할 단계 (Step 4·5·6)
-- [ ] **Step 4 메트릭**: Micrometer CloudWatch registry, 공통 태그(`application`/`environment`/`release`), HTTP/JVM/Hikari + Gemini·메일·push·scheduler 성공/실패/지연/마지막 성공 계측. 지표 카탈로그를 `observability.md`에 기록.
-- [ ] **Step 5 오류추적·알림**: Sentry Spring integration(prod 한정, PII 차단, 환경/release 태그), CloudWatch 대시보드·Alarm + 알림마다 runbook·대시보드 링크.
+- [ ] **Step 4 메트릭**: Micrometer CloudWatch registry, HTTP/JVM/Hikari + 비용 제한형 custom metric(10개 이하) 계측. 1차 지표 카탈로그는 `observability.md`에 기록됨.
+- [ ] **Step 5 오류추적·알림**: Sentry Spring integration(prod 한정, PII 차단, 환경/release 태그), CloudWatch Alarm 중심 Slack 알림(`#attune-prod`) + runbook 링크.
 - [ ] **Step 6 성능 기준선**: k6 부하 테스트(이미 `loadtest` 프로파일 준비), 동시 사용자·p95·오류율 기록, 장애 주입 검증(5xx/DB 차단/Gemini 429·timeout/scheduler 실패), 초기 2주 임계값·샘플링 조정.
 
 ### D. 후속 보강 — 외부 결정 불필요 (코드/설정)

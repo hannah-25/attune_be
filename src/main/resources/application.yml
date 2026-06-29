@@ -64,6 +64,8 @@ management:
         enabled: true
     tags:
       application: ${spring.application.name}
+      release: ${APP_RELEASE:unknown}
+      environment: local
   endpoint:
     health:
       show-details: never

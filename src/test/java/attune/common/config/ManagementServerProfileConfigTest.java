@@ -18,6 +18,8 @@ class ManagementServerProfileConfigTest {
                 .isEqualTo("${MANAGEMENT_SERVER_PORT:8081}");
         assertThat(properties.getProperty("management.server.address"))
                 .isEqualTo("${MANAGEMENT_SERVER_ADDRESS:127.0.0.1}");
+        assertThat(properties.getProperty("management.metrics.tags.environment"))
+                .isEqualTo("dev");
     }
 
     @Test
@@ -28,6 +30,8 @@ class ManagementServerProfileConfigTest {
                 .isEqualTo("${MANAGEMENT_SERVER_PORT:8081}");
         assertThat(properties.getProperty("management.server.address"))
                 .isEqualTo("${MANAGEMENT_SERVER_ADDRESS:127.0.0.1}");
+        assertThat(properties.getProperty("management.metrics.tags.environment"))
+                .isEqualTo("prod");
     }
 
     private Properties load(String path) {

@@ -171,12 +171,13 @@
 - 2026-06-27: Step 3(민감정보 로그) 1차. 공지 메일 발송 실패 로그가 `email` 주소를 남기던 것을 `userId`로 교체했다. 로그/Sentry/메트릭의 PII 금지 정책을 `observability.md`에 명문화했다. 로그의 `userId`(UUID) 사용은 디버깅 식별자로 허용하되 메트릭 태그로는 쓰지 않는다.
 - 2026-06-28: Step 3 심화 1차 완료. `StubPushSender`와 `AdminNotificationSender`는 push title/body 본문 대신 길이만 로그에 남기도록 변경했다. `GoogleCalendarClient`와 `GeminiTextGenerator`는 외부 API response body를 로그 메시지와 예외 cause에 보존하지 않도록 변경했다. 문의 메일 실패 로그와 Google OAuth 검증 예외 로그는 원본 예외/메시지 대신 에러 타입만 남긴다. 외부 API response body와 push 본문 금지 정책을 `observability.md`에 추가했다.
 - 2026-06-29: Step 2 후속. dev/prod management server를 public 앱 포트와 분리해 기본 `127.0.0.1:8081`에 바인딩한다. deploy-dev/deploy-prod readiness gate는 EC2 내부 `http://127.0.0.1:8081/actuator/health/readiness`를 폴링한다. local 프로파일은 기존 단일 포트 동작을 유지한다.
-- TODO(owner, YYYY-MM-DD, reason): CloudWatch/Sentry 예산, 리전, 보관 기간, Slack 운영 채널 및 EC2 IAM 적용 담당자를 확정한다.
+- 2026-06-29: 운영 정책 결정. AWS 리전은 `ap-northeast-2`(EC2 AZ `ap-northeast-2c`), 월 비용 상한은 10,000 KRW 이하, CloudWatch Logs 보관은 7일 시작, custom metrics/alarms는 각각 10개 이하로 시작한다. Sentry는 Free/Developer 범위에서 오류 이벤트 중심으로 쓰고 trace/log/replay/profiling은 비활성 또는 최소 샘플링으로 둔다. Slack 운영 채널은 `#attune-prod`로 한다.
+- TODO(owner, YYYY-MM-DD, reason): EC2 IAM instance profile 적용 담당자/시점과 Sentry DSN 주입 방식을 확정한다.
 
 ## 완료 조건
 
 - [ ] 중앙 로그에서 request ID로 API 오류를 검색할 수 있다. 애플리케이션 로그의 requestId 주입은 완료했으며, 중앙 로그 수집 연동은 남아 있다.
-- [ ] 운영 dashboard에서 HTTP, JVM/컨테이너, Hikari, 외부 의존성, scheduler 상태를 볼 수 있다.
+- [ ] 운영 dashboard에서 HTTP, JVM/컨테이너, Hikari, 외부 의존성, scheduler 상태를 볼 수 있다. 비용 제한형 1차 metric/alarm 카탈로그는 `observability.md`에 기록했다.
 - [x] readiness는 DB 장애를 실패로 보고, liveness는 외부 의존성 장애에 의해 불필요하게 실패하지 않는다. (readiness=`readinessState+db`, 배포 게이트가 readiness 폴링)
 - [x] Actuator metrics와 health 상세는 public internet에서 접근할 수 없다. (dev/prod management server=`127.0.0.1:8081`, metrics는 앱 레벨 `denyAll`) `ActuatorSecurityTest`와 `ManagementServerProfileConfigTest`로 검증.
 - [ ] 정의된 장애 조건이 Slack 알림과 runbook으로 연결된다.
