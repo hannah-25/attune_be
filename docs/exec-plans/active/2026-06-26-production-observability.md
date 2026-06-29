@@ -38,7 +38,7 @@
 2. Sentry를 애플리케이션 예외와 제한된 성능 추적용으로 사용한다. `send-default-pii=false`를 기본으로 하고 요청·응답 본문 수집은 금지한다.
 3. OpenTelemetry trace export(Tempo/Jaeger/OTel backend)는 Gemini·메일·푸시 병목 진단이 실제 필요해진 2단계 옵션으로 둔다. 초기에는 request ID를 모든 로그에 넣고 Sentry trace ID를 연계한다.
 
-이 선택은 현재 단일 EC2 Docker 배포에서 Prometheus/Grafana/Loki를 별도 운영하는 부담을 피한다. CloudWatch·Sentry의 계정, 비용 한도, 보관 기간, Slack webhook/채널은 구현 전 승인한다.
+이 선택은 현재 단일 EC2 Docker 배포에서 Prometheus/Grafana/Loki를 별도 운영하는 부담을 피한다. CloudWatch·Sentry의 계정, 비용 한도, 보관 기간, Discord webhook/채널은 구현 전 승인한다.
 
 ### 애플리케이션
 
@@ -66,7 +66,7 @@
 - 가용성: readiness 실패, 컨테이너 재시작, 외부 synthetic health check 실패.
 - 자원: CPU·메모리·디스크 80% 이상, Hikari pending 또는 pool 사용률 80% 이상.
 - 업무: scheduler 마지막 성공 시각 초과, Gemini/메일/web-push 실패율 급증.
-- 알림은 Slack 운영 채널로 보내며, 심각도·담당자·확인 절차·대시보드 링크를 포함한다.
+- 알림은 Discord 운영 채널로 보내며, 심각도·담당자·확인 절차·대시보드 링크를 포함한다.
 
 ## 제외 범위
 
@@ -98,7 +98,7 @@
 ## 작업 단계
 
 1. **인프라와 보안 결정 게이트**
-   - AWS 계정/리전, CloudWatch log group 이름, 보관 기간(권장 30일), 월 비용 상한, 알림 Slack 채널을 확정한다.
+   - AWS 계정/리전, CloudWatch log group 이름, 보관 기간(권장 30일), 월 비용 상한, 알림 Discord 채널을 확정한다.
    - EC2 instance profile에 CloudWatch Logs/Metrics 최소 권한만 부여한다. 장기 액세스 키는 컨테이너에 주입하지 않는다.
    - metrics/management 접근 경로를 확정한다. 권장안은 management port를 EC2 loopback 또는 private security group으로 제한하고, public ingress를 열지 않는 것이다.
    - Sentry 프로젝트, DSN, 보관·샘플링·PII 차단 정책을 승인한다.
@@ -175,6 +175,7 @@
 - 2026-06-29: Step 4 1차 구현. Gemini, mail, push, scheduler custom metric을 in-process Micrometer meter로 추가했다. CloudWatch registry/export, EC2 IAM 권한, dashboard/alarm 생성은 외부 운영 설정이 필요하므로 후속으로 둔다.
 - 2026-06-29: Step 5 1차 구현. Sentry Spring Boot 4 starter와 PII sanitizer baseline을 추가했다. 기본값은 disabled이며 운영 반영은 DSN 주입 후 `SENTRY_ENABLED=true`로 켠다.
 - 2026-06-30: Step 5 prod enablement 배선. `deploy-prod`의 `docker run`에 `SENTRY_ENABLED=true`·`APP_RELEASE=${{ github.sha }}`를 주입했다(비밀 아닌 토글/릴리스는 워크플로, DSN만 `application-secret.yml`). dev는 비용 제한 정책상 off 유지(`deploy-dev` 미변경). DSN 미주입 시 SDK는 no-op이라 머지는 안전하고, 실제 이벤트 전송은 운영 DSN 주입 후 배포부터 시작된다.
+- 2026-06-30: 운영 알림 채널을 Slack에서 **Discord**로 변경한다(2026-06-29 결정 갱신). 운영 채널명은 `#attune-prod` 유지. Sentry→Discord 알림은 Sentry Integrations/Alert Rule에서 설정하며 앱 secret 추가는 불필요하다. CloudWatch Alarm→Discord는 webhook 경로 확정 시 별도 주입한다.
 - TODO(owner, YYYY-MM-DD, reason): EC2 IAM instance profile 적용 담당자/시점과 Sentry DSN 주입 방식을 확정한다.
 
 ## 완료 조건
@@ -183,7 +184,7 @@
 - [ ] 운영 dashboard에서 HTTP, JVM/컨테이너, Hikari, 외부 의존성, scheduler 상태를 볼 수 있다. 비용 제한형 1차 metric/alarm 카탈로그는 `observability.md`에 기록했다.
 - [x] readiness는 DB 장애를 실패로 보고, liveness는 외부 의존성 장애에 의해 불필요하게 실패하지 않는다. (readiness=`readinessState+db`, 배포 게이트가 readiness 폴링)
 - [x] Actuator metrics와 health 상세는 public internet에서 접근할 수 없다. (dev/prod management server=`127.0.0.1:8081`, metrics는 앱 레벨 `denyAll`) `ActuatorSecurityTest`와 `ManagementServerProfileConfigTest`로 검증.
-- [ ] 정의된 장애 조건이 Slack 알림과 runbook으로 연결된다.
+- [ ] 정의된 장애 조건이 Discord 알림과 runbook으로 연결된다.
 - [ ] Sentry와 로그/메트릭 표본에 개인정보·JWT·요청 본문이 없다.
 - [ ] 부하 기준선과 알림 임계값 조정 기록이 문서화되어 있다.
 - [ ] `scripts/agent/verify`가 통과한다.
