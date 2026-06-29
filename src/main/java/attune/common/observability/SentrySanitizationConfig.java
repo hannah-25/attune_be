@@ -61,6 +61,10 @@ public class SentrySanitizationConfig {
         if (HTTP_BREADCRUMB_CATEGORY.equals(breadcrumb.getCategory())) {
             breadcrumb.removeData("http.query");
             breadcrumb.removeData("http.fragment");
+            // url 필드 자체에 query string이 박혀 있을 수 있으므로 잘라낸다.
+            if (breadcrumb.getData("url") instanceof String url) {
+                breadcrumb.setData("url", stripQueryAndFragment(url));
+            }
         }
         return breadcrumb;
     }
@@ -78,6 +82,23 @@ public class SentrySanitizationConfig {
         request.setData(null);
         request.setQueryString(null);
         request.setHeaders(safeHeaders(request.getHeaders()));
+        // setQueryString(null)과 별개로 url에 query가 남아 있을 수 있으므로 잘라낸다.
+        if (request.getUrl() != null) {
+            request.setUrl(stripQueryAndFragment(request.getUrl()));
+        }
+    }
+
+    private static String stripQueryAndFragment(String url) {
+        int cut = url.length();
+        int query = url.indexOf('?');
+        if (query != -1) {
+            cut = query;
+        }
+        int fragment = url.indexOf('#');
+        if (fragment != -1 && fragment < cut) {
+            cut = fragment;
+        }
+        return url.substring(0, cut);
     }
 
     private Map<String, String> safeHeaders(Map<String, String> headers) {

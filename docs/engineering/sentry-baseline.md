@@ -32,9 +32,12 @@ PII가 새지 않도록 하는 defense-in-depth다. 콜백 빈들은 `sentry.ena
 - cookies
 - `X-Request-Id`를 제외한 request header
 
+request/transaction의 `url` 필드는 `setQueryString(null)`과 별개로 query string이 박혀 있을 수
+있어 `?`·`#` 이후를 잘라낸다.
+
 breadcrumb는 별도로 통제한다. `minimum-breadcrumb-level=warn`으로 INFO 로그를 breadcrumb에서
-제외하고, `BeforeBreadcrumbCallback`이 HTTP breadcrumb의 `http.query`·`http.fragment`를 제거해
-URL query에 담길 수 있는 PII를 차단한다.
+제외하고, `BeforeBreadcrumbCallback`이 HTTP breadcrumb의 `http.query`·`http.fragment`를 제거하며
+`url` 필드의 query/fragment까지 잘라내 PII를 차단한다.
 
 ## 후속 작업
 

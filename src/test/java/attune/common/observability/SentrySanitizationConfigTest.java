@@ -24,6 +24,7 @@ class SentrySanitizationConfigTest {
         event.setUser(new User());
 
         Request request = new Request();
+        request.setUrl("https://api.example.com/v1/users?token=secret");
         request.setCookies("SESSION=secret");
         request.setData("{\"symptom\":\"sensitive\"}");
         request.setQueryString("token=secret");
@@ -36,6 +37,7 @@ class SentrySanitizationConfigTest {
         assertThat(sanitized.getRequest().getCookies()).isNull();
         assertThat(sanitized.getRequest().getData()).isNull();
         assertThat(sanitized.getRequest().getQueryString()).isNull();
+        assertThat(sanitized.getRequest().getUrl()).isEqualTo("https://api.example.com/v1/users");
         assertThat(sanitized.getRequest().getHeaders())
                 .containsOnly(Map.entry("X-Request-Id", "request-1"));
     }
@@ -47,6 +49,7 @@ class SentrySanitizationConfigTest {
         transaction.setUser(new User());
 
         Request request = new Request();
+        request.setUrl("https://api.example.com/v1/users?token=secret");
         request.setCookies("SESSION=secret");
         request.setData("{\"symptom\":\"sensitive\"}");
         request.setQueryString("token=secret");
@@ -59,6 +62,7 @@ class SentrySanitizationConfigTest {
         assertThat(sanitized.getRequest().getCookies()).isNull();
         assertThat(sanitized.getRequest().getData()).isNull();
         assertThat(sanitized.getRequest().getQueryString()).isNull();
+        assertThat(sanitized.getRequest().getUrl()).isEqualTo("https://api.example.com/v1/users");
         assertThat(sanitized.getRequest().getHeaders())
                 .containsOnly(Map.entry("X-Request-Id", "request-1"));
     }
@@ -67,7 +71,7 @@ class SentrySanitizationConfigTest {
     void stripsQueryAndFragmentFromHttpBreadcrumb() {
         Breadcrumb breadcrumb = new Breadcrumb();
         breadcrumb.setCategory("http");
-        breadcrumb.setData("url", "https://api.example.com/v1/users");
+        breadcrumb.setData("url", "https://api.example.com/v1/users?token=secret#frag");
         breadcrumb.setData("http.query", "token=secret");
         breadcrumb.setData("http.fragment", "section");
 
