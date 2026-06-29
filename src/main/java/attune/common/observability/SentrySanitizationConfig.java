@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 @Configuration
@@ -45,7 +44,7 @@ public class SentrySanitizationConfig {
         }
         Map<String, String> safe = new LinkedHashMap<>();
         headers.forEach((name, value) -> {
-            if (name != null && REQUEST_ID_HEADER.equals(name.toLowerCase(Locale.ROOT))) {
+            if (name != null && REQUEST_ID_HEADER.equalsIgnoreCase(name)) {
                 safe.put(name, value);
             }
         });
