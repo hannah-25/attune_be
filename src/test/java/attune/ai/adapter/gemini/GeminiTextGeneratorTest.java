@@ -24,6 +24,8 @@ class GeminiTextGeneratorTest {
             BASE_URL + "/v1beta/models/gemini-2.5-flash:generateContent";
     private static final String SUCCESS_BODY =
             "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"OK\"}]}}]}";
+    private static final String SENSITIVE_ERROR_BODY =
+            "{\"error\":\"사용자 복약 기록과 AI 응답 본문\"}";
 
     private RestClient.Builder builder;
     private MockRestServiceServer server;
@@ -72,10 +74,17 @@ class GeminiTextGeneratorTest {
     void throwsServiceUnavailableWhenOverloadPersists() {
         // 최초 1회 + 재시도 1회 = 총 2회만 호출해야 한다.
         server.expect(ExpectedCount.times(2), requestTo(URL))
-                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(SENSITIVE_ERROR_BODY)
+                        .contentType(MediaType.APPLICATION_JSON));
 
         assertThatThrownBy(() -> generator.generate("hi"))
-                .isInstanceOf(GeminiUnavailableException.class);
+                .isInstanceOfSatisfying(GeminiUnavailableException.class, e -> {
+                    assertThat(e).hasMessage("Gemini response generation failed.");
+                    assertThat(e.getCause()).hasMessage("Gemini HTTP 503");
+                    assertThat(e.getCause()).hasMessageNotContaining("복약 기록");
+                    assertThat(e.getCause().getStackTrace()).isNotEmpty();
+                });
         server.verify();
     }
 
@@ -93,10 +102,17 @@ class GeminiTextGeneratorTest {
     @Test
     void doesNotRetryNonTransientError() {
         server.expect(ExpectedCount.once(), requestTo(URL))
-                .andRespond(withStatus(HttpStatus.BAD_REQUEST));
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .body(SENSITIVE_ERROR_BODY)
+                        .contentType(MediaType.APPLICATION_JSON));
 
         assertThatThrownBy(() -> generator.generate("hi"))
-                .isInstanceOf(GeminiGenerationException.class);
+                .isInstanceOfSatisfying(GeminiGenerationException.class, e -> {
+                    assertThat(e).hasMessage("Gemini response generation failed.");
+                    assertThat(e.getCause()).hasMessage("Gemini HTTP 400");
+                    assertThat(e.getCause()).hasMessageNotContaining("복약 기록");
+                    assertThat(e.getCause().getStackTrace()).isNotEmpty();
+                });
         server.verify();
     }
 }

@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static attune.common.util.ExceptionUtils.sanitized;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -111,7 +113,8 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
         } catch (UnauthorizedException e) {
             throw e;
         } catch (Exception e) {
-            log.error("[GoogleOAuthVerifier] 토큰 검증 중 예외 발생: {}", e.getMessage(), e);
+            log.warn("[GoogleOAuthVerifier] token verification failed",
+                    sanitized("Google token verification failed", e));
             throw new UnauthorizedException("Google 토큰 검증에 실패했습니다.");
         }
     }

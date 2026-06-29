@@ -27,7 +27,7 @@ public class AdminNotificationSender {
     public void sendNoticeToAll(Long noticeId, String title, String content, LocalDateTime scheduledAt) {
         PushMessage message = new PushMessage(title, content, "/community/notice");
 
-        log.info("[MARKETING PUSH] noticeId={} title=\"{}\"", noticeId, title);
+        log.info("[MARKETING PUSH] noticeId={} titleLen={}", noticeId, length(title));
 
         int page = 0;
         List<UserSetting> batch;
@@ -56,7 +56,7 @@ public class AdminNotificationSender {
         String url = targetUrl != null ? targetUrl : "/";
         PushMessage message = new PushMessage(title, body, url);
 
-        log.info("[MARKETING PUSH] campaignId={} title=\"{}\"", campaignId, title);
+        log.info("[MARKETING PUSH] campaignId={} titleLen={}", campaignId, length(title));
 
         int page = 0;
         List<UserSetting> batch;
@@ -82,5 +82,9 @@ public class AdminNotificationSender {
 
     private List<UserSetting> loadBatch(int page) {
         return userSettingRepository.findAllByMarketingNotificationTrue(PageRequest.of(page, BATCH_SIZE, Sort.by("id").ascending()));
+    }
+
+    private int length(String value) {
+        return value == null ? 0 : value.length();
     }
 }

@@ -17,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Objects;
 
+import static attune.common.util.ExceptionUtils.sanitized;
+
 @Slf4j
 @Component
 public class GeminiTextGenerator implements AiTextGenerator {
@@ -91,13 +93,13 @@ public class GeminiTextGenerator implements AiTextGenerator {
                 if (status == 429) {
                     // 쿼터/레이트리밋 초과 — 재시도해도 회복 안 됨(비용만 발생). 즉시 503 안내.
                     log.warn("Gemini 쿼터/레이트리밋 초과(429) — 재시도하지 않음");
-                    throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, e);
+                    throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, sanitizedGeminiHttpException(status, e));
                 }
                 if (status != 502 && status != 503 && status != 504) {
                     // 400/401/403/404/500 등은 재시도 의미 없음 → 즉시 실패(500).
-                    throw new GeminiGenerationException(GENERATION_FAILED_MESSAGE, e);
+                    throw new GeminiGenerationException(GENERATION_FAILED_MESSAGE, sanitizedGeminiHttpException(status, e));
                 }
-                lastTransient = e; // 게이트웨이/과부하 일시 오류(502·503·504)만 재시도
+                lastTransient = sanitizedGeminiHttpException(status, e); // 게이트웨이/과부하 일시 오류(502·503·504)만 재시도
                 log.warn("Gemini 일시적 오류(HTTP {}) — 재시도 {}/{}", status, attempt, MAX_ATTEMPTS);
             } catch (ResourceAccessException e) {
                 lastTransient = e;
@@ -120,6 +122,11 @@ public class GeminiTextGenerator implements AiTextGenerator {
             Thread.currentThread().interrupt();
             throw new GeminiUnavailableException(GENERATION_FAILED_MESSAGE, ie);
         }
+    }
+
+    private RuntimeException sanitizedGeminiHttpException(int status, Exception e) {
+        // RestClientResponseException은 Gemini 응답 body를 보존한다. AI 응답/오류 본문은 로그 경로에 싣지 않는다.
+        return sanitized("Gemini HTTP " + status, e);
     }
 
     private String extractText(GeminiResponse response) {
