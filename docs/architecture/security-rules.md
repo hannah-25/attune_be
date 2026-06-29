@@ -22,6 +22,13 @@
 2. 로그에 토큰/비밀번호/개인정보를 남기지 않는다(마스킹).
 3. 탈퇴/비활성 계정은 정책에 따라 소프트 삭제 후 영구 삭제 경로를 거친다(`user` 도메인).
 
+## Management / Actuator
+
+1. dev/prod의 Actuator는 public 앱 포트와 분리된 management server에 둔다.
+2. management server는 기본 `127.0.0.1:8081`에 바인딩해 EC2 내부 배포 게이트만 접근하게 한다.
+3. `/actuator/health/**`·`/actuator/info`만 허용하고, `/actuator/metrics` 등 나머지 actuator HTTP endpoint는 Spring Security에서 `denyAll`로 차단한다.
+4. management address/port 변경은 배포 health gate와 함께 검토한다.
+
 ## 주요 위험 대응
 
 | 위험 | 대응 |

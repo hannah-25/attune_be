@@ -41,3 +41,10 @@ cors:
 
 app:
   frontend-url: "https://dev.attune-me.com"
+
+management:
+  server:
+    # Docker host network 배포에서 EC2 내부 health gate만 접근한다.
+    # public 앱 포트(8080)와 분리해 actuator 노출면을 줄인다.
+    port: ${MANAGEMENT_SERVER_PORT:8081}
+    address: ${MANAGEMENT_SERVER_ADDRESS:127.0.0.1}
