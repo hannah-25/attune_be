@@ -108,6 +108,9 @@ sentry:
     # 캡처하도록 ERROR 레벨로 켠다. 4xx(log.info/warn)는 이벤트로 가지 않는다.
     enabled: true
     minimum-event-level: error
+    # breadcrumb 기본 레벨은 INFO라 INFO 로그까지 breadcrumb로 수집된다. PII 표면을
+    # 줄이기 위해 WARN 이상만 breadcrumb로 남긴다(로그는 PII 금지 정책으로 이미 정제됨).
+    minimum-breadcrumb-level: warn
   in-app-includes:
     - attune
 

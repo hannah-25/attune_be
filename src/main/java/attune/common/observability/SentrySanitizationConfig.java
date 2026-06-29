@@ -1,5 +1,6 @@
 package attune.common.observability;
 
+import io.sentry.Breadcrumb;
 import io.sentry.SentryBaseEvent;
 import io.sentry.SentryEvent;
 import io.sentry.SentryOptions;
@@ -18,6 +19,7 @@ public class SentrySanitizationConfig {
 
     private static final String REQUEST_ID_HEADER = "x-request-id";
     private static final String REQUEST_ID_HEADER_CANONICAL = "X-Request-Id";
+    private static final String HTTP_BREADCRUMB_CATEGORY = "http";
 
     @Bean
     public SentryOptions.BeforeSendCallback sentryPiiSanitizer() {
@@ -27,6 +29,11 @@ public class SentrySanitizationConfig {
     @Bean
     public SentryOptions.BeforeSendTransactionCallback sentryTransactionPiiSanitizer() {
         return (transaction, hint) -> sanitizeTransaction(transaction);
+    }
+
+    @Bean
+    public SentryOptions.BeforeBreadcrumbCallback sentryBreadcrumbSanitizer() {
+        return (breadcrumb, hint) -> sanitizeBreadcrumb(breadcrumb);
     }
 
     SentryEvent sanitize(SentryEvent event) {
@@ -43,6 +50,19 @@ public class SentrySanitizationConfig {
         }
         sanitizeBaseEvent(transaction);
         return transaction;
+    }
+
+    Breadcrumb sanitizeBreadcrumb(Breadcrumb breadcrumb) {
+        if (breadcrumb == null) {
+            return null;
+        }
+        // HTTP breadcrumb는 BeforeSendCallback을 우회하므로 query/fragment를 제거한다.
+        // 키가 없으면 no-op이라 안전하다.
+        if (HTTP_BREADCRUMB_CATEGORY.equals(breadcrumb.getCategory())) {
+            breadcrumb.removeData("http.query");
+            breadcrumb.removeData("http.fragment");
+        }
+        return breadcrumb;
     }
 
     private void sanitizeBaseEvent(SentryBaseEvent event) {

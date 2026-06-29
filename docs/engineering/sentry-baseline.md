@@ -10,6 +10,7 @@
 - secret은 GitHub Secrets, `application-secret.yml`, 환경 변수를 통해 주입한다. DSN은 커밋하지 않는다.
 - 1차 범위는 오류 이벤트로 한정한다. tracing, profiling은 기본 비활성이다.
 - `@RestControllerAdvice`(`GlobalExceptionHandler`)가 모든 예외를 resolve 하므로 `SentryExceptionResolver` 경로로는 오류가 잡히지 않는다. 따라서 Sentry log appender를 ERROR 레벨로 켜서 `log.error`(500대)만 이벤트로 캡처한다. 4xx(`log.info`/`warn`)는 이벤트로 가지 않는다.
+- log appender로 stack trace를 캡처하려면 예외 객체를 로그의 **마지막 인자**로 넘겨야 한다(`log.error("컨텍스트 메시지", e)`). `log.error("Error: " + e.getMessage())`처럼 문자열로 합치면 Sentry가 stack trace를 받지 못한다. `GlobalExceptionHandler`의 500대 핸들러는 이 규칙을 따른다.
 
 ## PII 통제
 
@@ -23,13 +24,17 @@
 
 또한 애플리케이션은 오류 이벤트(`BeforeSendCallback`)와 트랜잭션 이벤트(`BeforeSendTransactionCallback`)
 양쪽에서 다음 항목을 제거한다. 트랜잭션 콜백은 향후 `traces-sample-rate>0`으로 tracing을 켜더라도
-PII가 새지 않도록 하는 defense-in-depth다. 두 콜백 빈은 `sentry.enabled=true`일 때만 등록된다(`@ConditionalOnProperty`).
+PII가 새지 않도록 하는 defense-in-depth다. 콜백 빈들은 `sentry.enabled=true`일 때만 등록된다(`@ConditionalOnProperty`).
 
 - Sentry user
 - request body
 - query string
 - cookies
 - `X-Request-Id`를 제외한 request header
+
+breadcrumb는 별도로 통제한다. `minimum-breadcrumb-level=warn`으로 INFO 로그를 breadcrumb에서
+제외하고, `BeforeBreadcrumbCallback`이 HTTP breadcrumb의 `http.query`·`http.fragment`를 제거해
+URL query에 담길 수 있는 PII를 차단한다.
 
 ## 후속 작업
 

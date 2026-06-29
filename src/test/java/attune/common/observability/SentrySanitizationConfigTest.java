@@ -1,5 +1,6 @@
 package attune.common.observability;
 
+import io.sentry.Breadcrumb;
 import io.sentry.SentryEvent;
 import io.sentry.protocol.Request;
 import io.sentry.protocol.SentryTransaction;
@@ -60,6 +61,32 @@ class SentrySanitizationConfigTest {
         assertThat(sanitized.getRequest().getQueryString()).isNull();
         assertThat(sanitized.getRequest().getHeaders())
                 .containsOnly(Map.entry("X-Request-Id", "request-1"));
+    }
+
+    @Test
+    void stripsQueryAndFragmentFromHttpBreadcrumb() {
+        Breadcrumb breadcrumb = new Breadcrumb();
+        breadcrumb.setCategory("http");
+        breadcrumb.setData("url", "https://api.example.com/v1/users");
+        breadcrumb.setData("http.query", "token=secret");
+        breadcrumb.setData("http.fragment", "section");
+
+        Breadcrumb sanitized = config.sanitizeBreadcrumb(breadcrumb);
+
+        assertThat(sanitized.getData("http.query")).isNull();
+        assertThat(sanitized.getData("http.fragment")).isNull();
+        assertThat(sanitized.getData("url")).isEqualTo("https://api.example.com/v1/users");
+    }
+
+    @Test
+    void keepsNonHttpBreadcrumbUntouched() {
+        Breadcrumb breadcrumb = new Breadcrumb();
+        breadcrumb.setCategory("auth");
+        breadcrumb.setData("http.query", "kept-because-not-http");
+
+        Breadcrumb sanitized = config.sanitizeBreadcrumb(breadcrumb);
+
+        assertThat(sanitized.getData("http.query")).isEqualTo("kept-because-not-http");
     }
 
     private Map<String, String> headers() {
