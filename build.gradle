@@ -45,6 +45,10 @@ dependencies {
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'io.sentry:sentry-spring-boot-4-starter:8.46.0'
+	// Logback appender: @RestControllerAdvice가 예외를 resolve 하므로 SentryExceptionResolver
+	// 경로로는 안 잡힌다. log.error(500대)를 Sentry 이벤트로 보내려면 이 의존성이 필요하다
+	// (starter에 미포함). sentry.logging.enabled=true + minimum-event-level=error 와 함께 동작.
+	implementation 'io.sentry:sentry-logback:8.46.0'
 	implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
 	implementation 'nl.martijndwars:web-push:5.1.2'
 	implementation 'org.apache.httpcomponents:httpclient:4.5.13'
