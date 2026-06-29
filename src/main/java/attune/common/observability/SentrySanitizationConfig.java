@@ -39,15 +39,14 @@ public class SentrySanitizationConfig {
     }
 
     private Map<String, String> safeHeaders(Map<String, String> headers) {
-        if (headers == null || headers.isEmpty()) {
-            return null;
-        }
         Map<String, String> safe = new LinkedHashMap<>();
-        headers.forEach((name, value) -> {
-            if (name != null && REQUEST_ID_HEADER.equalsIgnoreCase(name)) {
-                safe.put(name, value);
-            }
-        });
-        return safe.isEmpty() ? null : safe;
+        if (headers != null) {
+            headers.forEach((name, value) -> {
+                if (REQUEST_ID_HEADER.equalsIgnoreCase(name)) {
+                    safe.put(name, value);
+                }
+            });
+        }
+        return safe;
     }
 }
