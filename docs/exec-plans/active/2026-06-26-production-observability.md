@@ -173,6 +173,8 @@
 - 2026-06-29: Step 2 후속. dev/prod management server를 public 앱 포트와 분리해 기본 `127.0.0.1:8081`에 바인딩한다. deploy-dev/deploy-prod readiness gate는 EC2 내부 `http://127.0.0.1:8081/actuator/health/readiness`를 폴링한다. local 프로파일은 기존 단일 포트 동작을 유지한다.
 - 2026-06-29: 운영 정책 결정. AWS 리전은 `ap-northeast-2`(EC2 AZ `ap-northeast-2c`), 월 비용 상한은 10,000 KRW 이하, CloudWatch Logs 보관은 7일 시작, custom metrics/alarms는 각각 10개 이하로 시작한다. Sentry는 Free/Developer 범위에서 오류 이벤트 중심으로 쓰고 trace/log/replay/profiling은 비활성 또는 최소 샘플링으로 둔다. Slack 운영 채널은 `#attune-prod`로 한다.
 - 2026-06-29: Step 4 1차 구현. Gemini, mail, push, scheduler custom metric을 in-process Micrometer meter로 추가했다. CloudWatch registry/export, EC2 IAM 권한, dashboard/alarm 생성은 외부 운영 설정이 필요하므로 후속으로 둔다.
+- 2026-06-29: Step 5 1차 구현. Sentry Spring Boot 4 starter와 PII sanitizer baseline을 추가했다. 기본값은 disabled이며 운영 반영은 DSN 주입 후 `SENTRY_ENABLED=true`로 켠다.
+- 2026-06-30: Step 5 prod enablement 배선. `deploy-prod`의 `docker run`에 `SENTRY_ENABLED=true`·`APP_RELEASE=${{ github.sha }}`를 주입했다(비밀 아닌 토글/릴리스는 워크플로, DSN만 `application-secret.yml`). dev는 비용 제한 정책상 off 유지(`deploy-dev` 미변경). DSN 미주입 시 SDK는 no-op이라 머지는 안전하고, 실제 이벤트 전송은 운영 DSN 주입 후 배포부터 시작된다.
 - TODO(owner, YYYY-MM-DD, reason): EC2 IAM instance profile 적용 담당자/시점과 Sentry DSN 주입 방식을 확정한다.
 
 ## 완료 조건

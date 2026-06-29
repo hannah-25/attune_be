@@ -73,6 +73,8 @@ jobs:
               --restart unless-stopped \
               -e SPRING_PROFILES_ACTIVE=prod \
               -e APP_MIGRATION_DEFAULTTAGS_ENABLED=false \
+              -e SENTRY_ENABLED=true \
+              -e APP_RELEASE=${{ github.sha }} \
               hannah098/attune-be:prod
 
             for attempt in $(seq 1 120); do
