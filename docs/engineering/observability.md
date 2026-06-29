@@ -18,7 +18,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 - CloudWatch custom metrics: 1차는 10개 이하로 제한한다.
 - CloudWatch alarms: 1차는 10개 이하로 제한한다.
 - Sentry: Free/Developer 범위로 시작한다. 오류 이벤트 중심으로 쓰고, performance trace/log/replay/profiling은 비활성 또는 최소 샘플링으로 둔다.
-- Slack 운영 채널: `#attune-prod`. 1차 Slack 알림은 CloudWatch Alarm 중심으로 연결한다.
+- Discord 운영 채널: `#attune-prod`. 1차 Discord 알림은 CloudWatch Alarm 중심으로 연결한다.
 
 ## 메트릭 태그 / 1차 카탈로그
 
