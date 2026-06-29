@@ -1,6 +1,7 @@
 package attune.alarm.application;
 
 import attune.alarm.domain.model.NotificationAlarmType;
+import attune.common.observability.ObservabilityMetrics;
 import attune.medication.domain.model.UserMedicationSchedule;
 import attune.medication.domain.repository.UserMedicationScheduleRepository;
 import attune.user.domain.model.UserSetting;
@@ -19,19 +20,37 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_FAILURE;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_SUCCESS;
+
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class MedicationAlarmScheduler {
 
+    private static final String SCHEDULER_NAME = "medication_alarm";
     private static final int RECOVERY_WINDOW_MINUTES = 10;
 
     private final UserMedicationScheduleRepository scheduleRepository;
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
+    private final ObservabilityMetrics metrics;
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendMedicationAlarms() {
+        boolean success = false;
+        try {
+            sendMedicationAlarmsInternal();
+            success = true;
+        } finally {
+            metrics.recordSchedulerRun(SCHEDULER_NAME, success ? OUTCOME_SUCCESS : OUTCOME_FAILURE);
+            if (success) {
+                metrics.recordSchedulerSuccess(SCHEDULER_NAME);
+            }
+        }
+    }
+
+    private void sendMedicationAlarmsInternal() {
         LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalTime now = scheduledAt.toLocalTime();
 

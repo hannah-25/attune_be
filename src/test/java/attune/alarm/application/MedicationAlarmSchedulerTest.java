@@ -1,6 +1,7 @@
 package attune.alarm.application;
 
 import attune.medication.domain.repository.UserMedicationScheduleRepository;
+import attune.common.observability.ObservabilityMetrics;
 import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +20,8 @@ class MedicationAlarmSchedulerTest {
     private final MedicationAlarmScheduler scheduler = new MedicationAlarmScheduler(
             scheduleRepository,
             mock(UserSettingRepository.class),
-            mock(NotificationService.class)
+            mock(NotificationService.class),
+            mock(ObservabilityMetrics.class)
     );
 
     @Test

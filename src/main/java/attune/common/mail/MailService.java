@@ -1,6 +1,7 @@
 package attune.common.mail;
 
 import attune.common.error.internalserver.MailSendFailedException;
+import attune.common.observability.ObservabilityMetrics;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_FAILURE;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_SUCCESS;
 import static attune.common.util.ExceptionUtils.sanitized;
 
 @Slf4j
@@ -19,11 +22,17 @@ import static attune.common.util.ExceptionUtils.sanitized;
 public class MailService {
 
     private final JavaMailSender mailSender;
+    private final ObservabilityMetrics metrics;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
     private void sendEmail(String to, String subject, String html, String replyTo) {
+        sendEmail("general", to, subject, html, replyTo);
+    }
+
+    private void sendEmail(String type, String to, String subject, String html, String replyTo) {
+        boolean success = false;
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
@@ -33,8 +42,11 @@ public class MailService {
             helper.setText(html, true);
             if (replyTo != null) helper.setReplyTo(replyTo);
             mailSender.send(mimeMessage);
+            success = true;
         } catch (MessagingException e) {
             throw new MailSendFailedException(e);
+        } finally {
+            metrics.recordMailRequest(type, success ? OUTCOME_SUCCESS : OUTCOME_FAILURE);
         }
     }
 

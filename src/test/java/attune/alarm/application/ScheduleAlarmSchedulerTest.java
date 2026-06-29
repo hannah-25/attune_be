@@ -2,6 +2,7 @@ package attune.alarm.application;
 
 import attune.alarm.domain.model.NotificationAlarmType;
 import attune.alarm.domain.model.NotificationStatus;
+import attune.common.observability.ObservabilityMetrics;
 import attune.schedule.domain.model.Schedule;
 import attune.schedule.domain.model.ScheduleAlarm;
 import attune.schedule.domain.repository.ScheduleAlarmRepository;
@@ -23,7 +24,7 @@ class ScheduleAlarmSchedulerTest {
     private final ScheduleAlarmRepository scheduleAlarmRepository = mock(ScheduleAlarmRepository.class);
     private final NotificationService notificationService = mock(NotificationService.class);
     private final ScheduleAlarmScheduler scheduler =
-            new ScheduleAlarmScheduler(scheduleAlarmRepository, notificationService);
+            new ScheduleAlarmScheduler(scheduleAlarmRepository, notificationService, mock(ObservabilityMetrics.class));
 
     @Test
     void sendsAllDueUnsentAlarmsAndMarksThemAsSent() {

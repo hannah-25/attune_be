@@ -2,6 +2,7 @@ package attune.alarm.application;
 
 import attune.alarm.domain.model.NotificationAlarmType;
 import attune.alarm.domain.model.NotificationStatus;
+import attune.common.observability.ObservabilityMetrics;
 import attune.todo.domain.model.Todo;
 import attune.todo.domain.repository.TodoRepository;
 import attune.user.domain.model.UserSetting;
@@ -19,17 +20,36 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_FAILURE;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_SUCCESS;
+
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class TodoAlarmScheduler {
 
+    private static final String SCHEDULER_NAME = "todo_alarm";
+
     private final TodoRepository todoRepository;
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
+    private final ObservabilityMetrics metrics;
 
     @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
     public void sendTodoAlarms() {
+        boolean success = false;
+        try {
+            sendTodoAlarmsInternal();
+            success = true;
+        } finally {
+            metrics.recordSchedulerRun(SCHEDULER_NAME, success ? OUTCOME_SUCCESS : OUTCOME_FAILURE);
+            if (success) {
+                metrics.recordSchedulerSuccess(SCHEDULER_NAME);
+            }
+        }
+    }
+
+    private void sendTodoAlarmsInternal() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
 
         List<Todo> candidates = loadCandidates(now);

@@ -3,6 +3,7 @@ package attune.ai.adapter.gemini;
 import attune.ai.config.GeminiProperties;
 import attune.common.error.internalserver.GeminiGenerationException;
 import attune.common.error.serviceunavailable.GeminiUnavailableException;
+import attune.common.observability.ObservabilityMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -38,6 +40,7 @@ class GeminiTextGeneratorTest {
         generator = new GeminiTextGenerator(
                 builder.build(),
                 new GeminiProperties("test-key", BASE_URL, "gemini-2.5-flash"),
+                mock(ObservabilityMetrics.class),
                 millis -> { /* 테스트에서는 백오프 대기 없이 즉시 진행 */ });
     }
 
