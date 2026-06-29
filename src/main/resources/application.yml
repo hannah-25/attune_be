@@ -103,7 +103,11 @@ sentry:
   attach-stacktrace: true
   attach-threads: false
   logging:
-    enabled: false
+    # @RestControllerAdvice(GlobalExceptionHandler)가 모든 예외를 resolve 하므로
+    # SentryExceptionResolver 경로로는 오류가 안 잡힌다. log.error(500대)만 이벤트로
+    # 캡처하도록 ERROR 레벨로 켠다. 4xx(log.info/warn)는 이벤트로 가지 않는다.
+    enabled: true
+    minimum-event-level: error
   in-app-includes:
     - attune
 

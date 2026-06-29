@@ -13,6 +13,7 @@ import java.util.Map;
 public class SentrySanitizationConfig {
 
     private static final String REQUEST_ID_HEADER = "x-request-id";
+    private static final String REQUEST_ID_HEADER_CANONICAL = "X-Request-Id";
 
     @Bean
     public SentryOptions.BeforeSendCallback sentryPiiSanitizer() {
@@ -39,14 +40,15 @@ public class SentrySanitizationConfig {
     }
 
     private Map<String, String> safeHeaders(Map<String, String> headers) {
-        Map<String, String> safe = new LinkedHashMap<>();
-        if (headers != null) {
-            headers.forEach((name, value) -> {
-                if (REQUEST_ID_HEADER.equalsIgnoreCase(name)) {
-                    safe.put(name, value);
-                }
-            });
+        if (headers == null) {
+            return null;
         }
+        Map<String, String> safe = new LinkedHashMap<>();
+        headers.forEach((name, value) -> {
+            if (REQUEST_ID_HEADER.equalsIgnoreCase(name)) {
+                safe.put(REQUEST_ID_HEADER_CANONICAL, value);
+            }
+        });
         return safe;
     }
 }
