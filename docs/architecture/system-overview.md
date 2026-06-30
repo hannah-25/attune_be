@@ -7,7 +7,7 @@
                         ├─ Web MVC (REST, springdoc/Swagger)
                         ├─ Spring Security + JwtAuthenticationFilter
                         ├─ JPA/Hibernate ──> [MySQL]   (dev/prod) / [H2] (local·test)
-                        ├─ Redis ──> 토큰 캐시(UserAuthCache)
+                        ├─ Redis ──> 토큰 세션(UserAuthCache), 안정적인 공통 기준 데이터 캐시
                         ├─ Caffeine ──> 로컬 인메모리 캐시
                         ├─ Mail (SMTP/Gmail) ──> 이메일 발송
                         ├─ web-push (VAPID) ──> 푸시 알림

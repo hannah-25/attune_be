@@ -1,5 +1,6 @@
 package attune.journal.application;
 
+import attune.common.cache.RedisJsonCache;
 import attune.common.error.BadRequestException;
 import attune.common.error.conflict.DuplicateTagException;
 import attune.common.error.notfound.JournalTagNotFoundException;
@@ -16,11 +17,13 @@ import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -37,21 +40,28 @@ public class JournalTagService {
 
     public record CreateResult(JournalTagResponse response, boolean reactivated) {}
 
+    private static final Duration SYSTEM_TAG_CACHE_TTL = Duration.ofHours(12);
+    private static final TypeReference<List<JournalTagResponse>> JOURNAL_TAG_RESPONSE_LIST_TYPE =
+            new TypeReference<>() {};
+
     private final JournalTagRepository journalTagRepository;
     private final UserJournalTagPreferenceRepository preferenceRepository;
+    private final RedisJsonCache redisJsonCache;
 
     @Transactional(readOnly = true)
     public List<JournalTagResponse> getTags(JournalTagCategory category, boolean manage) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        List<JournalTag> systemTags = journalTagRepository
-                .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category);
+        List<JournalTagResponse> systemTags = getSystemTagResponses(category);
         List<JournalTag> userTags = journalTagRepository
                 .findAllByScopeAndOwnerUserIdAndCategoryAndIsActiveTrue(JournalTagScope.USER, userId, category);
         Map<Long, UserJournalTagPreference> preferences = preferenceRepository.findAllByUserId(userId).stream()
                 .collect(Collectors.toMap(UserJournalTagPreference::getJournalTagId, Function.identity()));
 
-        return Stream.concat(systemTags.stream(), userTags.stream())
-                .map(tag -> toResponse(tag, preferences.get(tag.getId())))
+        return Stream.concat(
+                        systemTags.stream()
+                                .map(tag -> applyPreference(tag, preferences.get(tag.tagId()))),
+                        userTags.stream()
+                                .map(tag -> toResponse(tag, preferences.get(tag.getId()))))
                 .filter(r -> manage || (r.enabled() && r.visible()))
                 .sorted(Comparator.comparingInt((JournalTagResponse r) -> r.scope().ordinal())
                         .thenComparingLong(JournalTagResponse::tagId))
@@ -69,15 +79,27 @@ public class JournalTagService {
     }
 
     private List<JournalTagResponse> getSystemTagsForOnboarding(UUID userId, JournalTagCategory category) {
-        List<JournalTag> systemTags = journalTagRepository
-                .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category);
+        List<JournalTagResponse> systemTags = getSystemTagResponses(category);
         Map<Long, UserJournalTagPreference> preferences = preferenceRepository.findAllByUserId(userId).stream()
                 .collect(Collectors.toMap(UserJournalTagPreference::getJournalTagId, Function.identity()));
 
         return systemTags.stream()
-                .map(tag -> toResponse(tag, preferences.get(tag.getId())))
+                .map(tag -> applyPreference(tag, preferences.get(tag.tagId())))
                 .sorted(Comparator.comparingLong(JournalTagResponse::tagId))
                 .toList();
+    }
+
+    private List<JournalTagResponse> getSystemTagResponses(JournalTagCategory category) {
+        return redisJsonCache.getOrLoad(
+                "cache:journal:system-tags:" + category.name(),
+                JOURNAL_TAG_RESPONSE_LIST_TYPE,
+                SYSTEM_TAG_CACHE_TTL,
+                () -> journalTagRepository
+                        .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, category)
+                        .stream()
+                        .map(tag -> toResponse(tag, null))
+                        .toList()
+        );
     }
 
     @Transactional
@@ -205,6 +227,20 @@ public class JournalTagService {
                 tag.getName(),
                 tag.getTagType(),
                 tag.getScope(),
+                enabled,
+                visible
+        );
+    }
+
+    private JournalTagResponse applyPreference(JournalTagResponse tag, UserJournalTagPreference preference) {
+        boolean enabled = preference == null || preference.isEnabled();
+        boolean visible = preference != null ? preference.isVisible() : tag.visible();
+        return new JournalTagResponse(
+                tag.tagId(),
+                tag.category(),
+                tag.name(),
+                tag.tagType(),
+                tag.scope(),
                 enabled,
                 visible
         );

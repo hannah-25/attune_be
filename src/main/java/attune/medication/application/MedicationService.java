@@ -1,5 +1,6 @@
 package attune.medication.application;
 
+import attune.common.cache.RedisJsonCache;
 import attune.common.error.BadRequestException;
 import attune.common.error.badrequest.DuplicateScheduleTimeException;
 import attune.common.error.badrequest.InvalidDateRangeException;
@@ -37,16 +38,23 @@ import attune.medication.domain.repository.UserMedicationRepository;
 import attune.medication.domain.repository.UserMedicationScheduleRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.time.Duration;
+import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -57,6 +65,12 @@ import java.util.stream.Collectors;
 @Service
 public class MedicationService {
 
+    private static final Duration REFERENCE_CACHE_TTL = Duration.ofHours(12);
+    private static final TypeReference<List<MedicationSearchItemResponse>> MEDICATION_SEARCH_LIST_TYPE =
+            new TypeReference<>() {};
+    private static final TypeReference<MedicationDetailResponse> MEDICATION_DETAIL_TYPE =
+            new TypeReference<>() {};
+
     private final UserMedicationRepository userMedicationRepository;
     private final MedicationRepository medicationRepository;
     private final MedicationDosageRepository medicationDosageRepository;
@@ -64,6 +78,7 @@ public class MedicationService {
     private final UserMedicationLogRepository logRepository;
     private final UserRepository userRepository;
     private final ConsultationRepository consultationRepository;
+    private final RedisJsonCache redisJsonCache;
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
@@ -91,6 +106,15 @@ public class MedicationService {
 
     @Transactional(readOnly = true)
     public MedicationDetailResponse getMedicationDetail(Long medicationId) {
+        return redisJsonCache.getOrLoad(
+                "cache:medication:detail:" + medicationId,
+                MEDICATION_DETAIL_TYPE,
+                REFERENCE_CACHE_TTL,
+                () -> loadMedicationDetail(medicationId)
+        );
+    }
+
+    private MedicationDetailResponse loadMedicationDetail(Long medicationId) {
         Medication medication = getMedicationOrThrow(medicationId);
         List<MedicationDosage> dosages = medicationDosageRepository
                 .findByMedicationIdAndIsActiveTrueOrderByAmountAscIdAsc(medicationId);
@@ -100,7 +124,19 @@ public class MedicationService {
     @Transactional(readOnly = true)
     public List<MedicationSearchItemResponse> getMedications(String q) {
         String keyword = (q != null && !q.isBlank()) ? q.trim() : null;
+        String cacheKey = keyword == null
+                ? "cache:medication:search:all"
+                : "cache:medication:search:" + sha256(keyword.toLowerCase(Locale.ROOT));
 
+        return redisJsonCache.getOrLoad(
+                cacheKey,
+                MEDICATION_SEARCH_LIST_TYPE,
+                REFERENCE_CACHE_TTL,
+                () -> loadMedications(keyword)
+        );
+    }
+
+    private List<MedicationSearchItemResponse> loadMedications(String keyword) {
         List<Medication> medications = keyword == null
                 ? medicationRepository.findAllByOrderByIdAsc()
                 : medicationRepository.findByNameContainingIgnoreCaseOrGenericNameContainingIgnoreCaseOrderByIdAsc(keyword, keyword);
@@ -124,6 +160,15 @@ public class MedicationService {
                         dosagesByMedicationId.getOrDefault(medication.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    private String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(input.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     @Transactional

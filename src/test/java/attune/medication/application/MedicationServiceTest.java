@@ -1,11 +1,16 @@
 package attune.medication.application;
 
+import attune.common.cache.RedisJsonCache;
 import attune.common.error.BadRequestException;
 import attune.common.error.badrequest.DuplicateScheduleTimeException;
 import attune.common.security.CustomUserDetails;
 import attune.consultation.domain.repository.ConsultationRepository;
 import attune.medication.application.dto.request.CreateMedicationRequest;
 import attune.medication.application.dto.request.UpdateMedicationRequest;
+import attune.medication.application.dto.response.MedicationDetailResponse;
+import attune.medication.application.dto.response.MedicationSearchItemResponse;
+import attune.medication.domain.model.Medication;
+import attune.medication.domain.model.MedicationDosage;
 import attune.medication.domain.model.UserMedication;
 import attune.medication.domain.model.UserMedicationSchedule;
 import attune.medication.domain.repository.MedicationDosageRepository;
@@ -23,17 +28,21 @@ import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -42,15 +51,19 @@ import static org.mockito.Mockito.when;
 class MedicationServiceTest {
 
     private final UserMedicationRepository userMedicationRepository = mock(UserMedicationRepository.class);
+    private final MedicationRepository medicationRepository = mock(MedicationRepository.class);
+    private final MedicationDosageRepository medicationDosageRepository = mock(MedicationDosageRepository.class);
     private final UserMedicationScheduleRepository scheduleRepository = mock(UserMedicationScheduleRepository.class);
+    private final RedisJsonCache redisJsonCache = mock(RedisJsonCache.class);
     private final MedicationService medicationService = new MedicationService(
             userMedicationRepository,
-            mock(MedicationRepository.class),
-            mock(MedicationDosageRepository.class),
+            medicationRepository,
+            medicationDosageRepository,
             scheduleRepository,
             mock(UserMedicationLogRepository.class),
             mock(UserRepository.class),
-            mock(ConsultationRepository.class)
+            mock(ConsultationRepository.class),
+            redisJsonCache
     );
 
     @AfterEach
@@ -211,6 +224,55 @@ class MedicationServiceTest {
 
         verify(scheduleRepository, never()).findByUserMedicationId(medication.getId());
         verify(scheduleRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getMedicationsLoadsThroughRedisCacheOnMiss() {
+        Medication medication = Medication.builder()
+                .id(1L)
+                .name("Concerta")
+                .genericName("methylphenidate")
+                .build();
+        MedicationDosage dosage = MedicationDosage.builder()
+                .id(10L)
+                .medication(medication)
+                .amount(new BigDecimal("18.00"))
+                .build();
+
+        when(redisJsonCache.getOrLoad(eq("cache:medication:search:all"), any(), any(), any()))
+                .thenAnswer(invocation -> ((Supplier<List<MedicationSearchItemResponse>>) invocation.getArgument(3)).get());
+        when(medicationRepository.findAllByOrderByIdAsc()).thenReturn(List.of(medication));
+        when(medicationDosageRepository.findByMedicationIdInAndIsActiveTrueOrderByMedicationIdAscAmountAscIdAsc(List.of(1L)))
+                .thenReturn(List.of(dosage));
+
+        List<MedicationSearchItemResponse> result = medicationService.getMedications(null);
+
+        assertEquals(1, result.size());
+        assertEquals("Concerta", result.get(0).name());
+        assertEquals(10L, result.get(0).dosageOptions().get(0).dosageId());
+    }
+
+    @Test
+    void getMedicationDetailReturnsRedisCachedResponseWithoutRepositoryLookup() {
+        MedicationDetailResponse cached = new MedicationDetailResponse(
+                "Concerta",
+                "methylphenidate",
+                "effect",
+                "side effect",
+                "description",
+                null,
+                null,
+                null,
+                List.of()
+        );
+        when(redisJsonCache.getOrLoad(eq("cache:medication:detail:1"), any(), any(), any()))
+                .thenReturn(cached);
+
+        MedicationDetailResponse result = medicationService.getMedicationDetail(1L);
+
+        assertEquals(cached, result);
+        verify(medicationRepository, never()).findById(1L);
     }
 
     private UserMedicationSchedule schedule(Long id, UserMedication medication, LocalTime doseTime, boolean active, String label) {
