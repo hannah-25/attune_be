@@ -54,6 +54,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -125,7 +126,7 @@ public class MedicationService {
         String keyword = (q != null && !q.isBlank()) ? q.trim() : null;
         String cacheKey = keyword == null
                 ? "cache:medication:search:all"
-                : "cache:medication:search:" + sha256(keyword.toLowerCase());
+                : "cache:medication:search:" + sha256(keyword.toLowerCase(Locale.ROOT));
 
         return redisJsonCache.getOrLoad(
                 cacheKey,
