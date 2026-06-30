@@ -1,18 +1,26 @@
 package attune.journal.application;
 
+import attune.common.cache.RedisJsonCache;
 import attune.common.error.BadRequestException;
+import attune.common.security.CustomUserDetails;
+import attune.journal.application.dto.response.JournalTagResponse;
 import attune.journal.domain.model.JournalTag;
 import attune.journal.domain.model.JournalTagCategory;
 import attune.journal.domain.model.JournalTagScope;
 import attune.journal.domain.model.UserJournalTagPreference;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
+import attune.user.domain.model.UserStatus;
+import attune.user.domain.model.UserType;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +29,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -35,8 +45,62 @@ class JournalTagServiceTest {
     @Mock
     private UserJournalTagPreferenceRepository preferenceRepository;
 
+    @Mock
+    private RedisJsonCache redisJsonCache;
+
     @InjectMocks
     private JournalTagService journalTagService;
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void getTagsUsesCachedSystemTagsAndCombinesUserTags() {
+        UUID userId = UUID.randomUUID();
+        authenticate(userId);
+        LocalDateTime now = LocalDateTime.now();
+        JournalTag userTag = JournalTag.builder()
+                .id(10L)
+                .category(JournalTagCategory.TROUBLE)
+                .name("custom")
+                .tagType("INATTENTION")
+                .scope(JournalTagScope.USER)
+                .ownerUserId(userId)
+                .isActive(true)
+                .defaultVisible(true)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        UserJournalTagPreference systemPreference =
+                UserJournalTagPreference.create(userId, 1L, true, true, now);
+
+        when(redisJsonCache.getOrLoad(eq("cache:journal:system-tags:TROUBLE"), any(), any(), any()))
+                .thenReturn(List.of(new JournalTagResponse(
+                        1L,
+                        JournalTagCategory.TROUBLE,
+                        "system",
+                        "INATTENTION",
+                        JournalTagScope.SYSTEM,
+                        true,
+                        false
+                )));
+        when(journalTagRepository.findAllByScopeAndOwnerUserIdAndCategoryAndIsActiveTrue(
+                JournalTagScope.USER, userId, JournalTagCategory.TROUBLE))
+                .thenReturn(List.of(userTag));
+        when(preferenceRepository.findAllByUserId(userId))
+                .thenReturn(List.of(systemPreference));
+
+        List<JournalTagResponse> result = journalTagService.getTags(JournalTagCategory.TROUBLE, false);
+
+        assertThat(result)
+                .extracting(JournalTagResponse::tagId)
+                .containsExactly(1L, 10L);
+        assertThat(result.get(0).visible()).isTrue();
+        verify(journalTagRepository, never())
+                .findAllByScopeAndCategoryAndIsActiveTrue(JournalTagScope.SYSTEM, JournalTagCategory.TROUBLE);
+    }
 
     @Test
     void onboardingUpdatesOnlyActiveSystemTroubleTags() {
@@ -109,5 +173,12 @@ class JournalTagServiceTest {
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+    }
+
+    private void authenticate(UUID userId) {
+        CustomUserDetails principal = CustomUserDetails.fromJwt(userId, UserType.USER, UserStatus.ACTIVE);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities())
+        );
     }
 }
