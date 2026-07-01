@@ -9,6 +9,7 @@ import java.util.List;
 public record MedicationPeriodLogResponse(List<LogEntry> logs) {
     public record LogEntry(
             Long userMedicationId,
+            Long scheduleId,
             String name,
             LocalDateTime intakeTime,
             boolean taken
@@ -16,6 +17,7 @@ public record MedicationPeriodLogResponse(List<LogEntry> logs) {
         public static LogEntry from(UserMedicationLog log) {
             return new LogEntry(
                     log.getUserMedicationSchedule().getUserMedication().getId(),
+                    log.getUserMedicationSchedule().getId(),
                     log.getUserMedicationSchedule().getUserMedication().getMedicationDosage().getMedication().getName(),
                     log.getTakenAt(),
                     log.getStatus() == UserMedicationLogStatus.TAKEN
