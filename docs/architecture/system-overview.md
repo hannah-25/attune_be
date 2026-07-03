@@ -32,6 +32,6 @@
 | `local`(기본) | H2 인메모리 | 로컬 개발 |
 | `dev` | MySQL | 개발 서버(EC2) |
 | `prod` | MySQL | 운영 |
-| (test) | H2 | 테스트, `Asia/Seoul` 타임존 고정 |
+| (test) | H2 | 테스트, UTC 타임존 고정 |
 
 시크릿은 `application-secret.yml`(미추적)에서 프로파일별 문서로 주입. 자세한 내용 [`../database.md`](../database.md), [`../security.md`](../security.md).

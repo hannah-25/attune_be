@@ -261,11 +261,11 @@ public class GoogleCalendarClient {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+        return OffsetDateTime.parse(value).atZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
     }
 
     private String toGoogleDateTime(LocalDateTime value) {
-        return value.atZone(ZoneId.systemDefault()).toInstant().toString();
+        return value.atOffset(ZoneOffset.UTC).toInstant().toString();
     }
 
     private String resolveClientId() {

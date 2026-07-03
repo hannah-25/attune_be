@@ -13,20 +13,25 @@ import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagLogRepository;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
+import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
+import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,9 +55,19 @@ class JournalTagCheckServiceTest {
     private UserJournalTagPreferenceRepository preferenceRepository;
     @Mock
     private JournalTagLogSaver logSaver;
+    @Mock
+    private UserSettingRepository userSettingRepository;
 
-    @InjectMocks
+    private final Clock clock = Clock.systemUTC();
+
     private JournalTagCheckService checkService;
+
+    @BeforeEach
+    void setUp() {
+        checkService = new JournalTagCheckService(
+                journalTagRepository, logRepository, preferenceRepository,
+                logSaver, userSettingRepository, clock);
+    }
 
     @AfterEach
     void clearAuthentication() {
@@ -129,6 +144,27 @@ class JournalTagCheckServiceTest {
     }
 
     @Test
+    void futureDateBoundaryFollowsUserTimezoneNotSeoul() {
+        // 2026-07-04T02:00:00Z 시점: 서울은 07-04 11:00, 뉴욕은 아직 07-03 22:00.
+        // 뉴욕 사용자에게 07-04는 미래이므로 서울 기준이 아니라 뉴욕 기준으로 거부돼야 한다.
+        Clock fixed = Clock.fixed(Instant.parse("2026-07-04T02:00:00Z"), ZoneOffset.UTC);
+        JournalTagCheckService nyService = new JournalTagCheckService(
+                journalTagRepository, logRepository, preferenceRepository,
+                logSaver, userSettingRepository, fixed);
+        UUID userId = UUID.randomUUID();
+        authenticate(userId);
+        when(userSettingRepository.findById(userId))
+                .thenReturn(Optional.of(settingWithZone(userId, "America/New_York")));
+
+        assertThatThrownBy(() ->
+                nyService.uncheck(1L, LocalDate.of(2026, 7, 4)))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("future");
+
+        verifyNoInteractions(journalTagRepository, logRepository);
+    }
+
+    @Test
     void accessiblePastCheckCanBeRemovedIdempotently() {
         UUID userId = UUID.randomUUID();
         LocalDate journalDate = LocalDate.now(SEOUL).minusDays(1);
@@ -150,6 +186,13 @@ class JournalTagCheckServiceTest {
                 new UsernamePasswordAuthenticationToken(
                         principal, null, principal.getAuthorities())
         );
+    }
+
+    private UserSetting settingWithZone(UUID userId, String timezone) {
+        return UserSetting.builder()
+                .id(userId)
+                .timezone(timezone)
+                .build();
     }
 
     private JournalTag systemTag(Long id) {

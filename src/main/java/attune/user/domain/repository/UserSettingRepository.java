@@ -33,4 +33,12 @@ public interface UserSettingRepository extends JpaRepository<UserSetting, UUID> 
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
             """)
     long countMarketingTargets();
+
+    @Query("""
+            SELECT DISTINCT us.timezone FROM UserSetting us
+            JOIN us.user u
+            WHERE us.timezone IS NOT NULL
+              AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
+            """)
+    List<String> findDistinctActiveTimezones();
 }

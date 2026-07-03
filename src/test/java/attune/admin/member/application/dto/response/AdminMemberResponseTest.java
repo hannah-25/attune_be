@@ -31,9 +31,9 @@ class AdminMemberResponseTest {
 
         assertThat(response.id()).isEqualTo(user.getId());
         assertThat(response.nickname()).isEqualTo("회원");
-        assertThat(response.createdAt()).isEqualTo(Instant.parse("2024-12-31T15:00:00Z"));
-        assertThat(response.lastLoginAt()).isEqualTo(Instant.parse("2026-05-31T15:00:00Z"));
-        assertThat(response.withdrawalRequestedAt()).isEqualTo(Instant.parse("2026-06-19T01:30:00Z"));
-        assertThat(response.withdrawalScheduledAt()).isEqualTo(Instant.parse("2026-08-03T01:30:00Z"));
+        assertThat(response.createdAt()).isEqualTo(Instant.parse("2025-01-01T00:00:00Z"));
+        assertThat(response.lastLoginAt()).isEqualTo(Instant.parse("2026-06-01T00:00:00Z"));
+        assertThat(response.withdrawalRequestedAt()).isEqualTo(Instant.parse("2026-06-19T10:30:00Z"));
+        assertThat(response.withdrawalScheduledAt()).isEqualTo(Instant.parse("2026-08-03T10:30:00Z"));
     }
 }

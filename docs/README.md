@@ -39,6 +39,7 @@
 | [`medication_consultation_model.md`](./medication_consultation_model.md) | Medication–Consultation 데이터 모델 |
 | [`medication_api_entity_audit.md`](./medication_api_entity_audit.md) | Medication API↔Entity 구조 검토 |
 | [`user_medications_api_spec.md`](./user_medications_api_spec.md) | User Medications API 스펙 |
+| [`global-time-alarm-spec.md`](./global-time-alarm-spec.md) | 시간 처리 및 글로벌 복약 알림 시스템 명세 |
 | [`token-refresh-api-spec.md`](./token-refresh-api-spec.md) | Token Refresh API 스펙 (프론트) |
 | 그 외 `*-followup.md`, `journal-tag-*.md` | 후속작업/마이그레이션 기록 |
 

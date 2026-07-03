@@ -31,6 +31,7 @@
 | todo_notification | BOOLEAN | DEFAULT true | Todo 마감 알림 여부 |
 | take_medication_on_holiday | BOOLEAN | DEFAULT false | 휴일 복약 여부 |
 | theme | VARCHAR(50) | DEFAULT SYSTEM (DARK, LIGHT, SYSTEM) | 테마 설정 |
+| timezone | VARCHAR(64) | NOT NULL, DEFAULT Asia/Seoul, INDEX(idx_user_settings_timezone) | 사용자 최신 IANA timezone ID |
 
 ---
 
@@ -135,6 +136,7 @@
 | label | VARCHAR(100) | | 복용 레이블 (아침/점심/저녁 등) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | 활성 여부. 복용 시간 변경/중단 시 false로 소프트 삭제(복용 로그 보존을 위해 물리 삭제하지 않음) |
 | | | UNIQUE(user_medication_id, dose_time) | 같은 복약 내 동일 복용 시간 중복 방지 (재추가 시 기존 행 재활성화로 충돌 회피) |
+| | | INDEX(idx_user_medication_schedules_dose_time_active on dose_time, is_active) | timezone별 복약 알림 후보 조회 |
 
 ---
 
@@ -205,8 +207,8 @@
 | id | BIGINT | PK, AUTO_INCREMENT, NOT NULL | 로그 고유 식별자 |
 | user_id | UUID | FK → User.id ON DELETE CASCADE, NOT NULL | 사용자 ID |
 | journal_tag_id | BIGINT | FK → JournalTag.id ON DELETE RESTRICT, NOT NULL | 태그 ID |
-| journal_date | DATE | NOT NULL | 체크인 대상 날짜 (클라이언트 기준, Asia/Seoul) |
-| checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 |
+| journal_date | DATE | NOT NULL | 체크인 대상 날짜 (사용자 최신 timezone 기준) |
+| checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 (UTC) |
 | | | UNIQUE(user_id, journal_tag_id, journal_date) | 동일 날짜 중복 체크 방지 |
 
 ---

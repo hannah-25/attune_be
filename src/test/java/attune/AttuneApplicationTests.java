@@ -12,7 +12,7 @@ class AttuneApplicationTests {
 
 	@Test
 	void contextLoads() {
-		assertEquals("Asia/Seoul", TimeZone.getDefault().getID());
+		assertEquals("UTC", TimeZone.getDefault().getID());
 	}
 
 }

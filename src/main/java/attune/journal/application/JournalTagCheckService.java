@@ -13,11 +13,15 @@ import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagLogRepository;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
+import attune.user.domain.model.UserSetting;
+import attune.user.domain.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
@@ -26,18 +30,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JournalTagCheckService {
 
-    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private static final ZoneId DEFAULT_ZONE = ZoneId.of(UserSetting.DEFAULT_TIMEZONE);
 
     private final JournalTagRepository journalTagRepository;
     private final JournalTagLogRepository logRepository;
     private final UserJournalTagPreferenceRepository preferenceRepository;
     private final JournalTagLogSaver logSaver;
+    private final UserSettingRepository userSettingRepository;
+    private final Clock clock;
 
     @Transactional
     public JournalTagCheckResponse check(Long tagId, CheckJournalTagRequest request) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         LocalDate journalDate = request.journalDate();
-        validateJournalDate(journalDate);
+        validateJournalDate(userId, journalDate);
 
         JournalTag tag = requireEnabledTag(userId, tagId);
 
@@ -49,7 +55,7 @@ public class JournalTagCheckService {
     @Transactional
     public void uncheck(Long tagId, LocalDate journalDate) {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        validateJournalDate(journalDate);
+        validateJournalDate(userId, journalDate);
         requireAccessibleTag(userId, tagId);
         logRepository.deleteByUserIdAndJournalTagIdAndJournalDate(userId, tagId, journalDate);
     }
@@ -80,9 +86,25 @@ public class JournalTagCheckService {
                 .orElseThrow(JournalTagNotFoundException::new);
     }
 
-    private void validateJournalDate(LocalDate journalDate) {
-        if (journalDate.isAfter(LocalDate.now(SEOUL))) {
+    private void validateJournalDate(UUID userId, LocalDate journalDate) {
+        LocalDate today = LocalDate.now(clock.withZone(resolveUserZone(userId)));
+        if (journalDate.isAfter(today)) {
             throw new BadRequestException("Journal date must not be in the future");
+        }
+    }
+
+    private ZoneId resolveUserZone(UUID userId) {
+        return userSettingRepository.findById(userId)
+                .map(UserSetting::getTimezone)
+                .map(JournalTagCheckService::parseZoneOrDefault)
+                .orElse(DEFAULT_ZONE);
+    }
+
+    private static ZoneId parseZoneOrDefault(String timezone) {
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException e) {
+            return DEFAULT_ZONE;
         }
     }
 
