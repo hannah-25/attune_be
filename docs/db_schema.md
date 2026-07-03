@@ -208,7 +208,7 @@
 | user_id | UUID | FK → User.id ON DELETE CASCADE, NOT NULL | 사용자 ID |
 | journal_tag_id | BIGINT | FK → JournalTag.id ON DELETE RESTRICT, NOT NULL | 태그 ID |
 | journal_date | DATE | NOT NULL | 체크인 대상 날짜 (사용자 최신 timezone 기준) |
-| checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 (UTC) |
+| checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 (Asia/Seoul) |
 | | | UNIQUE(user_id, journal_tag_id, journal_date) | 동일 날짜 중복 체크 방지 |
 
 ---

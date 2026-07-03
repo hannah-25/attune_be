@@ -409,6 +409,11 @@ DST 종료로 같은 현지 시간이 두 번 오는 경우, 같은 `user_id + s
 
 ## 8. 인프라 시간대
 
+> **구현 현황(2026-07):** 인프라 UTC 전환은 **보류**하고 서버/JVM/DB를 `Asia/Seoul`로 고정 운영한다.
+> 현재 국내 전용 단계에서는 KST 고정이 단순하고 naive `LocalDateTime` 저장값과 일관되기 때문이다.
+> 단 사용자별 timezone(`user_settings.timezone`)과 복약 알림 per-user 계산은 도입해 두어(=`Instant` 기반, 서버 TZ 무관)
+> 향후 글로벌 전환 시 아래 UTC 목표로 이동하는 비용을 낮췄다. 아래는 그 **최종 지향 설계**다.
+
 서버, JVM, DB 시스템, DB 연결 timezone은 UTC를 유지한다.
 
 이유:

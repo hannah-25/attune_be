@@ -224,7 +224,7 @@ CREATE TABLE journal_tag_logs (
 - `journal_date`는 사용자가 현재 열어 둔 일지 날짜를 클라이언트가 명시적으로 전달한다.
 - `checked_at`은 실제 체크 요청이 처리된 시각이다. 과거 일지를 체크해도 과거 시각으로 위조하지 않는다.
 - 서버는 `journal_date`가 사용자 timezone 기준 미래가 아닌지 검증한다.
-- `checked_at` 생성은 운영 JVM timezone에 의존하지 않고 주입된 `Clock`(UTC)을 사용해 실제 발생 시각을 UTC로 기록한다.
+- `checked_at`은 서버 수신 시각(Asia/Seoul 기준)으로 기록한다. 과거 일지를 체크해도 실제 처리 시각을 그대로 남긴다.
 
 삭제 및 이력 정책:
 

@@ -6,7 +6,7 @@ import attune.user.domain.model.UserStatus;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.UUID;
 
 public record AdminMemberResponse(
@@ -38,6 +38,6 @@ public record AdminMemberResponse(
     }
 
     private static Instant toInstant(LocalDateTime value) {
-        return value == null ? null : value.atOffset(ZoneOffset.UTC).toInstant();
+        return value == null ? null : value.atZone(ZoneId.systemDefault()).toInstant();
     }
 }

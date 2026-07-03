@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 /**
@@ -22,7 +22,6 @@ import java.util.UUID;
 class JournalTagLogSaver {
 
     private final JournalTagLogRepository logRepository;
-    private final Clock clock;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public JournalTagLog trySave(UUID userId, Long journalTagId, LocalDate journalDate) {
@@ -30,7 +29,7 @@ class JournalTagLogSaver {
                 .userId(userId)
                 .journalTagId(journalTagId)
                 .journalDate(journalDate)
-                .checkedAt(LocalDateTime.now(clock))
+                .checkedAt(LocalDateTime.now(ZoneId.of("Asia/Seoul")))
                 .build());
     }
 
