@@ -14,8 +14,10 @@ import attune.medicationAnalysis.domain.model.ReportStatus;
 import attune.medicationAnalysis.domain.repository.MedicationAnalysisReportRepository;
 import attune.medicationAnalysis.infrastructure.GeminiReportClient;
 import attune.term.application.TermService;
+import attune.user.application.UserZoneResolver;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
+import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -43,10 +45,12 @@ class MedicationAnalysisServiceTest {
     private final SnapshotSerializer snapshotSerializer = mock(SnapshotSerializer.class);
     private final GeminiReportClient geminiReportClient = mock(GeminiReportClient.class);
     private final AnalysisRawData rawData = mock(AnalysisRawData.class);
+    private final UserZoneResolver userZoneResolver =
+            new UserZoneResolver(mock(UserSettingRepository.class));
 
     private final MedicationAnalysisService service = new MedicationAnalysisService(
             reportRepository, termService, userRepository,
-            analysisEngine, snapshotSerializer, geminiReportClient
+            analysisEngine, snapshotSerializer, geminiReportClient, userZoneResolver
     );
 
     // -------------------------------------------------------------------------

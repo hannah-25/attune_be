@@ -13,6 +13,7 @@ import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagLogRepository;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
+import attune.user.application.UserZoneResolver;
 import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
@@ -66,7 +67,7 @@ class JournalTagCheckServiceTest {
     void setUp() {
         checkService = new JournalTagCheckService(
                 journalTagRepository, logRepository, preferenceRepository,
-                logSaver, userSettingRepository, clock);
+                logSaver, new UserZoneResolver(userSettingRepository), clock);
     }
 
     @AfterEach
@@ -150,7 +151,7 @@ class JournalTagCheckServiceTest {
         Clock fixed = Clock.fixed(Instant.parse("2026-07-04T02:00:00Z"), ZoneOffset.UTC);
         JournalTagCheckService nyService = new JournalTagCheckService(
                 journalTagRepository, logRepository, preferenceRepository,
-                logSaver, userSettingRepository, fixed);
+                logSaver, new UserZoneResolver(userSettingRepository), fixed);
         UUID userId = UUID.randomUUID();
         authenticate(userId);
         when(userSettingRepository.findById(userId))

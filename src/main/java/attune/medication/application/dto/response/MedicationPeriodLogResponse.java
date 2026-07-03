@@ -6,11 +6,10 @@ import attune.medication.domain.model.UserMedicationLog;
 import attune.medication.domain.model.UserMedicationSchedule;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 
 public record MedicationPeriodLogResponse(List<LogEntry> logs) {
-    private static final ZoneOffset RESPONSE_OFFSET = ZoneOffset.ofHours(9);
 
     public record LogEntry(
             Long userMedicationId,
@@ -26,7 +25,7 @@ public record MedicationPeriodLogResponse(List<LogEntry> logs) {
                     userMedication.getId(),
                     schedule.getId(),
                     userMedication.getMedicationDosage().getMedication().getName(),
-                    log.getTakenAt().atOffset(RESPONSE_OFFSET),
+                    log.getTakenAt().atZone(ZoneId.systemDefault()).toOffsetDateTime(),
                     log.getStatus() == UserMedicationLogStatus.TAKEN
             );
         }

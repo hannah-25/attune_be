@@ -36,6 +36,7 @@ import attune.medication.domain.repository.MedicationRepository;
 import attune.medication.domain.repository.UserMedicationLogRepository;
 import attune.medication.domain.repository.UserMedicationRepository;
 import attune.medication.domain.repository.UserMedicationScheduleRepository;
+import attune.user.application.UserZoneResolver;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -79,6 +80,7 @@ public class MedicationService {
     private final UserRepository userRepository;
     private final ConsultationRepository consultationRepository;
     private final RedisJsonCache redisJsonCache;
+    private final UserZoneResolver userZoneResolver;
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
@@ -173,13 +175,14 @@ public class MedicationService {
 
     @Transactional
     public CreateMedicationResponse createMedication(CreateMedicationRequest request) {
-        User userRef = userRepository.getReferenceById(SecurityUtils.getCurrentUserUuid());
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        User userRef = userRepository.getReferenceById(userId);
         Consultation consultation = request.consultationId() == null
                 ? null
                 : getOwnedConsultationOrThrow(request.consultationId());
         MedicationDosage dosage = getMedicationDosageOrThrow(request.medicationDosageId());
         validateEndAtNotBeforeStartedAt(request.startedAt(), request.endAt());
-        validateActiveMedicationEndAt(request.endAt());
+        validateActiveMedicationEndAt(userId, request.endAt());
 
         LocalDateTime now = LocalDateTime.now();
         UserMedication um = UserMedication.builder()
@@ -216,7 +219,7 @@ public class MedicationService {
         boolean updateEndAt = request.endAt().isPresent();
         LocalDate endAt = updateEndAt ? request.endAt().get() : um.getEndAt();
         if (active && (updateEndAt || Boolean.TRUE.equals(request.isActive()))) {
-            validateActiveMedicationEndAt(endAt);
+            validateActiveMedicationEndAt(SecurityUtils.getCurrentUserUuid(), endAt);
         }
         validateEndAtNotBeforeStartedAt(um.getStartedAt(), endAt);
         um.update(
@@ -440,8 +443,8 @@ public class MedicationService {
         }
     }
 
-    private void validateActiveMedicationEndAt(LocalDate endAt) {
-        if (endAt != null && endAt.isBefore(LocalDate.now())) {
+    private void validateActiveMedicationEndAt(UUID userId, LocalDate endAt) {
+        if (endAt != null && endAt.isBefore(userZoneResolver.today(userId))) {
             throw new BadRequestException("활성화된 복약 정보의 종료일은 오늘보다 이전일 수 없습니다.");
         }
     }

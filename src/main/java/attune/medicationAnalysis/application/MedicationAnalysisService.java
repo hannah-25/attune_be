@@ -16,6 +16,7 @@ import attune.medicationAnalysis.domain.model.ReportStatus;
 import attune.medicationAnalysis.domain.repository.MedicationAnalysisReportRepository;
 import attune.medicationAnalysis.infrastructure.GeminiReportClient;
 import attune.term.application.TermService;
+import attune.user.application.UserZoneResolver;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,10 +44,11 @@ public class MedicationAnalysisService {
     private final AnalysisEngine analysisEngine;
     private final SnapshotSerializer snapshotSerializer;
     private final GeminiReportClient geminiReportClient;
+    private final UserZoneResolver userZoneResolver;
 
     @Transactional(readOnly = true)
     public AvailabilityResponse checkAvailability(UUID userId, LocalDate startDate, LocalDate endDate) {
-        validatePeriod(startDate, endDate);
+        validatePeriod(userId, startDate, endDate);
         int recordedDays = analysisEngine.countRecordedDays(userId, startDate, endDate);
         boolean available = recordedDays >= MIN_RECORDED_DAYS;
         List<String> reasons = available ? List.of()
@@ -56,7 +58,7 @@ public class MedicationAnalysisService {
 
     @Transactional(readOnly = true)
     public AdherenceSummaryResponse getSummary(UUID userId, LocalDate startDate, LocalDate endDate) {
-        validatePeriod(startDate, endDate);
+        validatePeriod(userId, startDate, endDate);
         AnalysisSnapshot snapshot = analysisEngine.build(userId, startDate, endDate, false);
         AnalysisSnapshot.AdherenceSummary s = snapshot.adherenceSummary();
         return new AdherenceSummaryResponse(
@@ -66,7 +68,7 @@ public class MedicationAnalysisService {
 
     @Transactional
     public ReportDetailResponse createReport(UUID userId, CreateReportRequest request) {
-        validatePeriod(request.periodStart(), request.periodEnd());
+        validatePeriod(userId, request.periodStart(), request.periodEnd());
 
         AnalysisRawData rawData = analysisEngine.loadRawData(
                 userId, request.periodStart(), request.periodEnd(), request.includeMemoExcerpts());
@@ -157,8 +159,8 @@ public class MedicationAnalysisService {
 
     // -------------------------------------------------------------------------
 
-    private void validatePeriod(LocalDate startDate, LocalDate endDate) {
-        if (endDate.isAfter(LocalDate.now())) {
+    private void validatePeriod(UUID userId, LocalDate startDate, LocalDate endDate) {
+        if (endDate.isAfter(userZoneResolver.today(userId))) {
             throw new BadRequestException("미래 날짜는 선택할 수 없습니다.");
         }
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
