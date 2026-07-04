@@ -4,7 +4,7 @@
 
 - 테스트 프레임워크: JUnit 5 + Spring Boot Test + Spring Security Test.
 - 테스트는 도메인 구조를 미러링한다(`src/test/java/attune/<domain>/...`).
-- 테스트 DB: H2 인메모리. 타임존은 `Asia/Seoul` 고정(`build.gradle`).
+- 테스트 DB: H2 인메모리. 타임존은 UTC 고정(`build.gradle`).
 - main 452 / test 53 파일 (2026-06 기준). application·domain 레이어 중심으로 커버리지 존재.
 
 ## 테스트 레이어 가이드

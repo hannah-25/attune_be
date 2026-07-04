@@ -18,9 +18,11 @@ import attune.medication.domain.repository.MedicationRepository;
 import attune.medication.domain.repository.UserMedicationLogRepository;
 import attune.medication.domain.repository.UserMedicationRepository;
 import attune.medication.domain.repository.UserMedicationScheduleRepository;
+import attune.user.application.UserZoneResolver;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
 import attune.user.domain.repository.UserRepository;
+import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -55,6 +57,8 @@ class MedicationServiceTest {
     private final MedicationDosageRepository medicationDosageRepository = mock(MedicationDosageRepository.class);
     private final UserMedicationScheduleRepository scheduleRepository = mock(UserMedicationScheduleRepository.class);
     private final RedisJsonCache redisJsonCache = mock(RedisJsonCache.class);
+    private final UserZoneResolver userZoneResolver =
+            new UserZoneResolver(mock(UserSettingRepository.class));
     private final MedicationService medicationService = new MedicationService(
             userMedicationRepository,
             medicationRepository,
@@ -63,7 +67,8 @@ class MedicationServiceTest {
             mock(UserMedicationLogRepository.class),
             mock(UserRepository.class),
             mock(ConsultationRepository.class),
-            redisJsonCache
+            redisJsonCache,
+            userZoneResolver
     );
 
     @AfterEach

@@ -5,6 +5,7 @@ import attune.common.observability.ObservabilityMetrics;
 import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -17,9 +18,10 @@ import static org.mockito.Mockito.when;
 class MedicationAlarmSchedulerTest {
 
     private final UserMedicationScheduleRepository scheduleRepository = mock(UserMedicationScheduleRepository.class);
+    private final UserSettingRepository userSettingRepository = mock(UserSettingRepository.class);
     private final MedicationAlarmScheduler scheduler = new MedicationAlarmScheduler(
             scheduleRepository,
-            mock(UserSettingRepository.class),
+            userSettingRepository,
             mock(NotificationService.class),
             mock(ObservabilityMetrics.class)
     );
@@ -48,5 +50,46 @@ class MedicationAlarmSchedulerTest {
         assertThat(scheduler.loadCandidates(from, to, windowStart, windowEnd)).isEmpty();
 
         verify(scheduleRepository).findAlarmCandidatesByDoseTimeBetween(from, to, true, windowStart, windowEnd);
+    }
+
+    @Test
+    void loadsCandidatesByEachActiveTimezoneLocalTime() {
+        Instant now = Instant.parse("2026-07-01T00:00:00Z");
+        when(userSettingRepository.findDistinctActiveTimezones()).thenReturn(List.of("Asia/Seoul", "America/New_York"));
+        when(scheduleRepository.findAlarmCandidatesByTimezoneAndDoseTimeBetween(
+                "Asia/Seoul",
+                LocalTime.of(8, 50),
+                LocalTime.of(9, 0),
+                false,
+                LocalDateTime.of(2026, 7, 1, 8, 50),
+                LocalDateTime.of(2026, 7, 1, 9, 0)
+        )).thenReturn(List.of());
+        when(scheduleRepository.findAlarmCandidatesByTimezoneAndDoseTimeBetween(
+                "America/New_York",
+                LocalTime.of(19, 50),
+                LocalTime.of(20, 0),
+                false,
+                LocalDateTime.of(2026, 6, 30, 19, 50),
+                LocalDateTime.of(2026, 6, 30, 20, 0)
+        )).thenReturn(List.of());
+
+        assertThat(scheduler.loadCandidates(now)).isEmpty();
+
+        verify(scheduleRepository).findAlarmCandidatesByTimezoneAndDoseTimeBetween(
+                "Asia/Seoul",
+                LocalTime.of(8, 50),
+                LocalTime.of(9, 0),
+                false,
+                LocalDateTime.of(2026, 7, 1, 8, 50),
+                LocalDateTime.of(2026, 7, 1, 9, 0)
+        );
+        verify(scheduleRepository).findAlarmCandidatesByTimezoneAndDoseTimeBetween(
+                "America/New_York",
+                LocalTime.of(19, 50),
+                LocalTime.of(20, 0),
+                false,
+                LocalDateTime.of(2026, 6, 30, 19, 50),
+                LocalDateTime.of(2026, 6, 30, 20, 0)
+        );
     }
 }

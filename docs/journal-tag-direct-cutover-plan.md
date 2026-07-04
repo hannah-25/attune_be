@@ -220,11 +220,11 @@ CREATE TABLE journal_tag_logs (
 
 날짜 기준:
 
-- 일지 기준 timezone은 `Asia/Seoul`로 고정한다.
+- 일지 날짜 경계는 사용자 최신 timezone(`user_settings.timezone`) 기준으로 판정한다. timezone이 없으면 기본값 `Asia/Seoul`을 사용한다.
 - `journal_date`는 사용자가 현재 열어 둔 일지 날짜를 클라이언트가 명시적으로 전달한다.
 - `checked_at`은 실제 체크 요청이 처리된 시각이다. 과거 일지를 체크해도 과거 시각으로 위조하지 않는다.
-- 서버는 `journal_date`가 Asia/Seoul 기준 미래가 아닌지 검증한다.
-- `checked_at` 생성은 운영 JVM timezone에 의존하지 않고 주입된 `Clock`과 `ZoneId.of("Asia/Seoul")`을 사용한다.
+- 서버는 `journal_date`가 사용자 timezone 기준 미래가 아닌지 검증한다.
+- `checked_at`은 서버 수신 시각(Asia/Seoul 기준)으로 기록한다. 과거 일지를 체크해도 실제 처리 시각을 그대로 남긴다.
 
 삭제 및 이력 정책:
 
@@ -441,7 +441,7 @@ POST /v1/journals/tags/{tagId}/checks
 }
 ```
 
-`journalDate`는 사용자가 열어 둔 일지 날짜이며 필수다. Asia/Seoul 기준 미래 날짜는 거부하고 과거 날짜와 오늘은 허용한다. 생략하거나 미래 날짜면 `400 Bad Request`를 반환한다.
+`journalDate`는 사용자가 열어 둔 일지 날짜이며 필수다. 사용자 timezone 기준 미래 날짜는 거부하고 과거 날짜와 오늘은 허용한다. 생략하거나 미래 날짜면 `400 Bad Request`를 반환한다.
 
 응답:
 
@@ -470,7 +470,7 @@ POST /v1/journals/tags/{tagId}/checks
 DELETE /v1/journals/tags/{tagId}/checks?date=2026-06-20
 ```
 
-`date` 파라미터는 **필수**이며 `yyyy-MM-dd` 형식이다. Asia/Seoul 기준 미래 날짜는 거부한다. 생략하거나 미래 날짜면 `400 Bad Request`를 반환한다.
+`date` 파라미터는 **필수**이며 `yyyy-MM-dd` 형식이다. 사용자 timezone 기준 미래 날짜는 거부한다. 생략하거나 미래 날짜면 `400 Bad Request`를 반환한다.
 
 응답:
 
@@ -653,7 +653,7 @@ seed 데이터 결정 사항:
 구현 규칙:
 
 - `journalDate`는 요청값을 사용하고 `checkedAt`은 주입된 `Clock`으로 계산한다.
-- `journalDate`가 Asia/Seoul 기준 미래인지 검증한다.
+- `journalDate`가 사용자 timezone 기준 미래인지 검증한다.
 - unique constraint 경쟁 조건은 `saveAndFlush` 실패 후 별도 조회 트랜잭션 또는 동등하게 안전한 방식으로 기존 로그를 반환한다.
 - `enabled=false`인 preference는 체크를 거부한다.
 
@@ -868,7 +868,7 @@ interface JournalTag {
 - 같은 날짜 중복 체크 시 행 하나만 유지
 - 체크 해제 idempotency
 - 과거 날짜 일지 체크 시 요청한 `journalDate`로 저장
-- Asia/Seoul 기준 미래 날짜 체크 거부
+- 사용자 timezone 기준 미래 날짜 체크 거부
 - `enabled=false, visible=true` 요청이 `visible=false`로 정규화
 - Asia/Seoul 자정 경계의 미래 날짜 판정
 - 동시 체크 요청이 로그 한 건만 생성
@@ -1218,7 +1218,7 @@ DB FK만으로는 사용자가 다른 사용자의 `scope=USER` 태그를 prefer
 - [ ] 체크 API가 일별 idempotency를 보장한다.
 - [ ] 과거 날짜 체크가 요청한 `journalDate`에 저장되고 `checkedAt`은 실제 처리 시각으로 남는다.
 - [ ] 태그 삭제가 과거 로그를 삭제하지 않는다.
-- [ ] Asia/Seoul 기준 날짜 경계 테스트가 통과한다.
+- [ ] 사용자 timezone 기준 날짜 경계 테스트가 통과한다.
 
 ### 프론트엔드
 

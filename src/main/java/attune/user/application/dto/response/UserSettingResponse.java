@@ -9,7 +9,8 @@ public record UserSettingResponse(
         boolean communityNotification,
         boolean todoNotification,
         boolean takeMedicationOnHoliday,
-        String theme
+        String theme,
+        String timezone
 ) {
     public static UserSettingResponse from(UserSetting setting) {
         return new UserSettingResponse(
@@ -19,7 +20,8 @@ public record UserSettingResponse(
                 setting.isCommunityNotification(),
                 setting.isTodoNotification(),
                 setting.isTakeMedicationOnHoliday(),
-                setting.getTheme().name()
+                setting.getTheme().name(),
+                setting.getTimezone()
         );
     }
 }

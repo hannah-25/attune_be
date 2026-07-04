@@ -9,5 +9,6 @@ public record UpdateUserSettingRequest(
         Boolean communityNotification,
         Boolean todoNotification,
         Boolean takeMedicationOnHoliday,
-        Theme theme
+        Theme theme,
+        String timezone
 ) {}

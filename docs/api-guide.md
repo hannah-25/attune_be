@@ -293,7 +293,7 @@
 { "journalDate": "2026-06-23" }
 ```
 
-`journalDate`는 오늘 이전(Asia/Seoul 기준)이어야 한다. 미래 날짜는 400.
+`journalDate`는 오늘 이전(사용자 최신 timezone 기준)이어야 한다. 미래 날짜는 400.
 
 **Response 200**
 
@@ -483,14 +483,27 @@
 
 ---
 
-## UserSetting 알림 필드 (변경 사항)
+## UserSetting 필드 (변경 사항)
 
-`PATCH /v1/settings` 요청/응답에 다음 두 필드가 추가됐다.
+`GET /v1/users/settings`, `PATCH /v1/users/settings` 응답에 `timezone`이 포함된다.
+`PATCH /v1/users/settings` 요청에는 변경할 필드만 전달할 수 있다.
 
 | 필드 | 기본값 | 설명 |
 |------|--------|------|
 | `communityNotification` | true | 커뮤니티 댓글 알림 수신 여부 |
 | `todoNotification` | true | Todo 마감 알림 수신 여부 |
+| `timezone` | `Asia/Seoul` | 사용자 최신 IANA timezone ID. 예: `Asia/Seoul`, `America/New_York` |
+
+`timezone` 검증 규칙:
+
+- 요청에 없거나 `null`이면 기존 값을 유지한다.
+- 빈 문자열이거나 유효하지 않은 IANA timezone이면 400.
+
+요청 예:
+
+```json
+{ "timezone": "America/New_York" }
+```
 
 ---
 

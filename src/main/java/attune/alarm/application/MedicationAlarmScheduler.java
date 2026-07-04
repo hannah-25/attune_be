@@ -10,11 +10,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DateTimeException;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -36,7 +39,7 @@ public class MedicationAlarmScheduler {
     private final NotificationService notificationService;
     private final ObservabilityMetrics metrics;
 
-    @Scheduled(cron = "0 * * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 * * * * *")
     public void sendMedicationAlarms() {
         boolean success = false;
         try {
@@ -51,12 +54,8 @@ public class MedicationAlarmScheduler {
     }
 
     private void sendMedicationAlarmsInternal() {
-        LocalDateTime scheduledAt = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-        LocalTime now = scheduledAt.toLocalTime();
-
-        LocalDateTime windowStart = scheduledAt.minusMinutes(RECOVERY_WINDOW_MINUTES);
-
-        List<UserMedicationSchedule> pending = loadCandidates(now.minusMinutes(RECOVERY_WINDOW_MINUTES), now, windowStart, scheduledAt);
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MINUTES);
+        List<UserMedicationSchedule> pending = loadCandidates(now);
         if (pending.isEmpty()) return;
 
         Map<UUID, UserSetting> settingsByUser = loadSettings(pending);
@@ -68,8 +67,10 @@ public class MedicationAlarmScheduler {
                 if (setting == null || !setting.isMedicationNotification()) continue;
 
                 String label = schedule.getLabel() != null ? schedule.getLabel() : "복약";
-                LocalDateTime alarmScheduledAt = scheduledAt.with(schedule.getDoseTime());
-                if (alarmScheduledAt.isAfter(scheduledAt)) {
+                ZoneId zoneId = ZoneId.of(setting.getTimezone());
+                LocalDateTime localNow = LocalDateTime.ofInstant(now, zoneId);
+                LocalDateTime alarmScheduledAt = localNow.with(schedule.getDoseTime());
+                if (alarmScheduledAt.isAfter(localNow)) {
                     alarmScheduledAt = alarmScheduledAt.minusDays(1);
                 }
                 notificationService.sendToUser(
@@ -85,17 +86,53 @@ public class MedicationAlarmScheduler {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(LocalTime doseTime) {
         return scheduleRepository.findAlarmCandidatesByDoseTime(doseTime);
     }
 
-    @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(LocalTime from, LocalTime to, LocalDateTime windowStart, LocalDateTime windowEnd) {
         return scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, from.isAfter(to), windowStart, windowEnd);
     }
 
-    @Transactional(readOnly = true)
+    public List<UserMedicationSchedule> loadCandidates(Instant now) {
+        List<UserMedicationSchedule> candidates = new ArrayList<>();
+        for (String timezone : userSettingRepository.findDistinctActiveTimezones()) {
+            ZoneId zoneId;
+            try {
+                zoneId = ZoneId.of(timezone);
+            } catch (DateTimeException e) {
+                log.warn("[MEDICATION ALARM SKIP] invalid timezone={}", timezone);
+                continue;
+            }
+
+            LocalDateTime localNow = LocalDateTime.ofInstant(now, zoneId).truncatedTo(ChronoUnit.MINUTES);
+            LocalDateTime windowStart = localNow.minusMinutes(RECOVERY_WINDOW_MINUTES);
+            candidates.addAll(loadCandidates(
+                    timezone,
+                    windowStart.toLocalTime(),
+                    localNow.toLocalTime(),
+                    windowStart,
+                    localNow
+            ));
+        }
+        return candidates;
+    }
+
+    public List<UserMedicationSchedule> loadCandidates(String timezone,
+                                                       LocalTime from,
+                                                       LocalTime to,
+                                                       LocalDateTime windowStart,
+                                                       LocalDateTime windowEnd) {
+        return scheduleRepository.findAlarmCandidatesByTimezoneAndDoseTimeBetween(
+                timezone,
+                from,
+                to,
+                from.isAfter(to),
+                windowStart,
+                windowEnd
+        );
+    }
+
     public Map<UUID, UserSetting> loadSettings(List<UserMedicationSchedule> candidates) {
         List<UUID> userIds = candidates.stream()
                 .map(s -> s.getUserMedication().getUser().getId())

@@ -147,3 +147,22 @@ PATCH /v1/user-medications/1
 - `GET /v1/user-medications/{userMedicationId}/logs`: 특정 복약 로그 조회
 - `GET /v1/user-medications/logs`: 기간 복약 로그 조회
 - `POST /v1/user-medications/{userMedicationId}/log/quick`: 빠른 복약 기록
+
+### 기간 복약 로그 응답 메모
+
+`GET /v1/user-medications/logs`의 각 로그 항목은 복약 체크 매칭을 위해 `scheduleId`를 포함한다.
+`intakeTime`은 프론트가 `new Date(intakeTime)`으로 안전하게 파싱할 수 있도록 `+09:00` 오프셋을 포함한다.
+
+```json
+{
+  "logs": [
+    {
+      "userMedicationId": 1,
+      "scheduleId": 10,
+      "name": "Concerta",
+      "intakeTime": "2026-07-01T14:00:00+09:00",
+      "taken": true
+    }
+  ]
+}
+```

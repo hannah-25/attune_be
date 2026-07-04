@@ -13,12 +13,15 @@ import attune.journal.domain.model.UserJournalTagPreferenceId;
 import attune.journal.domain.repository.JournalTagLogRepository;
 import attune.journal.domain.repository.JournalTagRepository;
 import attune.journal.domain.repository.UserJournalTagPreferenceRepository;
+import attune.user.application.UserZoneResolver;
+import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
+import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -50,9 +53,17 @@ class JournalTagCheckServiceTest {
     private UserJournalTagPreferenceRepository preferenceRepository;
     @Mock
     private JournalTagLogSaver logSaver;
+    @Mock
+    private UserSettingRepository userSettingRepository;
 
-    @InjectMocks
     private JournalTagCheckService checkService;
+
+    @BeforeEach
+    void setUp() {
+        checkService = new JournalTagCheckService(
+                journalTagRepository, logRepository, preferenceRepository,
+                logSaver, new UserZoneResolver(userSettingRepository));
+    }
 
     @AfterEach
     void clearAuthentication() {
@@ -129,6 +140,24 @@ class JournalTagCheckServiceTest {
     }
 
     @Test
+    void futureDateFollowsUserTimezone() {
+        // 미래 여부는 서버가 아니라 사용자 timezone(뉴욕) 기준으로 판단돼야 한다.
+        ZoneId nyZone = ZoneId.of("America/New_York");
+        UUID userId = UUID.randomUUID();
+        authenticate(userId);
+        when(userSettingRepository.findById(userId))
+                .thenReturn(Optional.of(settingWithZone(userId, "America/New_York")));
+
+        LocalDate futureInNy = LocalDate.now(nyZone).plusDays(1);
+
+        assertThatThrownBy(() -> checkService.uncheck(1L, futureInNy))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("future");
+
+        verifyNoInteractions(journalTagRepository, logRepository);
+    }
+
+    @Test
     void accessiblePastCheckCanBeRemovedIdempotently() {
         UUID userId = UUID.randomUUID();
         LocalDate journalDate = LocalDate.now(SEOUL).minusDays(1);
@@ -150,6 +179,13 @@ class JournalTagCheckServiceTest {
                 new UsernamePasswordAuthenticationToken(
                         principal, null, principal.getAuthorities())
         );
+    }
+
+    private UserSetting settingWithZone(UUID userId, String timezone) {
+        return UserSetting.builder()
+                .id(userId)
+                .timezone(timezone)
+                .build();
     }
 
     private JournalTag systemTag(Long id) {
