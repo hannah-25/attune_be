@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -89,17 +88,14 @@ public class MedicationAlarmScheduler {
         }
     }
 
-    @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(LocalTime doseTime) {
         return scheduleRepository.findAlarmCandidatesByDoseTime(doseTime);
     }
 
-    @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(LocalTime from, LocalTime to, LocalDateTime windowStart, LocalDateTime windowEnd) {
         return scheduleRepository.findAlarmCandidatesByDoseTimeBetween(from, to, from.isAfter(to), windowStart, windowEnd);
     }
 
-    @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(Instant now) {
         List<UserMedicationSchedule> candidates = new ArrayList<>();
         for (String timezone : userSettingRepository.findDistinctActiveTimezones()) {
@@ -124,7 +120,6 @@ public class MedicationAlarmScheduler {
         return candidates;
     }
 
-    @Transactional(readOnly = true)
     public List<UserMedicationSchedule> loadCandidates(String timezone,
                                                        LocalTime from,
                                                        LocalTime to,
@@ -140,7 +135,6 @@ public class MedicationAlarmScheduler {
         );
     }
 
-    @Transactional(readOnly = true)
     public Map<UUID, UserSetting> loadSettings(List<UserMedicationSchedule> candidates) {
         List<UUID> userIds = candidates.stream()
                 .map(s -> s.getUserMedication().getUser().getId())

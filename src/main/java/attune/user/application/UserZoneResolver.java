@@ -23,6 +23,9 @@ public class UserZoneResolver {
     private final UserSettingRepository userSettingRepository;
 
     public ZoneId resolve(UUID userId) {
+        if (userId == null) {
+            return DEFAULT_ZONE;
+        }
         return userSettingRepository.findById(userId)
                 .map(UserSetting::getTimezone)
                 .map(UserZoneResolver::parseOrDefault)
