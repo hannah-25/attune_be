@@ -19,7 +19,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -32,7 +31,6 @@ public class JournalTagCheckService {
     private final UserJournalTagPreferenceRepository preferenceRepository;
     private final JournalTagLogSaver logSaver;
     private final UserZoneResolver userZoneResolver;
-    private final Clock clock;
 
     @Transactional
     public JournalTagCheckResponse check(Long tagId, CheckJournalTagRequest request) {
@@ -82,7 +80,7 @@ public class JournalTagCheckService {
     }
 
     private void validateJournalDate(UUID userId, LocalDate journalDate) {
-        LocalDate today = LocalDate.now(clock.withZone(userZoneResolver.resolve(userId)));
+        LocalDate today = userZoneResolver.today(userId);
         if (journalDate.isAfter(today)) {
             throw new BadRequestException("Journal date must not be in the future");
         }

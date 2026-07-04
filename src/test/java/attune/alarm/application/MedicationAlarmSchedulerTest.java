@@ -5,11 +5,9 @@ import attune.common.observability.ObservabilityMetrics;
 import attune.user.domain.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,8 +23,7 @@ class MedicationAlarmSchedulerTest {
             scheduleRepository,
             userSettingRepository,
             mock(NotificationService.class),
-            mock(ObservabilityMetrics.class),
-            Clock.fixed(Instant.parse("2026-07-01T00:00:00Z"), ZoneOffset.UTC)
+            mock(ObservabilityMetrics.class)
     );
 
     @Test

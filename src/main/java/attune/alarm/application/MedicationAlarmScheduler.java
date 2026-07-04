@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -39,7 +38,6 @@ public class MedicationAlarmScheduler {
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
     private final ObservabilityMetrics metrics;
-    private final Clock clock;
 
     @Scheduled(cron = "0 * * * * *")
     public void sendMedicationAlarms() {
@@ -56,7 +54,7 @@ public class MedicationAlarmScheduler {
     }
 
     private void sendMedicationAlarmsInternal() {
-        Instant now = Instant.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MINUTES);
         List<UserMedicationSchedule> pending = loadCandidates(now);
         if (pending.isEmpty()) return;
 

@@ -41,7 +41,8 @@ public interface UserMedicationScheduleRepository extends JpaRepository<UserMedi
               AND u.userStatus = attune.user.domain.model.UserStatus.ACTIVE
               AND NOT EXISTS (
                   SELECT 1 FROM NotificationHistory h
-                  WHERE h.referenceId = ums.id
+                  WHERE h.userId = u.id
+                    AND h.referenceId = ums.id
                     AND h.alarmType = attune.alarm.domain.model.NotificationAlarmType.MEDICATION
                     AND h.alarmScheduledAt BETWEEN :windowStart AND :windowEnd
                     AND h.status IN (
@@ -77,7 +78,8 @@ public interface UserMedicationScheduleRepository extends JpaRepository<UserMedi
               )
               AND NOT EXISTS (
                   SELECT 1 FROM NotificationHistory h
-                  WHERE h.referenceId = ums.id
+                  WHERE h.userId = u.id
+                    AND h.referenceId = ums.id
                     AND h.alarmType = attune.alarm.domain.model.NotificationAlarmType.MEDICATION
                     AND h.alarmScheduledAt BETWEEN :windowStart AND :windowEnd
                     AND h.status IN (

@@ -27,12 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,15 +56,13 @@ class JournalTagCheckServiceTest {
     @Mock
     private UserSettingRepository userSettingRepository;
 
-    private final Clock clock = Clock.systemUTC();
-
     private JournalTagCheckService checkService;
 
     @BeforeEach
     void setUp() {
         checkService = new JournalTagCheckService(
                 journalTagRepository, logRepository, preferenceRepository,
-                logSaver, new UserZoneResolver(userSettingRepository), clock);
+                logSaver, new UserZoneResolver(userSettingRepository));
     }
 
     @AfterEach
@@ -145,20 +140,17 @@ class JournalTagCheckServiceTest {
     }
 
     @Test
-    void futureDateBoundaryFollowsUserTimezoneNotSeoul() {
-        // 2026-07-04T02:00:00Z 시점: 서울은 07-04 11:00, 뉴욕은 아직 07-03 22:00.
-        // 뉴욕 사용자에게 07-04는 미래이므로 서울 기준이 아니라 뉴욕 기준으로 거부돼야 한다.
-        Clock fixed = Clock.fixed(Instant.parse("2026-07-04T02:00:00Z"), ZoneOffset.UTC);
-        JournalTagCheckService nyService = new JournalTagCheckService(
-                journalTagRepository, logRepository, preferenceRepository,
-                logSaver, new UserZoneResolver(userSettingRepository), fixed);
+    void futureDateFollowsUserTimezone() {
+        // 미래 여부는 서버가 아니라 사용자 timezone(뉴욕) 기준으로 판단돼야 한다.
+        ZoneId nyZone = ZoneId.of("America/New_York");
         UUID userId = UUID.randomUUID();
         authenticate(userId);
         when(userSettingRepository.findById(userId))
                 .thenReturn(Optional.of(settingWithZone(userId, "America/New_York")));
 
-        assertThatThrownBy(() ->
-                nyService.uncheck(1L, LocalDate.of(2026, 7, 4)))
+        LocalDate futureInNy = LocalDate.now(nyZone).plusDays(1);
+
+        assertThatThrownBy(() -> checkService.uncheck(1L, futureInNy))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("future");
 
