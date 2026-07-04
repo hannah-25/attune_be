@@ -290,8 +290,8 @@ PATCH /v1/users/settings
 추가 권장 인덱스:
 
 ```sql
-CREATE INDEX idx_user_medication_schedules_dose_time_active
-  ON user_medication_schedules (dose_time, is_active);
+CREATE INDEX idx_user_medication_schedules_active_dose_time
+  ON user_medication_schedules (is_active, dose_time);
 ```
 
 ## 6. 복약 알림 스케줄러

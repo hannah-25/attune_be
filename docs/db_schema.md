@@ -136,7 +136,7 @@
 | label | VARCHAR(100) | | 복용 레이블 (아침/점심/저녁 등) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | 활성 여부. 복용 시간 변경/중단 시 false로 소프트 삭제(복용 로그 보존을 위해 물리 삭제하지 않음) |
 | | | UNIQUE(user_medication_id, dose_time) | 같은 복약 내 동일 복용 시간 중복 방지 (재추가 시 기존 행 재활성화로 충돌 회피) |
-| | | INDEX(idx_user_medication_schedules_dose_time_active on is_active, dose_time) | timezone별 복약 알림 후보 조회 |
+| | | INDEX(idx_user_medication_schedules_active_dose_time on is_active, dose_time) | timezone별 복약 알림 후보 조회 (동등 조건 is_active 선두) |
 
 ---
 
