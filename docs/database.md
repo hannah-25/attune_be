@@ -8,7 +8,7 @@
 - JPA DDL auto는 프로파일별로 설정된다 (dev: `update`, prod: `validate`).
 - OSIV(`open-in-view`)는 **비활성화** — 서비스에서 트랜잭션 내에 필요한 모든 데이터를 조회해야 한다.
 - `User` 엔티티의 기본 키는 **UUID** 문자열이다.
-- 서버/JVM/DB 연결 timezone은 **UTC**를 기본값으로 사용한다. MySQL JDBC URL은 `serverTimezone=UTC`, Hibernate JDBC timezone은 `hibernate.jdbc.time_zone=UTC`로 맞춘다.
+- 서버/JVM/DB 연결 timezone은 **Asia/Seoul**을 기본값으로 사용한다. (향후 글로벌 전환 시 UTC로 변경 예정)
 - 사용자 화면/복약 알림처럼 현지 시간이 필요한 로직은 JVM 기본 timezone에 기대지 않고 `ZoneId`를 명시해 계산한다.
 
 ## 설정 프로파일
