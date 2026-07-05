@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 로컬 프로파일(H2)로 앱 실행. Swagger: http://localhost:8080/swagger-ui.html
+# 로컬 프로파일(MySQL)로 앱 실행. datasource는 application-secret.yml에서 주입된다.
+# Swagger: http://localhost:8080/swagger-ui.html
 source "$(dirname "$0")/_lib.sh"
-log "bootRun (profile=local, H2 인메모리)"
+log "bootRun (profile=local, MySQL)"
 exec "$GRADLE" bootRun "$@"

@@ -4,7 +4,9 @@
 
 - 테스트 프레임워크: JUnit 5 + Spring Boot Test + Spring Security Test.
 - 테스트는 도메인 구조를 미러링한다(`src/test/java/attune/<domain>/...`).
-- 테스트 DB: H2 인메모리. 타임존은 UTC 고정(`build.gradle`).
+- 테스트 DB: **Testcontainers MySQL 8.4** — `src/test/resources/application.yml` 의 `jdbc:tc:` URL이
+  첫 커넥션 시 컨테이너를 자동 기동하고 JVM 종료까지 재사용한다(`TC_DAEMON=true`). **Docker 필수**.
+- JVM 타임존은 Asia/Seoul 고정(`build.gradle` 의 `-Duser.timezone`).
 - main 452 / test 53 파일 (2026-06 기준). application·domain 레이어 중심으로 커버리지 존재.
 
 ## 테스트 레이어 가이드
@@ -35,4 +37,5 @@ scripts/agent/test                       # 전체
 ## 개선 후보 (tech-debt)
 
 - 커버리지 측정 도구(JaCoCo) 미도입 → [tech-debt-tracker](../exec-plans/tech-debt-tracker.md).
-- 통합 테스트(Testcontainers MySQL) 도입 검토.
+- ~~통합 테스트(Testcontainers MySQL) 도입 검토.~~ → 2026-07-05 도입 완료. HTTP→DB 전 구간
+  통합테스트 시나리오 확충은 별도 계획으로 진행.

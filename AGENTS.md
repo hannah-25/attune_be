@@ -16,7 +16,7 @@ Attune 백엔드 — **성인 ADHD 사용자**를 위한 앱의 Spring Boot API 
 | 언어/런타임 | Java 17 |
 | 프레임워크 | Spring Boot 4.0.2 (Web MVC, Data JPA, Security, Cache, Mail, Actuator) |
 | 빌드 | Gradle (`./gradlew`) |
-| DB | MySQL(dev/prod), H2(local·test 인메모리) |
+| DB | MySQL(local/dev/prod), 테스트는 Testcontainers MySQL(Docker 필요) |
 | 캐시/세션 | Redis (토큰 캐시), Caffeine (로컬 캐시) |
 | 인증 | JWT (jjwt) + Spring Security, 소셜 OAuth |
 | 푸시 | web-push (VAPID) |
@@ -48,7 +48,7 @@ scripts/agent/               # 에이전트용 표준 명령어
 
 | 목적 | 스크립트 | 원시 명령 |
 |------|----------|-----------|
-| 로컬 실행 (H2) | `scripts/agent/run-local` | `./gradlew bootRun` |
+| 로컬 실행 (MySQL) | `scripts/agent/run-local` | `./gradlew bootRun` |
 | 테스트 | `scripts/agent/test` | `./gradlew test` |
 | 단일 테스트 | — | `./gradlew test --tests "attune.SomeTest"` |
 | 빌드 | `scripts/agent/build` | `./gradlew clean build` |
