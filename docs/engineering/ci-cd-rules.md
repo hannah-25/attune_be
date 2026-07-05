@@ -19,7 +19,7 @@
 ## 시크릿
 
 - 배포 시크릿은 GitHub Secrets(`APPLICATION_SECRET_YML`, `DOCKER_*`, `DEV_EC2_*`)로 관리. 워크플로 외부에 노출 금지.
-- CI 검증 잡은 시크릿 없이 H2/스텁으로 동작해야 한다.
+- CI 검증 잡은 시크릿 없이 Testcontainers MySQL/스텁으로 동작해야 한다 (러너에 Docker 필요 — ubuntu-latest 기본 제공).
 
 ## 로컬에서 CI 재현
 

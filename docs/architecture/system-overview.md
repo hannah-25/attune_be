@@ -6,7 +6,7 @@
 [Client] ──HTTPS──> [Spring Boot App (attune)]
                         ├─ Web MVC (REST, springdoc/Swagger)
                         ├─ Spring Security + JwtAuthenticationFilter
-                        ├─ JPA/Hibernate ──> [MySQL]   (dev/prod) / [H2] (local·test)
+                        ├─ JPA/Hibernate ──> [MySQL]   (local·dev·prod / 테스트는 Testcontainers)
                         ├─ Redis ──> 토큰 세션(UserAuthCache), 안정적인 공통 기준 데이터 캐시
                         ├─ Caffeine ──> 로컬 인메모리 캐시
                         ├─ Mail (SMTP/Gmail) ──> 이메일 발송
@@ -29,9 +29,9 @@
 
 | 프로파일 | DB | 용도 |
 |----------|----|------|
-| `local`(기본) | H2 인메모리 | 로컬 개발 |
+| `local`(기본) | MySQL | 로컬 개발 (datasource는 `application-secret.yml` 주입) |
 | `dev` | MySQL | 개발 서버(EC2) |
 | `prod` | MySQL | 운영 |
-| (test) | H2 | 테스트, UTC 타임존 고정 |
+| (test) | Testcontainers MySQL 8.4 | 테스트 (Docker 필요), JVM 타임존 Asia/Seoul 고정 |
 
 시크릿은 `application-secret.yml`(미추적)에서 프로파일별 문서로 주입. 자세한 내용 [`../database.md`](../database.md), [`../security.md`](../security.md).

@@ -2,16 +2,22 @@ spring:
   config:
     import: []  # application-secret.yml 미사용
 
+  test:
+    database:
+      replace: none  # @DataJpaTest가 임베디드 DB로 교체하지 않도록 (아래 Testcontainers datasource 사용)
+
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    # Testcontainers JDBC URL — 첫 커넥션 시 MySQL 8.4 컨테이너를 자동 기동하고 JVM 종료까지 재사용한다.
+    # TC_DAEMON=true: 모든 커넥션이 닫혀도 컨테이너를 유지. 로컬/CI 모두 Docker 필요.
+    url: jdbc:tc:mysql:8.4:///attune_test?TC_DAEMON=true
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
 
   jpa:
     hibernate:
       ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: false
 
   data:

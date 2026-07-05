@@ -40,7 +40,8 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       # 테스트 포함 빌드 (ArchUnit 아키텍처 규칙 포함). 시크릿 불필요:
-      # 테스트는 src/test/resources/application.yml 의 스텁 값과 H2 로 동작한다.
+      # 테스트는 src/test/resources/application.yml 의 스텁 값과 Testcontainers MySQL 로 동작한다.
+      # (ubuntu-latest 러너는 Docker 기본 제공 — jdbc:tc: URL이 mysql:8.4 컨테이너를 자동 기동)
       - name: Build (test + ArchUnit)
         run: ./gradlew build
 

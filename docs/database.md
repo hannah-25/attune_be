@@ -4,8 +4,9 @@
 
 ## 운영
 
-- `dev`/`prod` 프로파일은 **MySQL 8.4**, `local` 및 테스트는 **H2 인메모리** DB를 사용한다.
-- JPA DDL auto는 프로파일별로 설정된다 (dev: `update`, prod: `validate`).
+- 모든 런타임 프로파일(`local`/`dev`/`prod`)은 **MySQL 8.4**, 테스트는 **Testcontainers MySQL 8.4**(Docker 필요, `jdbc:tc:` URL로 자동 기동)를 사용한다.
+- `local`의 datasource(URL/계정)는 `application-secret.yml`에서 주입된다.
+- JPA DDL auto는 프로파일별로 설정된다 (local/dev: `update`, prod: `validate`).
 - OSIV(`open-in-view`)는 **비활성화** — 서비스에서 트랜잭션 내에 필요한 모든 데이터를 조회해야 한다.
 - `User` 엔티티의 기본 키는 **UUID** 문자열이다.
 - 서버/JVM/DB 연결 timezone은 **Asia/Seoul**을 기본값으로 사용한다. (향후 글로벌 전환 시 UTC로 변경 예정)
@@ -15,7 +16,7 @@
 
 | 프로파일 | DB | 비고 |
 |----------|-----|------|
-| `local` | H2 | 기본값; 디버그 로깅; localhost CORS |
+| `local` | MySQL | 기본값; 디버그 로깅; localhost CORS |
 | `dev` | MySQL | 원격 개발 서버; 디버그 로깅 |
 | `prod` | MySQL | HTTPS 필수; Actuator 접근 제한 |
 

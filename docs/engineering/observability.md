@@ -74,7 +74,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 
 | 대상 | 확인법 |
 |------|--------|
-| DB(MySQL/H2) | 부팅 로그의 Hikari/Hibernate, 쿼리 로그. local은 H2 콘솔(설정 시) |
+| DB(MySQL) | 부팅 로그의 Hikari/Hibernate, 쿼리 로그 (테스트는 Testcontainers MySQL) |
 | Redis | 토큰 캐시 동작(로그인/갱신/로그아웃). 연결 실패 시 부팅 로그 |
 | Mail(SMTP) | 메일 발송 비동기 로그, [`../async-mail.md`](../async-mail.md) |
 | web-push | `provider` 가 `stub`(local) vs `web-push`(dev/prod). 발송 이력 |
