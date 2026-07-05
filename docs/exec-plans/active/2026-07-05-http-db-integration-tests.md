@@ -2,7 +2,12 @@
 
 - 상태: active
 - 작성자 / 날짜: hannah / 2026-07-05
-- 관련 이슈/PR: (#96 Testcontainers MySQL 전환의 후속)
+- 관련 이슈/PR: (#96 Testcontainers MySQL 전환의 후속) · 0단계 인프라+auth 패턴 검증: #97
+
+## 진행 현황
+
+- 2026-07-06 0단계 인프라 + auth 시나리오 4개 구현 완료, 전체 테스트 그린(4m 6s) → PR #97
+- 다음: auth 시나리오 완성(소셜 로그인·restore·만료 access 토큰 reissue·비활성 계정 차단) → journal
 
 ## 목표
 
