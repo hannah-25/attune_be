@@ -53,3 +53,52 @@ Measured user: `UNHEX(MD5('attune-user-500'))`. Hot post: `community_boards.id =
 - `schedules.start_time < :endDate AND end_time >= :startDate` remains a double-range predicate. MySQL uses the index through `start_time` and applies `end_time` as an index condition.
 - `CommunityBoardRepository.searchPosts` with keyword still needs a different search strategy. The measured B-tree indexes are kept for non-keyword listing and category filtering only.
 - `comments.post_id` was previously backed by a single-column FK index. The composite `(post_id, is_deleted, created_at)` covers the FK leftmost prefix and the measured read query.
+
+## Community Board Index Order Comparison - 2026-07-07
+
+Additional measurement compared the two possible column orders for
+`idx_community_boards_deleted_created` against the same seed data.
+
+- Dataset: `community_boards` 50,000 rows, 2,520 deleted rows.
+- Deleted ratio: 5.04%.
+- Query: latest board page, equivalent to
+  `WHERE b.is_deleted = 0 ORDER BY b.created_at DESC LIMIT 20`, with the `users` join.
+- Count query: `SELECT COUNT(b.id) FROM community_boards b WHERE b.is_deleted = 0`.
+- Each variant was created with `ALTER TABLE`, followed by `ANALYZE TABLE community_boards`.
+- Warm runs are recorded below; first cold-cache outliers were ignored.
+
+| Variant | Page access path | Page time | Page actual rows | Count access path | Count time | Count rows | Notes |
+|---|---|---:|---:|---|---:|---:|---|
+| `(is_deleted, created_at)` | index range scan on `is_deleted = 0`, reverse | 0.402-0.520 ms | 20 scanned / 20 returned | covering lookup on same index | 22.5-43.1 ms | 47,480 | Equality-first order. Best when deleted rows become a large share of the table. |
+| `(created_at, is_deleted)` | reverse index scan on `created_at`, filter `is_deleted = 0` | 0.339-0.348 ms | 21 scanned / 20 returned | optimizer chose `idx_community_boards_deleted_category_created` | 26.2-36.8 ms | 47,480 | With 5.04% deleted rows, only one extra row was scanned for the latest page and the index remains more reusable for latest-first board queries. |
+
+Decision: keep `idx_community_boards_deleted_created` as `(created_at, is_deleted)`.
+
+Reason: the target hot path is latest-first pagination, and the measured 5.04% deleted ratio means
+the `created_at`-first index scans almost the same number of rows as the equality-first index for
+the first page. The page-query timings are effectively equivalent at this dataset size, while
+`created_at` first is more reusable for latest-first access patterns. If the production deleted
+ratio grows substantially, especially beyond roughly 20-30%, remeasure and consider changing the
+index back to `(is_deleted, created_at)`.
+
+### Larger Dataset Check
+
+The same comparison was repeated after expanding only `community_boards` from 50,000 to 500,000
+rows. The extra rows used the same deterministic distribution as the original seed; comments were
+not expanded because the board page query does not read them.
+
+- Dataset: `community_boards` 500,000 rows, 25,184 deleted rows.
+- Deleted ratio: 5.04%.
+- Query: same latest board page query, `LIMIT 20`.
+- Warm runs are recorded below; first cold-cache outliers were ignored.
+
+| Variant | Page access path | Page time | Page actual rows | Count access path | Count time | Count rows | Notes |
+|---|---|---:|---:|---|---:|---:|---|
+| `(created_at, is_deleted)` | reverse index scan on `created_at`, filter `is_deleted = 0` | 0.132-0.172 ms | 23 scanned / 20 returned | optimizer chose `idx_community_boards_deleted_category_created` | 120-130 ms | 474,816 | Still scans only a few extra rows at 5.04% deleted. |
+| `(is_deleted, created_at)` | index range scan on `is_deleted = 0`, reverse | 0.291-0.307 ms | 20 scanned / 20 returned | optimizer chose `idx_community_boards_deleted_category_created` | 116-136 ms | 474,816 | Reads exactly 20 board rows for the page, but was not faster in warm runs. |
+
+Larger-dataset decision: keep `(created_at, is_deleted)`.
+
+Reason: increasing the table from 50,000 to 500,000 rows did not make the `created_at`-first index
+scan materially more rows for the latest page. With a stable 5.04% deleted ratio, the limiting
+factor remains the number of newest rows needed to satisfy `LIMIT 20`, not the total table size.
