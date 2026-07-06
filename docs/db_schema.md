@@ -101,12 +101,12 @@
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
 | medication_id | BIGINT | FK → Medication.id, NOT NULL | 약물 ID |
 | hospital_id | BIGINT | FK → Hospital.id | 병원 ID |
-| isActive | BOOLEAN | DEFAULT true | 복용 활성화 여부 |
-| alarmActive | BOOLEAN | DEFAULT true | 알림 활성화 여부 |
-| startedAt | DATE | | 복용 시작일 |
-| endAt | DATE | | 복용 종료일 |
-| createdAt | TIMESTAMP | NOT NULL | 생성일시 |
-| updatedAt | TIMESTAMP | NOT NULL | 수정일시 |
+| is_active | BOOLEAN | DEFAULT true | 복용 활성화 여부 |
+| alarm_active | BOOLEAN | DEFAULT true | 알림 활성화 여부 |
+| started_at | DATE | | 복용 시작일 |
+| end_at | DATE | | 복용 종료일 |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |
+| updated_at | TIMESTAMP | NOT NULL | 수정일시 |
 | | | INDEX(idx_user_medications_user_active_created_id on user_id, is_active, created_at, id) | 사용자별 복약 목록 조회 정렬 지원 |
 | | | INDEX(idx_user_medications_user_started_end on user_id, started_at, end_at) | 사용자별 복약 기간 겹침 조회 지원 |
 
@@ -273,13 +273,13 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 커뮤니티 게시판 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 작성자 ID |
-| postCategory | VARCHAR(50) | NOT NULL | 게시글 카테고리 (Enum) |
+| post_category | VARCHAR(50) | NOT NULL | 게시글 카테고리 (Enum) |
 | title | VARCHAR(255) | NOT NULL | 제목 |
 | content | TEXT | NOT NULL | 내용 |
-| createdAt | TIMESTAMP | NOT NULL | 생성일시 |
-| updatedAt | TIMESTAMP | | 수정일시 |
-| isAnonymous | BOOLEAN | DEFAULT false | 익명 여부 |
-| isDeleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |
+| updated_at | TIMESTAMP | | 수정일시 |
+| is_anonymous | BOOLEAN | DEFAULT false | 익명 여부 |
+| is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
 | | | INDEX(idx_community_boards_deleted_created on is_deleted, created_at) | 삭제되지 않은 게시글 최신순 목록 조회 지원 |
 | | | INDEX(idx_community_boards_deleted_category_created on is_deleted, post_category, created_at) | 카테고리 필터 게시글 최신순 목록 조회 지원 |
 
@@ -292,11 +292,11 @@
 | id | BIGINT | PK, NOT NULL | 댓글 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 작성자 ID |
 | post_id | BIGINT | FK → CommunityBoard.id, NOT NULL | 게시글 ID |
-| isAnonymous | BOOLEAN | DEFAULT false | 익명 여부 |
+| is_anonymous | BOOLEAN | DEFAULT false | 익명 여부 |
 | content | TEXT | NOT NULL | 댓글 내용 |
-| isDeleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
-| createdAt | TIMESTAMP | NOT NULL | 댓글 생성 일자 |
-| updatedAt | TIMESTAMP | | 댓글 수정 일자 |
+| is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| created_at | TIMESTAMP | NOT NULL | 댓글 생성 일자 |
+| updated_at | TIMESTAMP | | 댓글 수정 일자 |
 | | | INDEX(idx_comments_post_deleted_created on post_id, is_deleted, created_at) | 게시글별 삭제되지 않은 댓글 생성순 조회 지원 |
 
 ---
@@ -363,14 +363,14 @@
 | schedule_category_id | BIGINT | FK → ScheduleCategory.id | 일정 카테고리 ID |
 | title | VARCHAR(255) | NOT NULL | 일정 제목 |
 | description | TEXT | | 일정 설명 |
-| externalEventId | VARCHAR(255) | | 외부 일정 ID |
-| externalProvider | VARCHAR(50) | | 외부 제공자 |
+| external_event_id | VARCHAR(255) | | 외부 일정 ID |
+| external_provider | VARCHAR(50) | | 외부 제공자 |
 | place | VARCHAR(500) | | 장소 |
-| isAllDay | BOOLEAN | DEFAULT false | 종일 일정 여부 |
-| startTime | TIMESTAMP | NOT NULL | 시작일시 |
-| endTime | TIMESTAMP | NOT NULL | 종료일시 |
-| alarmEnabled | BOOLEAN | DEFAULT false | 알림 사용 여부 |
-| isDeleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| is_all_day | BOOLEAN | DEFAULT false | 종일 일정 여부 |
+| start_time | TIMESTAMP | NOT NULL | 시작일시 |
+| end_time | TIMESTAMP | NOT NULL | 종료일시 |
+| alarm_enabled | BOOLEAN | DEFAULT false | 알림 사용 여부 |
+| is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
 | | | INDEX(idx_schedules_user_deleted_start_end on user_id, is_deleted, start_time, end_time) | 사용자별 기간 일정 조회 지원 |
 
 ---
