@@ -9,19 +9,14 @@ import attune.user.domain.model.UserStatus;
 import attune.user.domain.repository.EmailVerificationTokenRepository;
 import attune.user.domain.repository.PasswordResetTokenRepository;
 import attune.user.domain.repository.UserRepository;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
 import java.util.Map;
-import java.util.Properties;
 
 import static attune.support.TestUsers.DEFAULT_PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,12 +35,6 @@ class AccountIntegrationTest extends IntegrationTest {
     private EmailVerificationTokenRepository emailVerificationTokenRepository;
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
-
-    @BeforeEach
-    void stubMailSender() {
-        when(javaMailSender.createMimeMessage())
-                .thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
-    }
 
     @Test
     void signupCreatesPendingUserAndEmailVerificationActivatesLogin() throws Exception {

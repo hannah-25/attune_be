@@ -8,6 +8,8 @@ import attune.calendar.application.GoogleCalendarClient;
 import attune.medicationAnalysis.infrastructure.GeminiReportClient;
 import attune.user.domain.model.OAuthProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +20,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Properties;
 
 import static org.mockito.Mockito.when;
 
@@ -84,5 +88,7 @@ public abstract class IntegrationTest {
         when(googleOAuthVerifier.provider()).thenReturn(OAuthProvider.GOOGLE);
         when(appleOAuthVerifier.provider()).thenReturn(OAuthProvider.APPLE);
         when(kakaoOAuthVerifier.provider()).thenReturn(OAuthProvider.KAKAO);
+        when(javaMailSender.createMimeMessage())
+                .thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
     }
 }

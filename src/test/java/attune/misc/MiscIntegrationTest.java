@@ -23,9 +23,6 @@ import attune.support.domain.repository.SupportInquiryRepository;
 import attune.term.domain.model.TermType;
 import attune.user.domain.model.User;
 import com.jayway.jsonpath.JsonPath;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -35,7 +32,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,12 +60,6 @@ class MiscIntegrationTest extends IntegrationTest {
     private UserMedicationLogRepository userMedicationLogRepository;
     @Autowired
     private DailyStatusLogRepository dailyStatusLogRepository;
-
-    @BeforeEach
-    void stubMailSender() {
-        when(javaMailSender.createMimeMessage())
-                .thenAnswer(invocation -> new MimeMessage(Session.getInstance(new Properties())));
-    }
 
     @Test
     void supportInquiryStoresRequestAndRejectsInvalidEmail() throws Exception {
