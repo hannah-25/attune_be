@@ -12,7 +12,13 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "community_boards")
+@Table(
+        name = "community_boards",
+        indexes = {
+                @Index(name = "idx_community_boards_deleted_created", columnList = "is_deleted, created_at"),
+                @Index(name = "idx_community_boards_deleted_category_created", columnList = "is_deleted, post_category, created_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

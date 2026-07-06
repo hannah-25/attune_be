@@ -107,6 +107,8 @@
 | endAt | DATE | | 복용 종료일 |
 | createdAt | TIMESTAMP | NOT NULL | 생성일시 |
 | updatedAt | TIMESTAMP | NOT NULL | 수정일시 |
+| | | INDEX(idx_user_medications_user_active_created_id on user_id, is_active, created_at, id) | 사용자별 복약 목록 조회 정렬 지원 |
+| | | INDEX(idx_user_medications_user_started_end on user_id, started_at, end_at) | 사용자별 복약 기간 겹침 조회 지원 |
 
 ---
 
@@ -146,8 +148,8 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 약물 복용 로그 고유 식별자 |
 | user_medication_schedule_id | BIGINT | FK → UserMedicationSchedule.id, NOT NULL | 사용자 약물 ID |
-| takenAt | TIMESTAMP | NOT NULL | 복용 일시 |
-| | | UNIQUE(user_medication_schedule_id, takenAt) | 동일 스케줄의 같은 시간 중복 로그 방지 |
+| taken_at | TIMESTAMP | NOT NULL | 복용 일시 |
+| | | UNIQUE(user_medication_schedule_id, taken_at) | 동일 스케줄의 같은 시간 중복 로그 방지 |
 | status | VARCHAR | NOT NULL | 복용 여부 enum값 (TAKEN, SKIPPED). 미복용(missed)은 로그를 남기지 않고 "예정 대비 기록 부재"로 분석에서 도출 |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | 소프트 딜리트 플래그 (복용 취소 시 false로 변경) |
 
@@ -209,7 +211,7 @@
 | journal_tag_id | BIGINT | FK → JournalTag.id ON DELETE RESTRICT, NOT NULL | 태그 ID |
 | journal_date | DATE | NOT NULL | 체크인 대상 날짜 (사용자 최신 timezone 기준) |
 | checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 (Asia/Seoul) |
-| | | UNIQUE(user_id, journal_tag_id, journal_date) | 동일 날짜 중복 체크 방지 |
+| | | INDEX(idx_journal_tag_logs_user_date_checked on user_id, journal_date, checked_at) | 사용자별 기간 조회 및 날짜/체크 시각 정렬 지원 |
 
 ---
 
@@ -277,6 +279,8 @@
 | updatedAt | TIMESTAMP | | 수정일시 |
 | isAnonymous | BOOLEAN | DEFAULT false | 익명 여부 |
 | isDeleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| | | INDEX(idx_community_boards_deleted_created on is_deleted, created_at) | 삭제되지 않은 게시글 최신순 목록 조회 지원 |
+| | | INDEX(idx_community_boards_deleted_category_created on is_deleted, post_category, created_at) | 카테고리 필터 게시글 최신순 목록 조회 지원 |
 
 ---
 
@@ -286,12 +290,13 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 댓글 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 작성자 ID |
-| community_board_id | BIGINT | FK → CommunityBoard.id, NOT NULL | 게시글 ID |
+| post_id | BIGINT | FK → CommunityBoard.id, NOT NULL | 게시글 ID |
 | isAnonymous | BOOLEAN | DEFAULT false | 익명 여부 |
 | content | TEXT | NOT NULL | 댓글 내용 |
 | isDeleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
 | createdAt | TIMESTAMP | NOT NULL | 댓글 생성 일자 |
 | updatedAt | TIMESTAMP | | 댓글 수정 일자 |
+| | | INDEX(idx_comments_post_deleted_created on post_id, is_deleted, created_at) | 게시글별 삭제되지 않은 댓글 생성순 조회 지원 |
 
 ---
 
@@ -364,7 +369,8 @@
 | startTime | TIMESTAMP | NOT NULL | 시작일시 |
 | endTime | TIMESTAMP | NOT NULL | 종료일시 |
 | alarmEnabled | BOOLEAN | DEFAULT false | 알림 사용 여부 |
-| isActive | BOOLEAN | DEFAULT true | 일정 활성화 여부 |
+| isDeleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
+| | | INDEX(idx_schedules_user_deleted_start_end on user_id, is_deleted, start_time, end_time) | 사용자별 기간 일정 조회 지원 |
 
 ---
 
@@ -434,6 +440,8 @@
 | is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
 | is_alarm_sent | BOOLEAN | DEFAULT false | 알람 발송 완료 여부 (SENT/SKIPPED 시 true로 갱신) |
 | created_at | TIMESTAMP | NOT NULL | 생성일시 |
+| | | INDEX(idx_todos_alarm_lookup on is_alarm_sent, is_deleted, is_completed, is_all_day, due_at) | 할 일 알림 후보 조회 지원 |
+| | | INDEX(idx_todos_user_deleted_due_at on user_id, is_deleted, due_at) | 사용자별 날짜 범위 할 일 조회 지원 |
 
 ---
 

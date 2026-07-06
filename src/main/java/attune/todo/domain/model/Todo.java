@@ -11,7 +11,8 @@ import java.util.UUID;
 @Table(
         name = "todos",
         indexes = {
-                @Index(name = "idx_todos_alarm_lookup", columnList = "is_alarm_sent, is_deleted, is_completed, is_all_day, due_at")
+                @Index(name = "idx_todos_alarm_lookup", columnList = "is_alarm_sent, is_deleted, is_completed, is_all_day, due_at"),
+                @Index(name = "idx_todos_user_deleted_due_at", columnList = "user_id, is_deleted, due_at")
         }
 )
 @Builder
