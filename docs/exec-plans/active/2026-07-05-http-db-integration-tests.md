@@ -7,7 +7,152 @@
 ## 진행 현황
 
 - 2026-07-06 0단계 인프라 + auth 시나리오 4개 구현 완료, 전체 테스트 그린(4m 6s) → PR #97
-- 다음: auth 시나리오 완성(소셜 로그인·restore·만료 access 토큰 reissue·비활성 계정 차단) → journal
+- 2026-07-06 auth 시나리오 확장 진행:
+  - 소셜 로그인/withdrawn 409/social restore/정지 계정 차단 4개 추가.
+  - reissue 만료 access token 허용 경로, 일반 로그인 정지 계정 차단 2개 추가.
+  - 중간 실행 1: `./gradlew test --tests "attune.auth.*IntegrationTest"` → 7개 중 1개 실패.
+    원인: social restore 테스트가 실제 응답 필드 `status` 대신 `userStatus` 를 기대.
+  - 중간 실행 2: 같은 명령 → 10개 중 2개 실패.
+    원인: `JwtAuthenticationFilter.shouldNotFilter` 가 `/v1/auth/reissue` 를 안정적으로 제외하지 못해
+    만료 access token이 컨트롤러 전 필터에서 401 처리됨. 또한 일반 로그인 정지 계정은
+    Spring Security `LockedException` 이 도메인 401로 변환되지 않아 500으로 응답.
+  - 수정 후 실행: `./gradlew test --tests "attune.auth.*IntegrationTest"` → 10개 통과, 4m 17s.
+- 2026-07-06 journal 시나리오 5개 추가:
+  - 사용자 태그 생성 → 체크 → 단일 일지 조회.
+  - 타인 사용자 태그 체크 404.
+  - 메모 upsert + 수면/식사 upsert 후 단일 일지 조회.
+  - 목표 생성 → 점수 기록 → 단일 일지 조회.
+  - 중복 사용자 태그 409.
+  - 중간 실행 1: `./gradlew test --tests "attune.journal.JournalIntegrationTest"` → 3개 중 2개 실패.
+    원인: JsonPath 숫자 응답이 `Integer` 로 반환되는데 테스트 헬퍼가 `Long` 직접 캐스팅.
+  - 중간 실행 2: 같은 명령 → 3개 중 2개 실패.
+    원인: 요청 바디의 `LocalDate` 를 테스트 ObjectMapper가 직렬화하지 못함. HTTP 요청값을 ISO 날짜 문자열로 교정.
+  - 수정 후 단독 실행: `./gradlew test --tests "attune.journal.JournalIntegrationTest"` → 5개 통과, 4m.
+  - auth+journal 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest"`
+    → 15개 통과, 5m 13s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 4m 37s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 medication 시나리오 4개 추가:
+  - 표준 약 검색과 상세 조회(Redis JSON 캐시 경로 포함).
+  - user-medication 등록 → quick log(TAKEN) → 개별 로그 조회 → 기간 로그 조회.
+  - 타인 user-medication 로그 조회/quick log 404.
+  - 기간 로그 조회 날짜 역전 400.
+  - 단독 실행: `./gradlew test --tests "attune.medication.MedicationIntegrationTest"` → 4개 통과, 3m 22s.
+  - auth+journal+medication 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest"`
+    → 19개 통과, 3m 44s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 7m 12s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 onboarding 시나리오 3개 추가:
+  - status → symptoms → ASRS → AI recommendations(Gemini 목) → goals → complete → status/history/history detail 전체 플로우.
+  - skip 후 status skipped 확인.
+  - 필수 단계 미완료 complete 400.
+  - 중간 실행 1: `./gradlew test --tests "attune.onboarding.OnboardingIntegrationTest"` → 3개 중 1개 실패.
+    원인: 응답은 정상이나 MockMvc JSONPath 필터 표현식이 추천 태그 배열을 안정적으로 매칭하지 못함.
+    배열 위치 기반 검증으로 교정.
+  - 중간 실행 2: 같은 명령 → 3개 중 1개 실패.
+    원인: 이력 상세는 ASRS 완료 시각 이전/동시점의 증상 기록을 붙이는데, 테스트 플로우가 ASRS 후 symptoms 순서라
+    `symptom: null` 응답. 제품 status 단계(증상 → ASRS)와 맞게 테스트 순서를 교정.
+  - 수정 후 단독 실행: `./gradlew test --tests "attune.onboarding.OnboardingIntegrationTest"` → 3개 통과, 3m 21s.
+  - auth+journal+medication+onboarding 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest" --tests "attune.onboarding.OnboardingIntegrationTest"`
+    → 22개 통과, 4m 10s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 8m 37s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 schedule/todo 시나리오 4개 추가:
+  - 카테고리 생성/목록/수정 + 일정 생성/목록/상세/알람 수정/삭제.
+  - 타인 일정 상세/알람 수정 404.
+  - 일정 알람 4개 초과 400.
+  - 투두 생성 → 날짜별 목록 → 상세 → 수정.
+  - 중간 실행 1: `./gradlew test --tests "attune.schedule.ScheduleTodoIntegrationTest"` → 4개 중 1개 실패.
+    원인: 응답 JSON은 `LocalDateTime` 을 `yyyy-MM-dd'T'HH:mm:ss` 로 직렬화하지만 테스트 기대값은
+    `LocalDateTime.toString()` 이라 초가 0일 때 `:00` 이 생략됨. 기대값 포맷을 고정.
+  - 수정 후 단독 실행: `./gradlew test --tests "attune.schedule.ScheduleTodoIntegrationTest"` → 4개 통과, 3m 21s.
+  - auth+journal+medication+onboarding+schedule/todo 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest" --tests "attune.onboarding.OnboardingIntegrationTest" --tests "attune.schedule.ScheduleTodoIntegrationTest"`
+    → 26개 통과, 7m 2s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 6m 35s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 user/account 시나리오 4개 추가:
+  - 회원가입 → 이메일 인증 토큰 DB 확인 → 인증 → 로그인.
+  - 비밀번호 재설정 요청 → 토큰 검증 → 재설정 완료 → 기존 비밀번호 거부/새 비밀번호 로그인.
+  - 설정 조회/수정 + 닉네임/프로필 이미지 수정 + 프로필 조회.
+  - 탈퇴 비밀번호 검증 → 탈퇴 상태 로그인 409 → restore → ACTIVE 복구.
+  - 중간 실행 1: `./gradlew test --tests "attune.user.AccountIntegrationTest"` → 4개 중 1개 실패.
+    원인: 탈퇴 계정 로그인은 인증 실패 401이 아니라 복구 플로우 유도를 위한 409 Conflict가 현재 API 계약.
+    기대값을 409로 교정하고 restore 검증까지 확장.
+  - 중간 실행 2: 같은 명령 → 4개 중 1개 실패.
+    원인: restore 응답 상태 필드는 `userStatus` 가 아니라 `status`. 기대 필드 교정.
+  - 수정 후 단독 실행: `./gradlew test --tests "attune.user.AccountIntegrationTest"` → 4개 통과, 2m 37s.
+  - auth+journal+medication+onboarding+schedule/todo+user/account 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest" --tests "attune.onboarding.OnboardingIntegrationTest" --tests "attune.schedule.ScheduleTodoIntegrationTest" --tests "attune.user.AccountIntegrationTest"`
+    → 30개 통과, 4m 31s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 6m 17s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 admin 시나리오 4개 추가:
+  - USER 롤의 `/v1/admin/**` 접근 403.
+  - 관리자 회원 목록 조회 → 회원 상태 SUSPENDED 변경 → 감사 로그 조회.
+  - 관리자 공지 생성/수정/삭제 + 공개 공지 목록/상세 조회.
+  - 관리자 약관 등록/목록 조회.
+  - 단독 실행: `./gradlew test --tests "attune.admin.AdminIntegrationTest"` → 4개 통과, 2m 50s.
+  - auth+journal+medication+onboarding+schedule/todo+user/account+admin 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest" --tests "attune.onboarding.OnboardingIntegrationTest" --tests "attune.schedule.ScheduleTodoIntegrationTest" --tests "attune.user.AccountIntegrationTest" --tests "attune.admin.AdminIntegrationTest"`
+    → 34개 통과, 5m 1s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 9m 31s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 community/consultation 시나리오 3개 추가:
+  - 게시글 생성/목록/상세/수정/삭제 + 댓글 생성/목록/수정/삭제, 작성자/타인 권한 경계 검증.
+  - 상담 일정 생성 → 질문 추가/조회/삭제 → 결과 작성/조회/삭제 → 기간 조회 → 일정 수정.
+  - 타인 상담 조회 403 + 상담 기간 역전 400.
+  - 중간 실행 1: `./gradlew test --tests "attune.communityBoard.CommunityConsultationIntegrationTest"` → 3개 중 2개 실패.
+    원인: 서비스 계층에서 던진 Spring Security `AccessDeniedException` 이 전역 예외 처리에 매핑되지 않아
+    타인 게시글 수정/타인 상담 조회가 403 대신 500으로 응답. 또한 community 삭제 후 조회 경로의
+    `NoSuchElementException` 도 404로 매핑되지 않을 가능성을 함께 확인.
+  - 수정: `GlobalExceptionHandler` 에 `AccessDeniedException` → 403, `NoSuchElementException` → 404 매핑 추가.
+  - 수정 후 단독 실행: `./gradlew test --tests "attune.communityBoard.CommunityConsultationIntegrationTest"` → 3개 통과, 5m 24s.
+  - auth+journal+medication+onboarding+schedule/todo+user/account+admin+community/consultation 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest" --tests "attune.onboarding.OnboardingIntegrationTest" --tests "attune.schedule.ScheduleTodoIntegrationTest" --tests "attune.user.AccountIntegrationTest" --tests "attune.admin.AdminIntegrationTest" --tests "attune.communityBoard.CommunityConsultationIntegrationTest"`
+    → 37개 통과, 6m 28s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 10m 25s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 기타 도메인 시나리오 4개 추가:
+  - support inquiry 생성 + DB 저장 검증 + 이메일 형식 검증 400.
+  - ai/generate → `AiTextGenerator` mock 경로 검증 + 빈 prompt 400.
+  - Google Calendar 연결 → 연결 목록 → 동기화(Google client mock) → 외부 이벤트 조회 → 연결 해제.
+  - medicationAnalysis: 7일치 복약/일지 상태 기록 기반 availability/summary 조회 → AI 분석 동의 →
+    Gemini report client mock 리포트 생성 → 단건/목록 조회 → 동일 데이터 재생성 시 기존 리포트 재사용 →
+    최소 7일 미만 기간 400.
+  - 중간 실행 1: `./gradlew test --tests "attune.misc.MiscIntegrationTest"` → `compileTestJava` 실패.
+    원인: `/v1/ai-analysis-consent` 호출에 필요한 MockMvc `put` request builder static import 누락.
+  - 수정 후 단독 실행: `./gradlew test --tests "attune.misc.MiscIntegrationTest"` → 4개 통과, 3m 5s.
+  - 전체 신규 통합 테스트 묶음 실행:
+    `./gradlew test --tests "attune.auth.*IntegrationTest" --tests "attune.journal.JournalIntegrationTest" --tests "attune.medication.MedicationIntegrationTest" --tests "attune.onboarding.OnboardingIntegrationTest" --tests "attune.schedule.ScheduleTodoIntegrationTest" --tests "attune.user.AccountIntegrationTest" --tests "attune.admin.AdminIntegrationTest" --tests "attune.communityBoard.CommunityConsultationIntegrationTest" --tests "attune.misc.MiscIntegrationTest"`
+    → 41개 통과, 5m 14s.
+  - 전체 테스트 실행: `./gradlew test` → 통과, 8m 16s.
+    종료 시 Hibernate `ddl-auto: create-drop` FK drop 실패 로그가 출력됐지만 Gradle 결과는 `BUILD SUCCESSFUL`.
+- 2026-07-06 현재 상태: 우선순위 1~9 도메인 HTTP→DB 통합 테스트 구현 및 로컬 검증 완료.
+  머지/CI 안정 통과 확인은 아직 남음.
+- 2026-07-06 작업 후 문서 반영:
+  - `docs/engineering/testing-strategy.md` 에 41개 HTTP→DB 통합 테스트 범위와 `IntegrationTest` 사용 규칙 갱신.
+  - `docs/quality/quality-score.md` 의 테스트 점수 3 → 4로 재평가. CI 연속 안정성/커버리지 미측정은 잔여 리스크로 유지.
+- 2026-07-06 문서 점검:
+  - `bash scripts/agent/check-docs` 는 현재 Windows `bash` 가 WSL로 연결되고 설치된 WSL 배포판이 없어 실행 실패.
+  - 같은 로직을 PowerShell로 재현해 점검: 깨진 상대 링크 0건, `docs/generated/project-map.md`,
+    `docs/generated/api-index.md`, `docs/generated/data-schema.md` 모두 존재.
+- 2026-07-06 PR 전 안전 점검:
+  - 신규 통합 테스트 파일에서 `@Disabled`, TODO/FIXME, 임시 출력, `Thread.sleep`, 테스트 스킵 흔적 없음.
+  - `src/main/resources/application-secret.yml.bak` 백업 파일이 untracked로 노출되어 있어 `.gitignore` 를
+    `src/main/resources/application-secret.yml*` 로 보강. 파일 내용은 수정하지 않음.
+  - `git diff --check` 통과(공백 오류 없음, Windows 줄끝 변환 경고만 출력).
+- 2026-07-06 PR 준비 완료:
+  - 커밋: `c01c05a test: expand HTTP DB integration coverage`.
+  - 원격 브랜치 push: `origin/feature/integration-test-auth`.
+  - PR 생성: #98 `test: expand HTTP DB integration coverage`.
+- 2026-07-06 PR CI 확인:
+  - `c01c05a` 대상 run: `build + test + architecture` 통과(2m 16s), `docs link + freshness` 통과(6s).
+  - `f1aa0f4` 대상 run: `build + test + architecture` 통과(2m 26s), `docs link + freshness` 통과(6s).
+- 다음: CI 연속 안정성 추가 확인 및 필요 시 후속 수정.
 
 ## 목표
 
@@ -26,13 +171,21 @@
 - [testing-strategy](../../engineering/testing-strategy.md)에서 "통합테스트 시나리오 확충은 별도 계획으로
   진행"으로 남겨둔 그 계획이 이 문서다.
 
-## 현재 상태
+## 초기 상태
 
 - `src/test/resources/application.yml`: `jdbc:tc:mysql:8.4` + `TC_DAEMON=true`, `ddl-auto: create-drop`.
   Redis는 `localhost:6379`를 바라봄(컨테이너 아님) — 전 구간 테스트 시 인증 캐시가 실제 Redis를 침.
 - `@SpringBootTest` 전체 컨텍스트 기동 확인됨(`AttuneApplicationTests`).
 - Redis 사용처: `common/cache/RedisJsonCache`, `auth/domain/repository/UserAuthCacheRepository`.
 - 외부 연동: Gemini(ai/onboarding/medicationAnalysis), 메일, 웹푸시, Google(OAuth/Calendar), Apple.
+
+## 현재 구현 상태
+
+- `IntegrationTest` 베이스에서 Redis Testcontainer(`redis:7-alpine`)를 기동하고
+  `@DynamicPropertySource` 로 `spring.data.redis.host/port` 를 주입한다.
+- 테스트 간 DB는 `DatabaseCleaner`, Redis는 `RedisCleaner` 로 격리한다.
+- 외부 연동은 베이스 mock/stub으로 격리하고, OAuth verifier 라우팅 mock은 매 테스트마다 기본 stubbing한다.
+- 우선순위 1~9 핵심 시나리오 41개가 로컬에서 통과했고, 전체 `./gradlew test` 도 통과했다.
 
 ## 변경 범위
 
@@ -167,6 +320,6 @@
 
 ## 작업 후 문서 업데이트 목록
 
-- [ ] `docs/engineering/testing-strategy.md` — 통합 테스트 레이어·베이스 클래스 사용법 추가
-- [ ] `docs/quality/quality-score.md` — 테스트 항목 점수 재평가
+- [x] `docs/engineering/testing-strategy.md` — 통합 테스트 레이어·베이스 클래스 사용법 추가
+- [x] `docs/quality/quality-score.md` — 테스트 항목 점수 재평가
 - [ ] 완료 시 이 문서를 `completed/` 로 이동

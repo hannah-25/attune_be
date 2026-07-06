@@ -1,12 +1,19 @@
 package attune.support;
 
+import attune.journal.domain.model.JournalTag;
+import attune.journal.domain.model.SystemJournalTagDefinitions;
+import attune.journal.domain.repository.JournalTagRepository;
 import attune.medication.domain.model.Medication;
+import attune.medication.domain.model.MedicationDosage;
+import attune.medication.domain.repository.MedicationDosageRepository;
 import attune.medication.domain.repository.MedicationRepository;
 import attune.term.domain.model.Term;
 import attune.term.domain.model.TermType;
 import attune.term.domain.repository.TermRepository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 기준(참조) 데이터 픽스처 — ddl-auto: create-drop 환경에는 seed SQL이 없으므로
@@ -16,10 +23,17 @@ import java.time.LocalDateTime;
 public class ReferenceDataFixture {
 
     private final MedicationRepository medicationRepository;
+    private final MedicationDosageRepository medicationDosageRepository;
+    private final JournalTagRepository journalTagRepository;
     private final TermRepository termRepository;
 
-    public ReferenceDataFixture(MedicationRepository medicationRepository, TermRepository termRepository) {
+    public ReferenceDataFixture(MedicationRepository medicationRepository,
+                                MedicationDosageRepository medicationDosageRepository,
+                                JournalTagRepository journalTagRepository,
+                                TermRepository termRepository) {
         this.medicationRepository = medicationRepository;
+        this.medicationDosageRepository = medicationDosageRepository;
+        this.journalTagRepository = journalTagRepository;
         this.termRepository = termRepository;
     }
 
@@ -29,6 +43,27 @@ public class ReferenceDataFixture {
                 .genericName(name + "-generic")
                 .effect("test-effect")
                 .drugClass("test-class")
+                .build());
+    }
+
+    public List<JournalTag> systemJournalTags() {
+        LocalDateTime now = LocalDateTime.now();
+        List<JournalTag> tags = SystemJournalTagDefinitions.all().stream()
+                .map(definition -> JournalTag.systemTag(
+                        definition.category(),
+                        definition.name(),
+                        definition.tagType(),
+                        definition.defaultVisible(),
+                        now))
+                .toList();
+        return journalTagRepository.saveAll(tags);
+    }
+
+    public MedicationDosage dosage(Medication medication, String amount) {
+        return medicationDosageRepository.save(MedicationDosage.builder()
+                .medication(medication)
+                .amount(new BigDecimal(amount))
+                .isActive(true)
                 .build());
     }
 

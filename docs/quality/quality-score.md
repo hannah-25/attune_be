@@ -5,7 +5,7 @@
 | 영역 | 점수(1-5) | 근거 | 개선 포인터 |
 |------|-----------|------|-------------|
 | 빌드/실행 | 4 | Gradle 표준, 프로파일 분리, 로컬 H2 | — |
-| 테스트 | 3 | 53개 테스트, 서비스/도메인 중심. 커버리지 미측정, 통합테스트 적음 | [testing-strategy](../engineering/testing-strategy.md), TD-6 |
+| 테스트 | 4 | Testcontainers MySQL/Redis 기반 HTTP→DB 통합 테스트 41개 추가. auth~기타 도메인 핵심 시나리오 로컬 전체 테스트 통과. 커버리지 미측정과 CI 연속 안정성 확인은 남음 | [testing-strategy](../engineering/testing-strategy.md), TD-6 |
 | 아키텍처 일관성 | 4 | 헥사고날 레이아웃 일관. 검증 도구 신규 도입 | ArchUnit 강제 승격(TD-4) |
 | 문서화 | 3→4 | 레퍼런스 문서 풍부했으나 평면적 → 하네스로 구조화 | generated 자동화 유지 |
 | CI/CD | 2→3 | 배포 자동화는 양호, PR 검증 게이트 부재 → `ci.yml` 추가 | required check 설정(TD-8) |

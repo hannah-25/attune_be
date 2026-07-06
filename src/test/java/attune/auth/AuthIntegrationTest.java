@@ -78,6 +78,27 @@ class AuthIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void mobileReissueAcceptsExpiredAccessTokenAndRotatesRefreshToken() throws Exception {
+        User user = testUsers.activeUser("expired-reissue@test.com");
+        Map<String, String> tokens = mobileLogin(user);
+
+        MvcResult reissued = mockMvc.perform(post("/v1/auth/reissue")
+                        .header(HttpHeaders.CLIENT_TYPE, "ios")
+                        .header(HttpHeaders.REFRESH_TOKEN, tokens.get("refreshToken"))
+                        .header("Authorization", "Bearer " + testUsers.expiredAccessToken(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andReturn();
+
+        String rotatedRefreshToken = JsonPath.read(reissued.getResponse().getContentAsString(), "$.refreshToken");
+        assertThat(rotatedRefreshToken).isNotEqualTo(tokens.get("refreshToken"));
+        assertThat(userAuthCacheRepository.find(user.getId()))
+                .map(UserAuthCache::refreshToken)
+                .contains(rotatedRefreshToken);
+    }
+
+    @Test
     void logoutDeletesSessionCacheAndRejectsSubsequentReissue() throws Exception {
         User user = testUsers.activeUser("logout@test.com");
         Map<String, String> tokens = mobileLogin(user);
@@ -100,6 +121,16 @@ class AuthIntegrationTest extends IntegrationTest {
     @Test
     void logoutWithoutTokenReturns401() throws Exception {
         mockMvc.perform(post("/v1/auth/logout"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginWithSuspendedAccountReturns401() throws Exception {
+        User user = testUsers.suspendedUser("suspended-login@test.com");
+
+        mockMvc.perform(post("/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginBody(user.getEmail())))
                 .andExpect(status().isUnauthorized());
     }
 

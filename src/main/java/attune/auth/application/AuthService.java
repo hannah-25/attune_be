@@ -8,6 +8,7 @@ import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
 import attune.common.error.ConflictException;
+import attune.common.error.UnauthorizedException;
 import attune.common.error.badrequest.InvalidAccountStatusException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.error.unauthorized.InvalidPasswordException;
@@ -22,8 +23,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,9 +56,18 @@ public class AuthService {
             }
         });
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+        } catch (LockedException e) {
+            throw new UnauthorizedException("정지된 계정입니다.");
+        } catch (DisabledException e) {
+            throw new UnauthorizedException("활성화되지 않은 계정입니다.");
+        } catch (AuthenticationException e) {
+            throw new UnauthorizedException("이메일 또는 비밀번호가 일치하지 않습니다.");
+        }
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId())
