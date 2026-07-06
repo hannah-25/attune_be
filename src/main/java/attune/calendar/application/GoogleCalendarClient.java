@@ -92,10 +92,15 @@ public class GoogleCalendarClient {
             metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_SUCCESS);
             return email instanceof String value && !value.isBlank() ? value : null;
         } catch (RestClientResponseException e) {
-            log.warn("Failed to fetch Google account email: status={}",
-                    e.getStatusCode(),
-                    sanitized("Google account email API error: " + e.getStatusCode(), e));
-            metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_FAILURE);
+            // 비필수 조회라 예외는 던지지 않지만, 메트릭·로그 레벨은 다른 operation과 같은 기준으로 분류한다.
+            String outcome = classifyHttpOutcome(e.getStatusCode().value());
+            Throwable sanitizedError = sanitized("Google account email API error: " + e.getStatusCode(), e);
+            if (OUTCOME_FAILURE.equals(outcome)) {
+                log.error("Failed to fetch Google account email: status={}", e.getStatusCode(), sanitizedError);
+            } else {
+                log.warn("Failed to fetch Google account email: status={}", e.getStatusCode(), sanitizedError);
+            }
+            metrics.recordCalendarRequest(OP_USERINFO, outcome);
             return null;
         } catch (ResourceAccessException e) {
             // 연결 실패·타임아웃은 일시 장애이므로 다른 operation과 동일하게 unavailable로 집계한다.
@@ -342,11 +347,11 @@ public class GoogleCalendarClient {
                                                   RestClientResponseException e) {
         // PII 금지: Google 응답 body는 일정 제목/설명, 계정 정보, 토큰 오류 세부정보를 포함할 수 있다.
         // RestClientResponseException 자체도 body를 들고 있으므로 cause로 보존하지 않는다.
-        int status = e.getStatusCode().value();
-        if (status == 401 || status == 403) {
+        String outcome = classifyHttpOutcome(e.getStatusCode().value());
+        if (OUTCOME_REAUTH.equals(outcome)) {
             return reauthRequiredException(operation, logPrefix, e);
         }
-        if (status == 429 || status >= 500) {
+        if (OUTCOME_UNAVAILABLE.equals(outcome)) {
             // rate limit·일시 장애 — 사용자 조치가 아니라 재시도로 해결되는 상태이므로 503으로 안내한다.
             log.warn("{}: status={}",
                     logPrefix,
@@ -361,6 +366,17 @@ public class GoogleCalendarClient {
                 sanitized("Google API Error: " + e.getStatusCode(), e));
         metrics.recordCalendarRequest(operation, OUTCOME_FAILURE);
         return new InternalServerException(clientMessage + " (" + e.getStatusCode() + ")");
+    }
+
+    private String classifyHttpOutcome(int status) {
+        if (status == 401 || status == 403) {
+            return OUTCOME_REAUTH;
+        }
+        if (status == 429 || status >= 500) {
+            // rate limit·일시 장애 — 재시도로 해결되는 상태
+            return OUTCOME_UNAVAILABLE;
+        }
+        return OUTCOME_FAILURE;
     }
 
     private CalendarReauthRequiredException reauthRequiredException(String operation,

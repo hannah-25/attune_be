@@ -211,6 +211,34 @@ class GoogleCalendarClientTest {
             assertThat(message).doesNotContain("정신과");
             assertThat(message).doesNotContain("person@example.com");
         });
+        assertThat(calendarRequestCount("userinfo", "reauth")).isEqualTo(1.0);
+        server.verify();
+    }
+
+    @Test
+    void fetchAccountEmail_serverErrorIsRecordedAsUnavailable() {
+        server.expect(requestTo(USERINFO_URL))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(SENSITIVE_BODY));
+
+        String result = client.fetchAccountEmail("access-token");
+
+        assertThat(result).isNull();
+        assertThat(calendarRequestCount("userinfo", "unavailable")).isEqualTo(1.0);
+        server.verify();
+    }
+
+    @Test
+    void fetchAccountEmail_unexpected4xxIsRecordedAsFailure() {
+        server.expect(requestTo(USERINFO_URL))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(SENSITIVE_BODY));
+
+        String result = client.fetchAccountEmail("access-token");
+
+        assertThat(result).isNull();
         assertThat(calendarRequestCount("userinfo", "failure")).isEqualTo(1.0);
         server.verify();
     }
