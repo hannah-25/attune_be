@@ -97,6 +97,12 @@ public class GoogleCalendarClient {
                     sanitized("Google account email API error: " + e.getStatusCode(), e));
             metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_FAILURE);
             return null;
+        } catch (ResourceAccessException e) {
+            // 연결 실패·타임아웃은 일시 장애이므로 다른 operation과 동일하게 unavailable로 집계한다.
+            log.warn("Failed to fetch Google account email",
+                    sanitized("Google account email API connection error", e));
+            metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_UNAVAILABLE);
+            return null;
         } catch (RuntimeException e) {
             log.warn("Failed to fetch Google account email",
                     sanitized("Runtime error during fetchAccountEmail", e));

@@ -21,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 class GoogleCalendarClientTest {
@@ -210,6 +212,21 @@ class GoogleCalendarClientTest {
             assertThat(message).doesNotContain("person@example.com");
         });
         assertThat(calendarRequestCount("userinfo", "failure")).isEqualTo(1.0);
+        server.verify();
+    }
+
+    @Test
+    void fetchAccountEmail_connectionErrorIsRecordedAsUnavailable() {
+        server.expect(requestTo(USERINFO_URL))
+                .andRespond(withException(new SocketTimeoutException("connect timed out")));
+
+        String result = client.fetchAccountEmail("access-token");
+
+        assertThat(result).isNull();
+        assertThat(logThrowableMessages()).contains("Google account email API connection error");
+        assertThat(logThrowableMessages()).allSatisfy(message ->
+                assertThat(message).doesNotContain(USERINFO_URL));
+        assertThat(calendarRequestCount("userinfo", "unavailable")).isEqualTo(1.0);
         server.verify();
     }
 
