@@ -37,6 +37,13 @@ spring:
           starttls:
             enable: true
 
+# 통합 테스트는 JavaMailSender를 인터페이스 mock으로 교체한다(IntegrationTest 베이스).
+# mail health indicator는 JavaMailSenderImpl 구체 타입 빈을 요구해 mock과 충돌하므로 끈다.
+management:
+  health:
+    mail:
+      enabled: false
+
 jwt:
   secret-key: test-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
   access-token-expiration: 1800
@@ -49,10 +56,11 @@ cors:
 app:
   frontend-url: http://localhost:3000
 
-ai:
-  gemini:
-    api-key: test-gemini-api-key
-    model: gemini-2.5-flash
+# GeminiProperties(prefix=gemini) 바인딩 — base-url 누락 시 GeminiConfig의 RestClient 생성이 깨진다
+gemini:
+  api-key: test-gemini-api-key
+  base-url: http://localhost:1/gemini-not-called-in-tests
+  model: gemini-2.5-flash
 
 oauth:
   google:

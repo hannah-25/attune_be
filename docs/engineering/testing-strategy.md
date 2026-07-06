@@ -17,7 +17,20 @@
 | 서비스 테스트 | 유스케이스(목 Repository/협력자) | `JournalServiceTest`, `MedicationServiceTest` |
 | Repository 테스트 | 커스텀 쿼리 | `AdminMemberRepositoryTest`, `AdminAuditLogRepositoryTest` |
 | 컨트롤러/보안 테스트 | 엔드포인트·인가 | `AdminMemberSecurityTest`, `JournalTagControllerTest` |
+| **통합 테스트** | HTTP→필터(실 JWT)→서비스→JPA→MySQL/Redis 전 구간 | `AuthIntegrationTest` |
 | 아키텍처 테스트 | 계층/레이아웃 규칙 | `attune.architecture.*Test` (ArchUnit) |
+
+### 통합 테스트 작성법
+
+`attune.support.IntegrationTest` 를 상속한다 (`*IntegrationTest` 네이밍, 도메인 패키지에 배치).
+
+- 베이스가 제공: `mockMvc`, `objectMapper`, `testUsers`(유저 생성 + 실 JWT 발급),
+  `referenceData`(표준 약·약관 기준 데이터), 테스트 간 DB truncate + Redis FLUSHDB 자동 실행.
+- 인증은 목이 아니라 실제 토큰: `testUsers.bearer(user)` 를 `Authorization` 헤더에 태운다.
+- 외부 연동 mock(`aiTextGenerator` 등)은 **베이스에만** 선언돼 있다. 서브클래스에서
+  `@MockitoBean` 을 추가하면 컨텍스트 캐시가 깨져 CI가 느려지므로 금지 — 필요하면 베이스에 추가.
+- Redis는 Testcontainers(`redis:7-alpine`)로 자동 기동. MySQL과 함께 **Docker 필수**.
+- 확충 로드맵: [실행 계획](../exec-plans/active/2026-07-05-http-db-integration-tests.md)
 
 ## 규칙
 
@@ -38,4 +51,4 @@ scripts/agent/test                       # 전체
 
 - 커버리지 측정 도구(JaCoCo) 미도입 → [tech-debt-tracker](../exec-plans/tech-debt-tracker.md).
 - ~~통합 테스트(Testcontainers MySQL) 도입 검토.~~ → 2026-07-05 도입 완료. HTTP→DB 전 구간
-  통합테스트 시나리오 확충은 별도 계획으로 진행.
+  통합테스트 시나리오 확충은 [실행 계획](../exec-plans/active/2026-07-05-http-db-integration-tests.md)으로 진행.
