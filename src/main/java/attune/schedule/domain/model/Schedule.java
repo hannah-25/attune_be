@@ -8,7 +8,12 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "schedules")
+@Table(
+        name = "schedules",
+        indexes = {
+                @Index(name = "idx_schedules_user_deleted_start_end", columnList = "user_id, is_deleted, start_time, end_time")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

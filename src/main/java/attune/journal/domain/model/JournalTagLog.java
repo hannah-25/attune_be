@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +18,12 @@ import java.util.UUID;
 
 @Getter
 @Entity
-@Table(name = "journal_tag_logs")
+@Table(
+        name = "journal_tag_logs",
+        indexes = {
+                @Index(name = "idx_journal_tag_logs_user_date_checked", columnList = "user_id, journal_date, checked_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

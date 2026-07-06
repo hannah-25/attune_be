@@ -11,7 +11,12 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "comments")
+@Table(
+        name = "comments",
+        indexes = {
+                @Index(name = "idx_comments_post_deleted_created", columnList = "post_id, is_deleted, created_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
