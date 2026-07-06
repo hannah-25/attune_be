@@ -10,6 +10,7 @@
 --
 -- Row counts produced:
 --   users                     1,000  (user_status ACTIVE, deterministic UUIDs)
+--   schedule_categories       1,000  (1 per user)
 --   medications                  10
 --   medication_dosages           30  (3 per medication)
 --   schedules               100,000  (100 per user, ~20% external, ~5% deleted)
@@ -50,6 +51,7 @@ TRUNCATE TABLE journal_tags;
 TRUNCATE TABLE memos;
 TRUNCATE TABLE daily_status_logs;
 TRUNCATE TABLE schedules;
+TRUNCATE TABLE schedule_categories;
 TRUNCATE TABLE todos;
 TRUNCATE TABLE users;
 SET FOREIGN_KEY_CHECKS = 1;
@@ -72,6 +74,21 @@ FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n
       SELECT n FROM seq) u;
 
 -- ----------------------------------------------------------------------------
+-- schedule_categories: 1 default category per user.
+--   id = user_n, used by schedules below.
+-- ----------------------------------------------------------------------------
+INSERT INTO schedule_categories
+    (id, user_id, category_name, color, is_active)
+SELECT
+    n,
+    UNHEX(MD5(CONCAT('attune-user-', n))),
+    'seed-default',
+    '#4F46E5',
+    1
+FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 1000)
+      SELECT n FROM seq) c;
+
+-- ----------------------------------------------------------------------------
 -- schedules: 100 per user over ~2 years before 2026-07-01.
 --   ~20% external (external_event_id set), ~5% soft-deleted.
 --   start_time deterministic pseudo-random day/hour; duration 1h.
@@ -81,7 +98,7 @@ INSERT INTO schedules
      place, is_all_day, is_deleted, alarm_enabled, start_time, end_time)
 SELECT
     u.id,
-    1,
+    u.n,
     CONCAT('schedule-', u.n, '-', s.n),
     NULL,
     CASE WHEN MOD(CONV(SUBSTRING(MD5(CONCAT('sch-ext-', u.n, '-', s.n)), 1, 8), 16, 10), 10) < 2
@@ -334,6 +351,7 @@ FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n
 -- Verification: row counts per table (record these in the result document).
 -- ----------------------------------------------------------------------------
 SELECT 'users' AS tbl, COUNT(*) AS cnt FROM users
+UNION ALL SELECT 'schedule_categories', COUNT(*) FROM schedule_categories
 UNION ALL SELECT 'schedules', COUNT(*) FROM schedules
 UNION ALL SELECT 'todos', COUNT(*) FROM todos
 UNION ALL SELECT 'medications', COUNT(*) FROM medications
