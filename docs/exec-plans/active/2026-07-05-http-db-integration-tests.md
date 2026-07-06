@@ -145,7 +145,11 @@
   - `src/main/resources/application-secret.yml.bak` 백업 파일이 untracked로 노출되어 있어 `.gitignore` 를
     `src/main/resources/application-secret.yml*` 로 보강. 파일 내용은 수정하지 않음.
   - `git diff --check` 통과(공백 오류 없음, Windows 줄끝 변환 경고만 출력).
-- 다음: 최종 diff 점검 및 PR 준비.
+- 2026-07-06 PR 준비 완료:
+  - 커밋: `c01c05a test: expand HTTP DB integration coverage`.
+  - 원격 브랜치 push: `origin/feature/integration-test-auth`.
+  - PR 생성: #98 `test: expand HTTP DB integration coverage`.
+- 다음: PR CI 결과 확인 및 필요 시 후속 수정.
 
 ## 목표
 
