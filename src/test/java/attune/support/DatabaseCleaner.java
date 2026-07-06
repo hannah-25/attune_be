@@ -1,7 +1,9 @@
 package attune.support;
 
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.sql.Statement;
 import java.util.List;
 
 /**
@@ -28,13 +30,18 @@ public class DatabaseCleaner {
                             + "WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'",
                     String.class);
         }
-        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
-        try {
-            for (String tableName : tableNames) {
-                jdbcTemplate.execute("TRUNCATE TABLE `" + tableName + "`");
+        jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("SET FOREIGN_KEY_CHECKS = 0");
+                try {
+                    for (String tableName : tableNames) {
+                        statement.execute("TRUNCATE TABLE `" + tableName + "`");
+                    }
+                } finally {
+                    statement.execute("SET FOREIGN_KEY_CHECKS = 1");
+                }
             }
-        } finally {
-            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
-        }
+            return null;
+        });
     }
 }
