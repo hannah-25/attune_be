@@ -280,7 +280,7 @@
 | updated_at | TIMESTAMP | | 수정일시 |
 | is_anonymous | BOOLEAN | DEFAULT false | 익명 여부 |
 | is_deleted | BOOLEAN | DEFAULT false | 소프트 삭제 여부 |
-| | | INDEX(idx_community_boards_deleted_created on is_deleted, created_at) | 삭제되지 않은 게시글 최신순 목록 조회 지원 |
+| | | INDEX(idx_community_boards_deleted_created on created_at, is_deleted) | 삭제되지 않은 게시글 최신순 목록 조회 지원 |
 | | | INDEX(idx_community_boards_deleted_category_created on is_deleted, post_category, created_at) | 카테고리 필터 게시글 최신순 목록 조회 지원 |
 
 ---

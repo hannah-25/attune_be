@@ -15,7 +15,7 @@ ALTER TABLE journal_tag_logs
   ADD INDEX idx_journal_tag_logs_user_date_checked (user_id, journal_date, checked_at);
 
 ALTER TABLE community_boards
-  ADD INDEX idx_community_boards_deleted_created (is_deleted, created_at),
+  ADD INDEX idx_community_boards_deleted_created (created_at, is_deleted),
   ADD INDEX idx_community_boards_deleted_category_created (is_deleted, post_category, created_at);
 
 ALTER TABLE comments
