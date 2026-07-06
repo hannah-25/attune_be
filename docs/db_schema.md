@@ -211,6 +211,7 @@
 | journal_tag_id | BIGINT | FK → JournalTag.id ON DELETE RESTRICT, NOT NULL | 태그 ID |
 | journal_date | DATE | NOT NULL | 체크인 대상 날짜 (사용자 최신 timezone 기준) |
 | checked_at | TIMESTAMP | NOT NULL | 체크인 서버 수신 시각 (Asia/Seoul) |
+| | | UNIQUE(user_id, journal_tag_id, journal_date) | 동일 날짜 중복 체크 방지 |
 | | | INDEX(idx_journal_tag_logs_user_date_checked on user_id, journal_date, checked_at) | 사용자별 기간 조회 및 날짜/체크 시각 정렬 지원 |
 
 ---

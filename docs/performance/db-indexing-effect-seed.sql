@@ -312,8 +312,14 @@ SELECT
         + INTERVAL MOD(CONV(SUBSTRING(MD5(CONCAT('post-day-', p.n)), 1, 8), 16, 10), 730) DAY
         + INTERVAL MOD(CONV(SUBSTRING(MD5(CONCAT('post-min-', p.n)), 1, 8), 16, 10), 1440) MINUTE,
     NULL
-FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 50000)
-      SELECT n FROM seq) p;
+FROM (
+    WITH RECURSIVE
+        seq1000(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq1000 WHERE n < 1000),
+        seq50(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq50 WHERE n < 50)
+    SELECT (t.n - 1) * 1000 + o.n AS n
+    FROM seq1000 o
+    CROSS JOIN seq50 t
+) p;
 
 -- ----------------------------------------------------------------------------
 -- comments: 200,000 spread (4 per post) + 2,000 on hot post 123.
@@ -331,8 +337,14 @@ SELECT
         + INTERVAL MOD(CONV(SUBSTRING(MD5(CONCAT('cmt-day-', c.n)), 1, 8), 16, 10), 730) DAY
         + INTERVAL MOD(CONV(SUBSTRING(MD5(CONCAT('cmt-min-', c.n)), 1, 8), 16, 10), 1440) MINUTE,
     NULL
-FROM (WITH RECURSIVE seq(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq WHERE n < 200000)
-      SELECT n FROM seq) c;
+FROM (
+    WITH RECURSIVE
+        seq1000(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq1000 WHERE n < 1000),
+        seq200(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM seq200 WHERE n < 200)
+    SELECT (t.n - 1) * 1000 + o.n AS n
+    FROM seq1000 o
+    CROSS JOIN seq200 t
+) c;
 
 INSERT INTO comments
     (user_id, post_id, content, is_anonymous, is_deleted, created_at, updated_at)
