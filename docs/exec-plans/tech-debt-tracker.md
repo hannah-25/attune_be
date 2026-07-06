@@ -13,6 +13,8 @@
 | TD-7 | CI에 secret 스캔 잡 없음 | 보안 | open | gitleaks 등 도입 검토 |
 | TD-8 | GitHub 브랜치 보호(required check `ci.yml`) 미설정 | CI | open | maintainer가 설정 |
 | TD-9 | `docs/medication_api_entity_audit.md` 에 머신 종속 절대경로 링크(`/D:/...`) 다수 | 문서 | closed(2026-06-25) | 상대경로(`../src/...`)로 교체 완료. check-docs 통과 |
+| TD-10 | 메일 발송 실패 시 재시도 없음(비동기 발송 후 로그만 남김) | 신뢰성 | open | 실패 이력 저장 + 재시도 or DLQ 방식 검토 |
+| TD-11 | `MailEventListener.handleTermsUpdated` 만 per-user 예외 격리 없음(`handleNoticePublished` 는 있음) | 신뢰성 | open | 배치 메일 핸들러 예외 격리 방식 통일 |
 
 ## 규칙
 

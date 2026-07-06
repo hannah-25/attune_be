@@ -38,6 +38,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 | `attune.gemini.duration` | timer | `outcome` | Gemini 호출 지연 추적 |
 | `attune.mail.requests` | counter | `outcome`, `type` | 메일 발송 성공/실패 추적 |
 | `attune.push.requests` | counter | `outcome`, `provider` | push 성공/실패/invalid subscription 추적 |
+| `attune.calendar.requests` | counter | `operation`, `outcome` | Google Calendar 호출 성공/재연동 필요(reauth)/일시 장애(unavailable)/실패 추적. operation: `token`/`userinfo`/`calendar_list`/`events` |
 | `attune.scheduler.runs` | counter | `scheduler`, `outcome` | 주요 scheduler 실행 성공/실패 추적 |
 | `attune.scheduler.last.success` | gauge | `scheduler` | scheduler 마지막 성공 epoch seconds |
 

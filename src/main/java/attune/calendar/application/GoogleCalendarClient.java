@@ -3,6 +3,9 @@ package attune.calendar.application;
 import attune.calendar.domain.model.CalendarConnection;
 import attune.calendar.domain.model.ExternalCalendarEventSnapshot;
 import attune.common.error.InternalServerException;
+import attune.common.error.badrequest.CalendarReauthRequiredException;
+import attune.common.error.serviceunavailable.GoogleCalendarUnavailableException;
+import attune.common.observability.ObservabilityMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -21,6 +25,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_FAILURE;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_REAUTH;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_SUCCESS;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_UNAVAILABLE;
 import static attune.common.util.ExceptionUtils.sanitized;
 
 @Slf4j
@@ -33,7 +41,13 @@ public class GoogleCalendarClient {
     private static final String CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList";
     private static final String EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/{calendarId}/events";
 
+    private static final String OP_TOKEN = "token";
+    private static final String OP_USERINFO = "userinfo";
+    private static final String OP_CALENDAR_LIST = "calendar_list";
+    private static final String OP_EVENTS = "events";
+
     private final RestClient oauthRestClient;
+    private final ObservabilityMetrics metrics;
 
     @Value("${oauth.google.calendar-client-id:${GOOGLE_CALENDAR_CLIENT_ID:}}")
     private String calendarClientId;
@@ -75,15 +89,18 @@ public class GoogleCalendarClient {
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
             Object email = response == null ? null : response.get("email");
+            metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_SUCCESS);
             return email instanceof String value && !value.isBlank() ? value : null;
         } catch (RestClientResponseException e) {
             log.warn("Failed to fetch Google account email: status={}",
                     e.getStatusCode(),
                     sanitized("Google account email API error: " + e.getStatusCode(), e));
+            metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_FAILURE);
             return null;
         } catch (RuntimeException e) {
             log.warn("Failed to fetch Google account email",
                     sanitized("Runtime error during fetchAccountEmail", e));
+            metrics.recordCalendarRequest(OP_USERINFO, OUTCOME_FAILURE);
             return null;
         }
     }
@@ -96,8 +113,11 @@ public class GoogleCalendarClient {
                     .header("Authorization", "Bearer " + connection.getAccessToken())
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
+            metrics.recordCalendarRequest(OP_CALENDAR_LIST, OUTCOME_SUCCESS);
         } catch (RestClientResponseException e) {
-            throw calendarApiException("Google CalendarList API error", "Google Calendar 목록 조회 오류", e);
+            throw calendarApiException(OP_CALENDAR_LIST, "Google CalendarList API error", "Google Calendar 목록 조회 오류", e);
+        } catch (ResourceAccessException e) {
+            throw calendarConnectionException(OP_CALENDAR_LIST, "Google CalendarList API connection error", "Google Calendar 목록 조회 오류", e);
         }
 
         Object items = response == null ? null : response.get("items");
@@ -150,7 +170,9 @@ public class GoogleCalendarClient {
                         .retrieve()
                         .body(new ParameterizedTypeReference<>() {});
             } catch (RestClientResponseException e) {
-                throw calendarApiException("Google Calendar API error", "Google Calendar API 오류", e);
+                throw calendarApiException(OP_EVENTS, "Google Calendar API error", "Google Calendar API 오류", e);
+            } catch (ResourceAccessException e) {
+                throw calendarConnectionException(OP_EVENTS, "Google Calendar API connection error", "Google Calendar API 오류", e);
             }
 
             if (response == null) {
@@ -170,21 +192,33 @@ public class GoogleCalendarClient {
             pageToken = response.get("nextPageToken") instanceof String token ? token : null;
         } while (pageToken != null);
 
+        metrics.recordCalendarRequest(OP_EVENTS, OUTCOME_SUCCESS);
         log.debug("Google Calendar listEvents: {} total snapshots for calendarId={}", snapshots.size(), calendarId);
         return snapshots;
     }
 
     private Map<String, Object> postToken(MultiValueMap<String, String> body) {
         try {
-            return oauthRestClient.post()
+            Map<String, Object> response = oauthRestClient.post()
                     .uri(TOKEN_URL)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(body)
                     .retrieve()
                     .body(new ParameterizedTypeReference<>() {});
+            metrics.recordCalendarRequest(OP_TOKEN, OUTCOME_SUCCESS);
+            return response;
         } catch (RestClientResponseException e) {
-            throw calendarApiException("Google Calendar token API error", "Google Calendar token exchange failed", e);
+            // token endpoint는 만료·회수된 refresh token을 400(invalid_grant)으로 돌려준다.
+            // 응답 body를 읽지 않는 정책이므로 429를 제외한 4xx 전체를 재연동 필요로 분류한다.
+            int status = e.getStatusCode().value();
+            if (status >= 400 && status < 500 && status != 429) {
+                throw reauthRequiredException(OP_TOKEN, "Google Calendar token API error", e);
+            }
+            throw calendarApiException(OP_TOKEN, "Google Calendar token API error", "Google Calendar token exchange failed", e);
+        } catch (ResourceAccessException e) {
+            throw calendarConnectionException(OP_TOKEN, "Google Calendar token API connection error", "Google Calendar token exchange failed", e);
         } catch (RuntimeException e) {
+            metrics.recordCalendarRequest(OP_TOKEN, OUTCOME_FAILURE);
             throw new InternalServerException("Google Calendar token exchange failed", e);
         }
     }
@@ -296,16 +330,54 @@ public class GoogleCalendarClient {
         return value instanceof String text ? text : null;
     }
 
-    private InternalServerException calendarApiException(String logPrefix,
-                                                        String clientMessage,
-                                                        RestClientResponseException e) {
+    private RuntimeException calendarApiException(String operation,
+                                                  String logPrefix,
+                                                  String clientMessage,
+                                                  RestClientResponseException e) {
         // PII 금지: Google 응답 body는 일정 제목/설명, 계정 정보, 토큰 오류 세부정보를 포함할 수 있다.
         // RestClientResponseException 자체도 body를 들고 있으므로 cause로 보존하지 않는다.
+        int status = e.getStatusCode().value();
+        if (status == 401 || status == 403) {
+            return reauthRequiredException(operation, logPrefix, e);
+        }
+        if (status == 429 || status >= 500) {
+            // rate limit·일시 장애 — 사용자 조치가 아니라 재시도로 해결되는 상태이므로 503으로 안내한다.
+            log.warn("{}: status={}",
+                    logPrefix,
+                    e.getStatusCode(),
+                    sanitized("Google API Error: " + e.getStatusCode(), e));
+            metrics.recordCalendarRequest(operation, OUTCOME_UNAVAILABLE);
+            return new GoogleCalendarUnavailableException(clientMessage + " (" + e.getStatusCode() + ")");
+        }
         log.error("{}: status={}",
                 logPrefix,
                 e.getStatusCode(),
                 sanitized("Google API Error: " + e.getStatusCode(), e));
+        metrics.recordCalendarRequest(operation, OUTCOME_FAILURE);
         return new InternalServerException(clientMessage + " (" + e.getStatusCode() + ")");
+    }
+
+    private CalendarReauthRequiredException reauthRequiredException(String operation,
+                                                                    String logPrefix,
+                                                                    RestClientResponseException e) {
+        // 토큰 만료·권한 회수 — 서버 장애가 아니므로 warn으로 남기고 사용자에게 재연동을 안내한다.
+        log.warn("{}: status={}",
+                logPrefix,
+                e.getStatusCode(),
+                sanitized("Google API Error: " + e.getStatusCode(), e));
+        metrics.recordCalendarRequest(operation, OUTCOME_REAUTH);
+        return new CalendarReauthRequiredException();
+    }
+
+    private GoogleCalendarUnavailableException calendarConnectionException(String operation,
+                                                                           String logPrefix,
+                                                                           String clientMessage,
+                                                                           ResourceAccessException e) {
+        // ResourceAccessException 메시지에는 요청 URL이 포함되고, events URL의 calendarId는
+        // 사용자 이메일일 수 있으므로 원본 예외를 보존하지 않는다.
+        log.warn("{}", logPrefix, sanitized("Google API connection error", e));
+        metrics.recordCalendarRequest(operation, OUTCOME_UNAVAILABLE);
+        return new GoogleCalendarUnavailableException(clientMessage + " (connection)");
     }
 
     public record GoogleToken(String accessToken, String refreshToken, LocalDateTime expiresAt) {
