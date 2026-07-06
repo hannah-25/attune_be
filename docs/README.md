@@ -26,6 +26,7 @@
 | [`security.md`](./security.md) | JWT 인증/토큰 흐름, 시크릿 관리 |
 | [`database.md`](./database.md) | DB 프로파일, JPA 설정, 운영 규칙 |
 | [`async-mail.md`](./async-mail.md) | 비동기 처리 및 메일 발송 |
+| [`engineering/incident-runbook.md`](./engineering/incident-runbook.md) | Sentry/CloudWatch/Actuator 기반 장애 확인 순서 |
 | [`notes.md`](./notes.md) | 개발 중 발견된 수정/개선 TODO |
 
 ### 기능별 설계/스펙/감사 기록
