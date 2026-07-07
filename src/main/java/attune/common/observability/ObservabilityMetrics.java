@@ -20,11 +20,14 @@ public class ObservabilityMetrics {
     public static final String OUTCOME_FAILURE = "failure";
     public static final String OUTCOME_QUOTA = "quota";
     public static final String OUTCOME_INVALID_SUBSCRIPTION = "invalid_subscription";
+    public static final String OUTCOME_REAUTH = "reauth";
+    public static final String OUTCOME_UNAVAILABLE = "unavailable";
 
     private static final String TAG_OUTCOME = "outcome";
     private static final String TAG_TYPE = "type";
     private static final String TAG_PROVIDER = "provider";
     private static final String TAG_SCHEDULER = "scheduler";
+    private static final String TAG_OPERATION = "operation";
 
     private final MeterRegistry meterRegistry;
     private final ConcurrentMap<String, AtomicLong> schedulerLastSuccessEpochSeconds = new ConcurrentHashMap<>();
@@ -37,6 +40,13 @@ public class ObservabilityMetrics {
     public void recordMailRequest(String type, String outcome) {
         meterRegistry.counter("attune.mail.requests",
                 TAG_TYPE, normalize(type),
+                TAG_OUTCOME, outcome
+        ).increment();
+    }
+
+    public void recordCalendarRequest(String operation, String outcome) {
+        meterRegistry.counter("attune.calendar.requests",
+                TAG_OPERATION, normalize(operation),
                 TAG_OUTCOME, outcome
         ).increment();
     }
