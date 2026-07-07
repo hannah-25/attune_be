@@ -2,7 +2,7 @@
 
 운영 장애가 발생했을 때 Sentry, CloudWatch Logs, Actuator, Micrometer 지표를 어떤 순서로 확인할지 정리한다.
 
-이 문서는 장애 원인 조사를 빠르게 시작하기 위한 1차 절차다. 사용자 콘텐츠, 토큰, 이메일, AI 프롬프트/응답 본문은 로그나 이슈에 옮기지 않는다. 식별이 필요하면 `requestId`, 내부 `userId`, `connectionId`, report id처럼 민감하지 않은 식별자만 사용한다.
+이 문서는 장애 원인 조사를 빠르게 시작하기 위한 1차 절차다. 사용자 콘텐츠, 토큰, 이메일, 외부 API 키, 클라이언트 시크릿, AI 프롬프트/응답 본문은 로그나 이슈에 옮기지 않는다. 식별이 필요하면 `requestId`, 내부 `userId`, `connectionId`, report id처럼 민감하지 않은 식별자만 사용한다.
 
 ## 공통 원칙
 
@@ -14,6 +14,8 @@
 6. 사용자 응답 메시지와 내부 장애 원인을 분리해서 기록한다.
 
 ## 공통 진입점
+
+Actuator 엔드포인트는 dev/prod에서 public 앱 포트와 분리된 `127.0.0.1:8081` management server에 바인딩된다. 운영 환경에서는 EC2 내부에서 `curl`로 확인하거나 SSH 터널링을 통해 접근한다.
 
 | 대상 | 확인 경로 |
 |------|-----------|
@@ -160,7 +162,7 @@ Google API 오류 응답 body에는 일정 제목이나 계정 정보가 포함�
 
 | 단서 | 가능한 원인 | 대응 |
 |------|-------------|------|
-| `db` down | MySQL 연결 실패 | DB host/port/credential, security group, secret 확인 |
+| `db` down | MySQL 연결 실패 | DB host/port/credential, security group, secret 주입 여부 확인 |
 | `readinessState` refusing traffic | 앱 초기화 미완료 | 부팅 로그와 Spring lifecycle 확인 |
 | liveness는 성공, readiness만 실패 | JVM은 살아 있으나 DB 준비 안 됨 | DB/Hikari 중심으로 확인 |
 | aggregate health만 실패 | Redis 등 비필수 의존성 장애 | 배포 게이트는 readiness 기준인지 확인 |
@@ -188,7 +190,7 @@ Google API 오류 응답 body에는 일정 제목이나 계정 정보가 포함�
 
 ### 기록하지 않을 내용
 
-- JWT, refresh token, 인증 코드
+- JWT, refresh token, 인증 코드, 외부 API 키, 클라이언트 시크릿
 - 이메일 주소, 이름 등 직접 식별 정보
 - 증상/일지/복약 메모/AI 프롬프트/AI 응답 본문
 - Google Calendar 오류 응답 body 원문
