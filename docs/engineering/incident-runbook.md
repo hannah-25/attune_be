@@ -26,7 +26,7 @@
 CloudWatch 검색 키워드 예시:
 
 ```text
-requestId="<request-id>"
+"[<request-id>]"
 "MedicationAnalysisService"
 "GoogleCalendarClient"
 "ScheduleAlarmScheduler"
@@ -118,7 +118,7 @@ Google API 오류 응답 body에는 일정 제목이나 계정 정보가 포함�
 
 1. 알림 종류를 구분한다: medication, schedule, todo, report.
 2. 해당 scheduler의 마지막 성공 시각을 확인한다.
-3. CloudWatch Logs에서 scheduler 이름과 `requestId=no-request-id` 로그를 확인한다.
+3. CloudWatch Logs에서 scheduler 이름과 `"[no-request-id]"` 로그를 확인한다.
 4. 발송 이력의 status, retry count, next 대상 여부를 확인한다.
 5. push custom metric에서 provider/outcome 분포를 확인한다.
 6. invalid subscription이면 구독 비활성화 처리가 됐는지 확인한다.
