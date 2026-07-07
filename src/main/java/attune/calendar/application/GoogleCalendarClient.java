@@ -186,6 +186,10 @@ public class GoogleCalendarClient {
                 throw calendarConnectionException(OP_EVENTS, "Google Calendar API connection error", "Google Calendar API 오류", e);
             }
 
+            // 메트릭은 HTTP 요청 단위로 집계한다. 페이지네이션으로 N번 호출하면 success도 N번 기록해야
+            // 중간 페이지 실패 시 outcome별 비율이 왜곡되지 않는다.
+            metrics.recordCalendarRequest(OP_EVENTS, OUTCOME_SUCCESS);
+
             if (response == null) {
                 break;
             }
@@ -203,7 +207,6 @@ public class GoogleCalendarClient {
             pageToken = response.get("nextPageToken") instanceof String token ? token : null;
         } while (pageToken != null);
 
-        metrics.recordCalendarRequest(OP_EVENTS, OUTCOME_SUCCESS);
         log.debug("Google Calendar listEvents: {} total snapshots for calendarId={}", snapshots.size(), calendarId);
         return snapshots;
     }

@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class GoogleCalendarClientTest {
 
@@ -163,6 +164,28 @@ class GoogleCalendarClientTest {
                     assertThat(e).hasMessageNotContaining("정신과");
                 });
 
+        assertThat(calendarRequestCount("events", "unavailable")).isEqualTo(1.0);
+        server.verify();
+    }
+
+    @Test
+    void listEvents_recordsSuccessPerPageRequest() {
+        // 페이지네이션은 HTTP 요청 단위로 집계한다: 1페이지 성공 + 2페이지 503이면 success 1, unavailable 1.
+        server.expect(requestTo(startsWith(EVENTS_URL_PREFIX)))
+                .andRespond(withSuccess("""
+                        {"items":[], "nextPageToken":"page-2"}
+                        """, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(startsWith(EVENTS_URL_PREFIX)))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(SENSITIVE_BODY));
+
+        assertThatThrownBy(() -> client.listEvents(
+                connection(), "primary",
+                LocalDateTime.now().minusDays(7), LocalDateTime.now()))
+                .isInstanceOf(GoogleCalendarUnavailableException.class);
+
+        assertThat(calendarRequestCount("events", "success")).isEqualTo(1.0);
         assertThat(calendarRequestCount("events", "unavailable")).isEqualTo(1.0);
         server.verify();
     }
