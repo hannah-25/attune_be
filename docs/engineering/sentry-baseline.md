@@ -45,3 +45,4 @@ breadcrumb는 별도로 통제한다. `minimum-breadcrumb-level=warn`으로 INFO
 - DSN을 `APPLICATION_SECRET_YML` 또는 런타임 환경에 추가한다.
 - DSN 주입이 확인된 뒤에만 `SENTRY_ENABLED=true`로 설정한다.
 - 알림을 신뢰하기 전에 Sentry 프로젝트에서 sanitize된 테스트 이벤트 1건을 검증한다.
+- 500 이벤트 발생 시 조사 절차는 [`incident-runbook.md`](./incident-runbook.md)를 따른다. Sentry에서는 stack trace와 `requestId`를 확인하고, 상세 흐름은 CloudWatch Logs에서 추적한다.

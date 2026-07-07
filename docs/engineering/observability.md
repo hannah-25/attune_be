@@ -19,6 +19,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 - CloudWatch alarms: 1차는 10개 이하로 제한한다.
 - Sentry: Free/Developer 범위로 시작한다. 오류 이벤트 중심으로 쓰고, performance trace/log/replay/profiling은 비활성 또는 최소 샘플링으로 둔다.
 - Discord 운영 채널: `#attune-prod`. 1차 Discord 알림은 CloudWatch Alarm 중심으로 연결한다.
+- 장애 확인 순서는 [`incident-runbook.md`](./incident-runbook.md)에 정리한다. Sentry 500 이벤트에서 `requestId`를 확보한 뒤 CloudWatch Logs, Actuator readiness, custom metric 순서로 원인을 좁힌다.
 
 ## 메트릭 태그 / 1차 카탈로그
 
@@ -98,3 +99,4 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 
 - 워크플로 로그 → EC2 `docker logs --tail 300 attune-dev-apps`.
 - health 600s 타임아웃이면 컨테이너 exitCode/State 확인(워크플로가 자동 출력).
+- readiness 실패, 외부 API 실패, 알림 미발송의 상세 확인 절차는 [`incident-runbook.md`](./incident-runbook.md)를 따른다.
