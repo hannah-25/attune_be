@@ -27,7 +27,7 @@
 | Gemini (`GeminiTextGenerator`) | 5s/30s | 502·503·504·연결 실패만 1회+300ms 백오프 | 재시도 없이 즉시 503 (재시도해도 회복 안 되고 비용만 발생) | 전이성 오류 소진 → 503(`GeminiUnavailableException`), 그 외 → 500 | `attune.gemini.requests`, `attune.gemini.duration` (outcome: success/quota/failure) |
 | Google Calendar (`GoogleCalendarClient`) | oauthRestClient 5s/10s | **없음** — sync는 사용자 트리거 동작이라 실패를 즉시 알리고 재시도 판단을 사용자에게 넘긴다 | 503(`GoogleCalendarUnavailableException`) + `Retry-After` | 401/403·token 4xx → 400 재연동 안내(`CalendarReauthRequiredException`), 429/5xx/연결 실패 → 503, 그 외 4xx → 500 | `attune.calendar.requests` (operation: token/userinfo/calendar_list/events, outcome: success/reauth/unavailable/failure) |
 | Web Push (`WebPushSender`) | connect/socket/connectionRequest 각 5s | 스케줄러 레벨 MAX_RETRY=3, 1시간 recovery window | 일반 실패로 취급(스케줄러 재시도로 흡수) | 404/410 → 구독 비활성화(`InvalidSubscriptionException`), 그 외 → 실패 후 재시도 | `attune.push.requests` (outcome: success/invalid_subscription/failure) |
-| SMTP 메일 (`MailService`) | Spring Mail 기본값 | **없음** (비동기 발송, 실패 시 로그만) — 개선 후보는 tech-debt-tracker 참고 | - | `MessagingException` → `MailSendFailedException`(500) | `attune.mail.requests` (type/outcome) |
+| SMTP 메일 (`MailService`) | Spring Mail 기본값 | **없음** (비동기 발송, 실패 시 로그만) — 개선 후보는 tech-debt-tracker 참고 | - | `MessagingException` → `MailSendFailedException`(500). SMTP 오류 메시지에 수신자 주소가 포함될 수 있어 원본 예외는 sanitize 후 보존 | `attune.mail.requests` (type/outcome) |
 
 ## 롤백
 

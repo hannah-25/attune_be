@@ -17,6 +17,8 @@ class ExceptionUtilsTest {
 
         assertThat(sanitized).hasMessage("safe message");
         assertThat(sanitized).hasMessageNotContaining("sensitive body");
+        // cause를 보존하면 로그의 "Caused by"로 원본 메시지가 새므로, cause 없음이 이 유틸의 핵심 불변식이다.
+        assertThat(sanitized).hasNoCause();
         assertThat(sanitized.getStackTrace()).containsExactly(original.getStackTrace());
     }
 

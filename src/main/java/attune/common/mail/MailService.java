@@ -44,7 +44,8 @@ public class MailService {
             mailSender.send(mimeMessage);
             success = true;
         } catch (MessagingException e) {
-            throw new MailSendFailedException(e);
+            // MessagingException 메시지에는 수신자 주소(PII)가 포함될 수 있으므로 cause로 보존하지 않는다.
+            throw new MailSendFailedException(sanitized("Mail send failed", e));
         } finally {
             metrics.recordMailRequest(type, success ? OUTCOME_SUCCESS : OUTCOME_FAILURE);
         }
