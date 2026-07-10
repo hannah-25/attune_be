@@ -16,7 +16,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "asrs_assessments")
+@Table(
+        name = "asrs_assessments",
+        indexes = @Index(name = "idx_asrs_assessments_user_completed", columnList = "user_id, completed_at")
+)
 public class AsrsAssessment {
 
 

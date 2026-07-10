@@ -14,7 +14,13 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "medication_analysis_reports")
+@Table(
+        name = "medication_analysis_reports",
+        indexes = {
+                @Index(name = "idx_medication_analysis_reports_user_generated", columnList = "user_id, generated_at"),
+                @Index(name = "idx_medication_analysis_reports_user_period", columnList = "user_id, period_start, period_end")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
