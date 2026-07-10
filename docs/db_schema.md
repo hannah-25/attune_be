@@ -301,18 +301,26 @@
 
 ---
 
-## ConsultationRecord (상담 기록)
+## Consultation (상담 기록)
+
+테이블명: `consultations`
 
 | Column Name | DB Data Type | Constraints | Description |
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 상담 기록 고유 식별자 |
 | user_id | UUID | FK → User.id, NOT NULL | 사용자 ID |
-| hospital_id | BIGINT | FK → Hospital.id, NOT NULL | 병원 ID |
-| date | TIMESTAMP | NOT NULL | 상담일시 |
-| isFirst | BOOLEAN | DEFAULT false | 첫 상담 여부 |
-| nextTreatmentGoal | TEXT | | 다음 치료 목표 |
-| doctorAdvice | TEXT | | 의사 조언 |
-| prescriptionNote | TEXT | | 처방 메모 |
+| consultation_date | TIMESTAMP | NOT NULL | 상담일시 |
+| place | VARCHAR(255) | NOT NULL | 상담 장소 |
+| doctor_name | VARCHAR(255) | | 의사 이름 |
+| is_first_visit | BOOLEAN | NOT NULL | 첫 상담 여부 |
+| summary_report | TEXT | | 상담 요약 리포트 |
+| doctor_advice | TEXT | | 의사 조언 |
+| prescription_note | TEXT | | 처방 메모 |
+| next_treatment_goal | TEXT | | 다음 치료 목표 |
+| alarm_settings | BOOLEAN | NOT NULL, DEFAULT true | 알림 설정 여부 |
+| is_deleted | BOOLEAN | NOT NULL | 소프트 삭제 여부 |
+| created_at | TIMESTAMP | | 생성 일시 |
+| updated_at | TIMESTAMP | | 수정 일시 |
 | | | INDEX(idx_consultations_user_deleted_date on user_id, is_deleted, consultation_date) | 사용자별 상담 기간 조회 정렬 지원 |
 
 ---
@@ -411,6 +419,9 @@
 | description | TEXT | | 초기 증상 서술 |
 | emotional_event | TEXT | | 감정적 사건 서술 |
 | saved_at | TIMESTAMP | | 저장 일시 |
+| selected_symptom_types | VARCHAR(255) | | 직접 체크한 증상 유형 (쉼표 구분) |
+| selected_functional_areas | VARCHAR(255) | | 직접 체크한 취약 기능 영역 (쉼표 구분) |
+| is_quick_onboarding | BOOLEAN | NOT NULL, DEFAULT false | 퀵 온보딩 경로 여부 |
 | | | INDEX(idx_onboarding_symptoms_user_saved on user_id, saved_at) | 사용자별 최신/시점 기준 온보딩 증상 조회 지원 |
 
 ---
