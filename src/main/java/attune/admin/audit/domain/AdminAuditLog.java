@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,7 +21,10 @@ import java.util.UUID;
 @Getter
 @Entity
 @Builder
-@Table(name = "admin_audit_logs")
+@Table(
+        name = "admin_audit_logs",
+        indexes = @Index(name = "idx_admin_audit_logs_created_id", columnList = "created_at, id")
+)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AdminAuditLog {

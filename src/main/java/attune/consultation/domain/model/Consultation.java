@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "consultations")
+@Table(
+        name = "consultations",
+        indexes = @Index(name = "idx_consultations_user_deleted_date", columnList = "user_id, is_deleted, consultation_date")
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
