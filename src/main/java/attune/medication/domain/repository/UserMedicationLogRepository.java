@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -12,17 +13,17 @@ import java.util.UUID;
 
 public interface UserMedicationLogRepository extends JpaRepository<UserMedicationLog, Long> {
 
+    /**
+     * 스케줄의 특정 복용일 활성 로그. uk_user_medication_logs_active_dose가 1건 이하임을 보장한다.
+     */
     @Query("""
             SELECT l FROM UserMedicationLog l
             WHERE l.userMedicationSchedule.id = :scheduleId
-              AND l.takenAt >= :from
-              AND l.takenAt < :to
-              AND l.isActive = true
+              AND l.activeDoseDate = :doseDate
             """)
-    Optional<UserMedicationLog> findActiveByScheduleIdAndTakenAtRange(
+    Optional<UserMedicationLog> findActiveByScheduleIdAndActiveDoseDate(
             @Param("scheduleId") Long scheduleId,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to);
+            @Param("doseDate") LocalDate doseDate);
 
     @Query("""
             SELECT l FROM UserMedicationLog l

@@ -8,7 +8,6 @@ import attune.common.error.badrequest.InvalidQuickLogRequestException;
 import attune.common.error.notfound.ConsultationNotFoundException;
 import attune.common.error.notfound.MedicationDosageNotFoundException;
 import attune.common.error.notfound.MedicationNotFoundException;
-import attune.common.error.notfound.MedicationLogNotFoundException;
 import attune.common.error.notfound.MedicationScheduleNotFoundException;
 import attune.common.util.SecurityUtils;
 import attune.consultation.domain.model.Consultation;
@@ -41,15 +40,18 @@ import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.time.Duration;
 import java.util.HexFormat;
@@ -81,6 +83,12 @@ public class MedicationService {
     private final ConsultationRepository consultationRepository;
     private final RedisJsonCache redisJsonCache;
     private final UserZoneResolver userZoneResolver;
+    private final MedicationLogSaver logSaver;
+
+    // 클라이언트 시계 오차 허용치. 이보다 미래의 복용 시각은 신뢰하지 않는다.
+    private static final Duration MAX_CLIENT_CLOCK_SKEW = Duration.ofMinutes(5);
+    // 이보다 오래된 오프라인 큐 항목은 복용 기록으로 반영하지 않는다.
+    private static final Duration MAX_OFFLINE_QUEUE_AGE = Duration.ofDays(7);
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
@@ -332,8 +340,13 @@ public class MedicationService {
         if (request.action() == null) {
             throw new InvalidQuickLogRequestException();
         }
+
+        // 오프라인 큐에 쌓인 요청은 나중에 재전송되므로 수신 시각이 복용 시각이 아니다.
+        // 클라이언트가 기록한 시각을 근거로 삼아야 자정을 넘겨 재전송돼도 같은 복용일로 수렴한다.
+        LocalDateTime takenAt = resolveTakenAt(request.takenAt(), now);
+
         if (request.action() == QuickLogAction.POSTPONE) {
-            return new QuickLogResponse(null, QuickLogAction.POSTPONE, now);
+            return new QuickLogResponse(null, QuickLogAction.POSTPONE, takenAt);
         }
         if (request.scheduleId() == null) {
             throw new InvalidQuickLogRequestException();
@@ -342,17 +355,17 @@ public class MedicationService {
         UserMedicationSchedule schedule = scheduleRepository.findByIdAndUserMedicationIdAndIsActiveTrue(request.scheduleId(), userMedicationId)
                 .orElseThrow(MedicationScheduleNotFoundException::new);
 
-        LocalDate today = now.toLocalDate();
-        LocalDateTime startOfToday = toStartOfDay(today);
-        LocalDateTime endOfToday = toExclusiveEndOfDay(today);
+        LocalDate doseDate = takenAt.toLocalDate();
+        Optional<UserMedicationLog> existing = logRepository.findActiveByScheduleIdAndActiveDoseDate(
+                schedule.getId(), doseDate);
 
-        Optional<UserMedicationLog> existing = logRepository.findActiveByScheduleIdAndTakenAtRange(
-                schedule.getId(), startOfToday, endOfToday);
-
+        // 오프라인 큐는 at-least-once로 재전송한다(응답 유실 시 같은 요청이 한 번 더 도착).
+        // 따라서 모든 액션은 "그 상태로 만든다"는 절대 연산이어야 하고, 같은 액션의 재전송은 no-op이어야 한다.
+        // 이전에는 같은 액션이 다시 오면 기록을 토글해 꺼버려서, 재전송이 복용 기록을 뒤집었다.
         if (request.action() == QuickLogAction.CANCEL) {
-            UserMedicationLog existingLog = existing.orElseThrow(MedicationLogNotFoundException::new);
-            existingLog.deactivate();
-            return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
+            // 재전송된 CANCEL은 이미 비활성인 로그를 다시 취소하려 한다 — 404가 아니라 no-op.
+            existing.ifPresent(UserMedicationLog::deactivate);
+            return new QuickLogResponse(null, QuickLogAction.CANCEL, takenAt);
         }
 
         UserMedicationLogStatus status = request.action() == QuickLogAction.TAKEN
@@ -361,25 +374,51 @@ public class MedicationService {
 
         if (existing.isPresent()) {
             UserMedicationLog existingLog = existing.get();
-            if ((request.action() == QuickLogAction.TAKEN && existingLog.getStatus() == UserMedicationLogStatus.TAKEN)
-                    || (request.action() == QuickLogAction.SKIPPED && existingLog.getStatus() == UserMedicationLogStatus.SKIPPED)) {
-                existingLog.deactivate();
-                return new QuickLogResponse(null, QuickLogAction.CANCEL, now);
-            }
-
-            existingLog.update(now, status);
-            return new QuickLogResponse(existingLog.getId(), request.action(), now);
+            existingLog.update(takenAt, status);
+            return new QuickLogResponse(existingLog.getId(), request.action(), takenAt);
         }
 
-        UserMedicationLog saved = logRepository.save(
-                UserMedicationLog.builder()
-                        .userMedicationSchedule(schedule)
-                        .takenAt(now)
-                        .status(status)
-                        .build()
-        );
+        return new QuickLogResponse(insertOrClaimExisting(schedule.getId(), doseDate, takenAt, status).getId(),
+                request.action(), takenAt);
+    }
 
-        return new QuickLogResponse(saved.getId(), request.action(), now);
+    /**
+     * 클라이언트가 보낸 복용 시각을 검증해 서버 시간대(KST 고정, AttuneApplication 참고)의 값으로 변환한다.
+     *
+     * 값이 없으면 서버 현재 시각을 쓴다(온라인 요청). 클라이언트 시계는 신뢰 경계 밖이므로
+     * 미래로 크게 앞선 값과 지나치게 오래된 큐 항목은 400으로 거절한다. 400은 프론트의
+     * 영구 실패 목록에 있어 해당 큐 항목이 무한 재시도되지 않고 정리된다.
+     */
+    private LocalDateTime resolveTakenAt(Instant clientTakenAt, LocalDateTime now) {
+        if (clientTakenAt == null) {
+            return now;
+        }
+        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, ZoneId.systemDefault());
+        if (takenAt.isAfter(now.plus(MAX_CLIENT_CLOCK_SKEW))) {
+            throw new InvalidQuickLogRequestException();
+        }
+        if (takenAt.isBefore(now.minus(MAX_OFFLINE_QUEUE_AGE))) {
+            throw new InvalidQuickLogRequestException();
+        }
+        return takenAt;
+    }
+
+    /**
+     * 같은 스케줄·같은 날 활성 로그를 동시에 만들려는 요청이 겹치면
+     * uk_user_medication_logs_active_dose가 하나만 통과시킨다.
+     * 진 쪽은 먼저 커밋된 로그를 요청 상태로 맞춘다(절대 연산이므로 마지막 상태로 수렴).
+     */
+    private UserMedicationLog insertOrClaimExisting(
+            Long scheduleId,
+            LocalDate doseDate,
+            LocalDateTime takenAt,
+            UserMedicationLogStatus status
+    ) {
+        try {
+            return logSaver.trySave(scheduleId, takenAt, status);
+        } catch (DataIntegrityViolationException e) {
+            return logSaver.updateExistingLog(scheduleId, doseDate, takenAt, status);
+        }
     }
 
     private Medication getMedicationOrThrow(Long medicationId) {
