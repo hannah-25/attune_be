@@ -85,6 +85,7 @@ public class MedicationService {
     private final UserZoneResolver userZoneResolver;
     private final MedicationLogSaver logSaver;
 
+    private static final ZoneId SERVER_ZONE = ZoneId.of("Asia/Seoul");
     // 클라이언트 시계 오차 허용치. 이보다 미래의 복용 시각은 신뢰하지 않는다.
     private static final Duration MAX_CLIENT_CLOCK_SKEW = Duration.ofMinutes(5);
     // 이보다 오래된 오프라인 큐 항목은 복용 기록으로 반영하지 않는다.
@@ -393,7 +394,7 @@ public class MedicationService {
         if (clientTakenAt == null) {
             return now;
         }
-        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, ZoneId.systemDefault());
+        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, SERVER_ZONE);
         if (takenAt.isAfter(now.plus(MAX_CLIENT_CLOCK_SKEW))) {
             throw new InvalidQuickLogRequestException();
         }

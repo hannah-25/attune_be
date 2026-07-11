@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class MedicationIntegrationTest extends IntegrationTest {
 
+    private static final ZoneId SERVER_ZONE = ZoneId.of("Asia/Seoul");
+
     @Test
     void searchesAndReadsStandardMedicationDetail() throws Exception {
         User user = testUsers.activeUser("med-standard@test.com");
@@ -218,7 +220,7 @@ class MedicationIntegrationTest extends IntegrationTest {
         Long scheduleId = firstScheduleId(user);
 
         // 어제 23:50에 오프라인으로 기록한 복용이 오늘 재전송된다.
-        Instant tappedAt = yesterday.atTime(23, 50).atZone(ZoneId.systemDefault()).toInstant();
+        Instant tappedAt = yesterday.atTime(23, 50).atZone(SERVER_ZONE).toInstant();
 
         quickLogAt(user, userMedicationId, "TAKEN", scheduleId, tappedAt).andExpect(status().isCreated());
         quickLogAt(user, userMedicationId, "TAKEN", scheduleId, tappedAt).andExpect(status().isCreated());
