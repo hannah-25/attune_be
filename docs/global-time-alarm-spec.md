@@ -150,6 +150,20 @@ Content-Type: application/json
 
 ### 5.1 API 시간 포맷
 
+> **구현 현황(2026-07): 복약 기록의 시간 기준**
+>
+> 복약 기록(`user_medication_logs.taken_at`)은 **기록 시점 사용자 timezone(`user_settings.timezone`)의
+> 현지 벽시계**로 저장한다(naive `LocalDateTime`). 복용일은 그 날짜에서 파생되므로 해외 체류 중 기록도
+> 체류지 현지 날짜에 귀속된다. 복약 알림도 동일하게 사용자 timezone을 따르므로 알림과 기록의 기준이 일치한다.
+>
+> 절대시각(`Instant`/`TIMESTAMP`) 저장은 **도입하지 않았다.** 국내 사용자 약 99% / 단기 출장이라는
+> 사용 프로파일 대비 스키마 마이그레이션 비용과 위험이 과도하다고 판단했다.
+> 근거와 재검토 트리거: `docs/exec-plans/active/2026-07-16-medication-local-timezone-travel.md`
+>
+> 알려진 한계: 기록 당시 timezone을 저장하지 않으므로 복약 기록 응답의 `takenAt`(`intakeTime`)은
+> `Asia/Seoul` 고정 offset(`+09:00`)을 붙인다. 해외 체류 중 기록된 행은 벽시계 날짜·시각은 정확하지만
+> offset 라벨이 부정확하다. 아래 표의 "offset 포함 datetime"은 이 한계 위에서 읽어야 한다.
+
 API 응답 시간은 아래 기준을 따른다.
 
 | 필드 유형 | 예시 필드 | 응답 포맷 |

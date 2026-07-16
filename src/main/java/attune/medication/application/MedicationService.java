@@ -85,7 +85,6 @@ public class MedicationService {
     private final UserZoneResolver userZoneResolver;
     private final MedicationLogSaver logSaver;
 
-    private static final ZoneId SERVER_ZONE = ZoneId.of("Asia/Seoul");
     // 클라이언트 시계 오차 허용치. 이보다 미래의 복용 시각은 신뢰하지 않는다.
     private static final Duration MAX_CLIENT_CLOCK_SKEW = Duration.ofMinutes(5);
     // 이보다 오래된 오프라인 큐 항목은 복용 기록으로 반영하지 않는다.
@@ -337,14 +336,20 @@ public class MedicationService {
     public QuickLogResponse quickLog(Long userMedicationId, QuickLogRequest request) {
         getOwnedUserMedicationOrThrow(userMedicationId);
 
-        LocalDateTime now = LocalDateTime.now();
         if (request.action() == null) {
             throw new InvalidQuickLogRequestException();
         }
 
+        // 여행 중에는 복용일이 체류지 날짜로 귀속돼야 한다. 서버 고정 KST가 아니라 기록 시점
+        // 사용자 timezone의 벽시계로 해석해야 doseDate(=takenAt의 날짜)가 현지 날짜가 된다.
+        // 알림은 이미 user_settings.timezone을 따르므로(MedicationAlarmScheduler), 이걸로 알림과
+        // 기록의 timezone 기준이 일치한다.
+        ZoneId userZone = userZoneResolver.resolve(SecurityUtils.getCurrentUserUuid());
+        LocalDateTime now = LocalDateTime.now(userZone);
+
         // 오프라인 큐에 쌓인 요청은 나중에 재전송되므로 수신 시각이 복용 시각이 아니다.
         // 클라이언트가 기록한 시각을 근거로 삼아야 자정을 넘겨 재전송돼도 같은 복용일로 수렴한다.
-        LocalDateTime takenAt = resolveTakenAt(request.takenAt(), now);
+        LocalDateTime takenAt = resolveTakenAt(request.takenAt(), now, userZone);
 
         if (request.action() == QuickLogAction.POSTPONE) {
             return new QuickLogResponse(null, QuickLogAction.POSTPONE, takenAt);
@@ -384,17 +389,20 @@ public class MedicationService {
     }
 
     /**
-     * 클라이언트가 보낸 복용 시각을 검증해 서버 시간대(KST 고정, AttuneApplication 참고)의 값으로 변환한다.
+     * 클라이언트가 보낸 복용 시각을 검증해 사용자 timezone의 현지 벽시계 값으로 변환한다.
      *
-     * 값이 없으면 서버 현재 시각을 쓴다(온라인 요청). 클라이언트 시계는 신뢰 경계 밖이므로
-     * 미래로 크게 앞선 값과 지나치게 오래된 큐 항목은 400으로 거절한다. 400은 프론트의
-     * 영구 실패 목록에 있어 해당 큐 항목이 무한 재시도되지 않고 정리된다.
+     * 값이 없으면 사용자 timezone 기준 현재 시각을 쓴다(온라인 요청). 클라이언트 시계는 신뢰
+     * 경계 밖이므로 미래로 크게 앞선 값과 지나치게 오래된 큐 항목은 400으로 거절한다. 400은
+     * 프론트의 영구 실패 목록에 있어 해당 큐 항목이 무한 재시도되지 않고 정리된다.
+     *
+     * {@code now}와 {@code userZone}은 같은 timezone 기준이어야 한다. 서로 다르면 skew 검증이
+     * 시차만큼 어긋나 정상 요청을 400으로 거절한다.
      */
-    private LocalDateTime resolveTakenAt(Instant clientTakenAt, LocalDateTime now) {
+    private LocalDateTime resolveTakenAt(Instant clientTakenAt, LocalDateTime now, ZoneId userZone) {
         if (clientTakenAt == null) {
             return now;
         }
-        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, SERVER_ZONE);
+        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, userZone);
         if (takenAt.isAfter(now.plus(MAX_CLIENT_CLOCK_SKEW))) {
             throw new InvalidQuickLogRequestException();
         }

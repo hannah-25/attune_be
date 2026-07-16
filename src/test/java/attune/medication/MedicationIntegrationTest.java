@@ -16,7 +16,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MedicationIntegrationTest extends IntegrationTest {
 
     private static final ZoneId SERVER_ZONE = ZoneId.of("Asia/Seoul");
+    /** 해외 출장 시나리오용 체류지. KST와 날짜가 갈릴 만큼 시차가 크다. */
+    private static final ZoneId TRAVEL_ZONE = ZoneId.of("America/New_York");
 
     @Test
     void searchesAndReadsStandardMedicationDetail() throws Exception {
@@ -253,6 +257,46 @@ class MedicationIntegrationTest extends IntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    /**
+     * 여행 중 복용일은 체류지 현지 날짜로 귀속돼야 한다.
+     *
+     * 뉴욕 저녁에 먹은 약은 KST로 환산하면 다음 날이다. 서버 고정 KST로 복용일을 계산하던
+     * 이전 구현은 이 복용을 하루 뒤 날짜에 기록했다.
+     */
+    @Test
+    void doseTakenAbroadIsAttributedToLocalDateNotKst() throws Exception {
+        User user = testUsers.activeUser("med-travel-ny@test.com");
+        Medication medication = referenceData.standardMedication("TravelNY");
+        MedicationDosage dosage = referenceData.dosage(medication, "10.00");
+
+        // 출장으로 체류지 timezone을 뉴욕으로 변경한다.
+        updateTimezone(user, TRAVEL_ZONE.getId());
+
+        LocalDate nyYesterday = LocalDate.now(TRAVEL_ZONE).minusDays(1);
+        Long userMedicationId = createUserMedication(
+                user, dosage.getId(), nyYesterday.minusDays(1), "09:00:00", "morning");
+        Long scheduleId = firstScheduleId(user);
+
+        // 뉴욕 어제 20:00. KST로 환산하면 하루 뒤가 된다.
+        Instant tappedAt = nyYesterday.atTime(20, 0).atZone(TRAVEL_ZONE).toInstant();
+        LocalDate kstDate = tappedAt.atZone(SERVER_ZONE).toLocalDate();
+        // 전제: 두 날짜가 실제로 갈린다. 갈리지 않으면 이 테스트는 아무것도 증명하지 못한다.
+        assertThat(kstDate).isEqualTo(nyYesterday.plusDays(1));
+
+        quickLogAt(user, userMedicationId, "TAKEN", scheduleId, tappedAt).andExpect(status().isCreated());
+
+        // 뉴욕 현지 날짜에 귀속된다.
+        assertSingleActiveLog(user, userMedicationId, nyYesterday, "TAKEN");
+
+        // KST 날짜에는 남지 않는다. 이전 구현은 여기에 기록했다.
+        mockMvc.perform(get("/v1/user-medications/{userMedicationId}/logs", userMedicationId)
+                        .header("Authorization", testUsers.bearer(user))
+                        .param("startDate", kstDate.toString())
+                        .param("endDate", kstDate.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logs").isEmpty());
+    }
+
     @Test
     void anotherUsersMedicationCannotBeLoggedOrRead() throws Exception {
         User owner = testUsers.activeUser("med-owner@test.com");
@@ -286,6 +330,14 @@ class MedicationIntegrationTest extends IntegrationTest {
                         .param("endDate", LocalDate.now().minusDays(1).toString()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    private void updateTimezone(User user, String timezone) throws Exception {
+        mockMvc.perform(patch("/v1/users/settings")
+                        .header("Authorization", testUsers.bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("timezone", timezone))))
+                .andExpect(status().isOk());
     }
 
     private ResultActions quickLog(User user, Long userMedicationId, String action, Long scheduleId) throws Exception {
