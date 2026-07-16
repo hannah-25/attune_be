@@ -5,6 +5,7 @@ import attune.medication.domain.model.UserMedicationLogStatus;
 import attune.medication.domain.model.UserMedicationLog;
 import attune.medication.domain.model.UserMedicationSchedule;
 
+import java.time.DateTimeException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -12,14 +13,10 @@ import java.util.List;
 public record MedicationPeriodLogResponse(List<LogEntry> logs) {
 
     /**
-     * 복용 로그의 takenAt은 기록 시점 사용자 timezone의 현지 벽시계다(MedicationService.quickLog).
-     * 기록 당시 timezone은 저장하지 않으므로 여기서는 국내 기준 offset을 붙인다.
-     *
-     * 알려진 한계: 해외 체류 중 기록된 행은 벽시계 날짜·시각은 정확하지만 offset 라벨이 +09:00으로
-     * 표기된다(절대 순간으로 환산하면 어긋남). 국내 사용자 비중과 짧은 해외 체류를 감안해 감수한다.
-     * 절대 순간이 필요해지면 dose_timezone 컬럼을 추가해 실제 offset을 계산해야 한다.
+     * dose_timezone이 없는 행(백필 이전, 또는 롤링 배포 중 구 버전이 남긴 행)의 해석 기준.
+     * 그 시절 기록은 모두 서버 고정 KST였다.
      */
-    private static final ZoneId RESPONSE_ZONE = ZoneId.of("Asia/Seoul");
+    private static final ZoneId LEGACY_ZONE = ZoneId.of("Asia/Seoul");
 
     public record LogEntry(
             Long userMedicationId,
@@ -35,9 +32,25 @@ public record MedicationPeriodLogResponse(List<LogEntry> logs) {
                     userMedication.getId(),
                     schedule.getId(),
                     userMedication.getMedicationDosage().getMedication().getName(),
-                    log.getTakenAt().atZone(RESPONSE_ZONE).toOffsetDateTime(),
+                    log.getTakenAt().atZone(zoneOf(log)).toOffsetDateTime(),
                     log.getStatus() == UserMedicationLogStatus.TAKEN
             );
+        }
+
+        /**
+         * takenAt은 기록 시점 사용자 timezone의 현지 벽시계이므로, 그 timezone으로 해석해야
+         * 실제 복용 순간과 offset이 맞는다. 국내 기록은 Asia/Seoul이라 결과가 종전과 같다.
+         */
+        private static ZoneId zoneOf(UserMedicationLog log) {
+            String timezone = log.getDoseTimezone();
+            if (timezone == null) {
+                return LEGACY_ZONE;
+            }
+            try {
+                return ZoneId.of(timezone);
+            } catch (DateTimeException e) {
+                return LEGACY_ZONE;
+            }
         }
     }
 }

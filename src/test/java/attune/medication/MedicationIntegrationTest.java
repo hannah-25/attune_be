@@ -297,6 +297,47 @@ class MedicationIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.logs").isEmpty());
     }
 
+    /**
+     * 귀국해 timezone을 바꾼 뒤 오프라인 큐가 재전송돼도 복용 로그는 1건이어야 한다.
+     *
+     * 재전송은 같은 절대 시각을 다시 보내지만, 새 timezone으로 계산하면 복용일이 달라진다.
+     * 그대로 두면 기존 로그를 놓쳐 한 번 먹은 약이 이틀치 활성 로그로 남는다. 복용일이 다르므로
+     * uk_user_medication_logs_active_dose도 막지 못한다.
+     */
+    @Test
+    void replayAfterTimezoneChangeDoesNotDuplicateLog() throws Exception {
+        User user = testUsers.activeUser("med-travel-replay@test.com");
+        Medication medication = referenceData.standardMedication("TravelReplay");
+        MedicationDosage dosage = referenceData.dosage(medication, "10.00");
+
+        updateTimezone(user, TRAVEL_ZONE.getId());
+
+        LocalDate nyYesterday = LocalDate.now(TRAVEL_ZONE).minusDays(1);
+        Long userMedicationId = createUserMedication(
+                user, dosage.getId(), nyYesterday.minusDays(1), "09:00:00", "morning");
+        Long scheduleId = firstScheduleId(user);
+
+        // 뉴욕 체류 중 오프라인으로 기록. 응답이 유실돼 큐에 남았다고 가정한다.
+        Instant tappedAt = nyYesterday.atTime(20, 0).atZone(TRAVEL_ZONE).toInstant();
+        quickLogAt(user, userMedicationId, "TAKEN", scheduleId, tappedAt).andExpect(status().isCreated());
+
+        LocalDate kstDate = tappedAt.atZone(SERVER_ZONE).toLocalDate();
+        assertThat(kstDate).isEqualTo(nyYesterday.plusDays(1));
+
+        // 귀국. 앱이 timezone을 서울로 되돌린 뒤 큐가 재전송된다.
+        updateTimezone(user, SERVER_ZONE.getId());
+        quickLogAt(user, userMedicationId, "TAKEN", scheduleId, tappedAt).andExpect(status().isCreated());
+
+        // 원래 복용일(뉴욕 날짜)에 1건만 남고, 새 timezone으로 계산된 날짜에는 생기지 않는다.
+        assertSingleActiveLog(user, userMedicationId, nyYesterday, "TAKEN");
+        mockMvc.perform(get("/v1/user-medications/{userMedicationId}/logs", userMedicationId)
+                        .header("Authorization", testUsers.bearer(user))
+                        .param("startDate", kstDate.toString())
+                        .param("endDate", kstDate.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logs").isEmpty());
+    }
+
     @Test
     void anotherUsersMedicationCannotBeLoggedOrRead() throws Exception {
         User owner = testUsers.activeUser("med-owner@test.com");

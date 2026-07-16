@@ -25,6 +25,21 @@ public interface UserMedicationLogRepository extends JpaRepository<UserMedicatio
             @Param("scheduleId") Long scheduleId,
             @Param("doseDate") LocalDate doseDate);
 
+    /**
+     * 스케줄의 복용일 구간 활성 로그. activeDoseDate는 활성 로그에만 채워지므로 별도 isActive 조건이 없다.
+     *
+     * timezone이 바뀐 뒤 도착한 재전송이 같은 복용을 다른 복용일로 계산할 때, 후보를 좁히는 데 쓴다.
+     */
+    @Query("""
+            SELECT l FROM UserMedicationLog l
+            WHERE l.userMedicationSchedule.id = :scheduleId
+              AND l.activeDoseDate BETWEEN :from AND :to
+            """)
+    List<UserMedicationLog> findActiveByScheduleIdAndActiveDoseDateBetween(
+            @Param("scheduleId") Long scheduleId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
     @Query("""
             SELECT l FROM UserMedicationLog l
             JOIN FETCH l.userMedicationSchedule

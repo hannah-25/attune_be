@@ -32,10 +32,16 @@ class MedicationLogSaver {
     private final UserMedicationScheduleRepository scheduleRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public UserMedicationLog trySave(Long scheduleId, LocalDateTime takenAt, UserMedicationLogStatus status) {
+    public UserMedicationLog trySave(
+            Long scheduleId,
+            LocalDateTime takenAt,
+            String doseTimezone,
+            UserMedicationLogStatus status
+    ) {
         return logRepository.saveAndFlush(UserMedicationLog.builder()
                 .userMedicationSchedule(scheduleRepository.getReferenceById(scheduleId))
                 .takenAt(takenAt)
+                .doseTimezone(doseTimezone)
                 .status(status)
                 .build());
     }
@@ -49,11 +55,12 @@ class MedicationLogSaver {
             Long scheduleId,
             LocalDate doseDate,
             LocalDateTime takenAt,
+            String doseTimezone,
             UserMedicationLogStatus status
     ) {
         UserMedicationLog log = logRepository.findActiveByScheduleIdAndActiveDoseDate(scheduleId, doseDate)
                 .orElseThrow(() -> new InternalServerException("user medication log not found after unique violation"));
-        log.update(takenAt, status);
+        log.update(takenAt, doseTimezone, status);
         return log;
     }
 }
