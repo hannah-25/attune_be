@@ -28,8 +28,21 @@ public class UserMedicationLog {
     @JoinColumn(name = "user_medication_schedule_id", nullable = false)
     private UserMedicationSchedule userMedicationSchedule;
 
+    /** 기록 시점 사용자 timezone의 현지 벽시계. 절대 시각이 아니다. */
     @Column(name = "taken_at", nullable = false)
     private LocalDateTime takenAt;
+
+    /**
+     * {@link #takenAt}을 해석해야 하는 IANA timezone ID. 둘을 합치면 실제 복용 순간이 복원된다.
+     *
+     * 오프라인 큐가 재전송될 때 사용자가 이미 timezone을 바꿨다면 같은 절대 시각이 다른 복용일로
+     * 계산된다. 그때 이 값으로 기존 로그의 복용 순간을 복원해 같은 복용임을 식별한다.
+     *
+     * nullable: 롤링 배포 중 구 버전 인스턴스는 이 값을 쓰지 않는다. 백필 이전 행과 마찬가지로
+     * null은 {@code Asia/Seoul}로 해석한다(그 시절 모든 기록이 KST였다).
+     */
+    @Column(name = "dose_timezone", length = 64)
+    private String doseTimezone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -60,8 +73,20 @@ public class UserMedicationLog {
         this.activeDoseDate = isActive ? takenAt.toLocalDate() : null;
     }
 
-    public void update(LocalDateTime takenAt, UserMedicationLogStatus status) {
+    public void update(LocalDateTime takenAt, String doseTimezone, UserMedicationLogStatus status) {
         this.takenAt = takenAt;
+        this.doseTimezone = doseTimezone;
+        this.status = status;
+    }
+
+    /**
+     * 복용 순간은 그대로 두고 상태만 바꾼다.
+     *
+     * timezone이 바뀐 뒤 도착한 재전송에 쓴다. 같은 복용을 가리키므로 takenAt을 새 timezone의
+     * 벽시계로 덮으면 안 된다. 덮으면 activeDoseDate가 다른 날로 옮겨져 과거 기록의 귀속이
+     * 바뀌고, 그 날짜에 이미 로그가 있으면 유니크 제약과 충돌한다.
+     */
+    public void updateStatus(UserMedicationLogStatus status) {
         this.status = status;
     }
 

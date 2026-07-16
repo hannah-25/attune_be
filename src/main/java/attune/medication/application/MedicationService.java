@@ -47,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -85,11 +86,19 @@ public class MedicationService {
     private final UserZoneResolver userZoneResolver;
     private final MedicationLogSaver logSaver;
 
-    private static final ZoneId SERVER_ZONE = ZoneId.of("Asia/Seoul");
     // 클라이언트 시계 오차 허용치. 이보다 미래의 복용 시각은 신뢰하지 않는다.
     private static final Duration MAX_CLIENT_CLOCK_SKEW = Duration.ofMinutes(5);
     // 이보다 오래된 오프라인 큐 항목은 복용 기록으로 반영하지 않는다.
     private static final Duration MAX_OFFLINE_QUEUE_AGE = Duration.ofDays(7);
+    // dose_timezone 백필 이전 행과 구 버전이 남긴 행의 해석 기준. 그 시절 기록은 모두 KST였다.
+    private static final ZoneId LEGACY_LOG_ZONE = ZoneId.of("Asia/Seoul");
+    /**
+     * timezone이 바뀐 재전송을 찾을 때 훑는 복용일 반경.
+     *
+     * IANA offset은 UTC-12..UTC+14라 같은 순간의 현지 시각이 최대 26시간까지 벌어지고,
+     * 그러면 현지 날짜는 최대 2일까지 차이날 수 있다. 2일이면 모든 timezone 조합을 덮는다.
+     */
+    private static final int DOSE_DATE_SEARCH_RADIUS_DAYS = 2;
 
     @Transactional(readOnly = true)
     public List<UserMedicationListItemResponse> getUserMedications() {
@@ -337,14 +346,20 @@ public class MedicationService {
     public QuickLogResponse quickLog(Long userMedicationId, QuickLogRequest request) {
         getOwnedUserMedicationOrThrow(userMedicationId);
 
-        LocalDateTime now = LocalDateTime.now();
         if (request.action() == null) {
             throw new InvalidQuickLogRequestException();
         }
 
+        // 여행 중에는 복용일이 체류지 날짜로 귀속돼야 한다. 서버 고정 KST가 아니라 기록 시점
+        // 사용자 timezone의 벽시계로 해석해야 doseDate(=takenAt의 날짜)가 현지 날짜가 된다.
+        // 알림은 이미 user_settings.timezone을 따르므로(MedicationAlarmScheduler), 이걸로 알림과
+        // 기록의 timezone 기준이 일치한다.
+        ZoneId userZone = userZoneResolver.resolve(SecurityUtils.getCurrentUserUuid());
+        LocalDateTime now = LocalDateTime.now(userZone);
+
         // 오프라인 큐에 쌓인 요청은 나중에 재전송되므로 수신 시각이 복용 시각이 아니다.
         // 클라이언트가 기록한 시각을 근거로 삼아야 자정을 넘겨 재전송돼도 같은 복용일로 수렴한다.
-        LocalDateTime takenAt = resolveTakenAt(request.takenAt(), now);
+        LocalDateTime takenAt = resolveTakenAt(request.takenAt(), now, userZone);
 
         if (request.action() == QuickLogAction.POSTPONE) {
             return new QuickLogResponse(null, QuickLogAction.POSTPONE, takenAt);
@@ -357,8 +372,8 @@ public class MedicationService {
                 .orElseThrow(MedicationScheduleNotFoundException::new);
 
         LocalDate doseDate = takenAt.toLocalDate();
-        Optional<UserMedicationLog> existing = logRepository.findActiveByScheduleIdAndActiveDoseDate(
-                schedule.getId(), doseDate);
+        Optional<UserMedicationLog> existing = findExistingLogForDose(
+                schedule.getId(), doseDate, request.takenAt());
 
         // 오프라인 큐는 at-least-once로 재전송한다(응답 유실 시 같은 요청이 한 번 더 도착).
         // 따라서 모든 액션은 "그 상태로 만든다"는 절대 연산이어야 하고, 같은 액션의 재전송은 no-op이어야 한다.
@@ -375,26 +390,80 @@ public class MedicationService {
 
         if (existing.isPresent()) {
             UserMedicationLog existingLog = existing.get();
-            existingLog.update(takenAt, status);
-            return new QuickLogResponse(existingLog.getId(), request.action(), takenAt);
+            if (doseDate.equals(existingLog.getActiveDoseDate())) {
+                existingLog.update(takenAt, userZone.getId(), status);
+            } else {
+                // timezone이 바뀐 뒤 도착한 재전송이다. 같은 복용이므로 원래 복용일·timezone 귀속을
+                // 보존하고 상태만 맞춘다.
+                existingLog.updateStatus(status);
+            }
+            return new QuickLogResponse(existingLog.getId(), request.action(), existingLog.getTakenAt());
         }
 
-        return new QuickLogResponse(insertOrClaimExisting(schedule.getId(), doseDate, takenAt, status).getId(),
-                request.action(), takenAt);
+        UserMedicationLog saved = insertOrClaimExisting(
+                schedule.getId(), doseDate, takenAt, userZone.getId(), status);
+        return new QuickLogResponse(saved.getId(), request.action(), saved.getTakenAt());
     }
 
     /**
-     * 클라이언트가 보낸 복용 시각을 검증해 서버 시간대(KST 고정, AttuneApplication 참고)의 값으로 변환한다.
+     * 이 복용에 해당하는 기존 활성 로그를 찾는다.
      *
-     * 값이 없으면 서버 현재 시각을 쓴다(온라인 요청). 클라이언트 시계는 신뢰 경계 밖이므로
-     * 미래로 크게 앞선 값과 지나치게 오래된 큐 항목은 400으로 거절한다. 400은 프론트의
-     * 영구 실패 목록에 있어 해당 큐 항목이 무한 재시도되지 않고 정리된다.
+     * 보통은 같은 복용일의 활성 로그가 곧 그 복용이다. 다만 오프라인 큐가 재전송될 때 사용자가
+     * 이미 timezone을 바꿨다면, 같은 절대 시각이 다른 복용일로 계산돼 기존 로그를 놓친다.
+     * 그대로 두면 한 번 먹은 약이 이틀치 활성 로그로 남는다(유니크 제약은 복용일이 달라 막지 못한다).
+     *
+     * 그래서 클라이언트가 절대 시각을 보낸 경우에 한해, 인접 복용일의 활성 로그 중 기록 당시
+     * timezone으로 복원한 복용 순간이 정확히 일치하는 것을 같은 복용으로 본다.
      */
-    private LocalDateTime resolveTakenAt(Instant clientTakenAt, LocalDateTime now) {
+    private Optional<UserMedicationLog> findExistingLogForDose(
+            Long scheduleId,
+            LocalDate doseDate,
+            Instant clientTakenAt
+    ) {
+        Optional<UserMedicationLog> sameDay =
+                logRepository.findActiveByScheduleIdAndActiveDoseDate(scheduleId, doseDate);
+        if (sameDay.isPresent() || clientTakenAt == null) {
+            return sameDay;
+        }
+
+        return logRepository.findActiveByScheduleIdAndActiveDoseDateBetween(
+                        scheduleId,
+                        doseDate.minusDays(DOSE_DATE_SEARCH_RADIUS_DAYS),
+                        doseDate.plusDays(DOSE_DATE_SEARCH_RADIUS_DAYS))
+                .stream()
+                .filter(log -> clientTakenAt.equals(recordedInstant(log)))
+                .findFirst();
+    }
+
+    /**
+     * 로그에 기록된 실제 복용 순간. 현지 벽시계와 기록 당시 timezone을 합쳐 복원한다.
+     * 복원할 수 없으면(저장된 timezone이 현재 JDK tzdb에 없는 등) null을 반환해 매칭에서 제외한다.
+     */
+    private static Instant recordedInstant(UserMedicationLog log) {
+        String timezone = log.getDoseTimezone();
+        try {
+            ZoneId zone = timezone != null ? ZoneId.of(timezone) : LEGACY_LOG_ZONE;
+            return log.getTakenAt().atZone(zone).toInstant();
+        } catch (DateTimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * 클라이언트가 보낸 복용 시각을 검증해 사용자 timezone의 현지 벽시계 값으로 변환한다.
+     *
+     * 값이 없으면 사용자 timezone 기준 현재 시각을 쓴다(온라인 요청). 클라이언트 시계는 신뢰
+     * 경계 밖이므로 미래로 크게 앞선 값과 지나치게 오래된 큐 항목은 400으로 거절한다. 400은
+     * 프론트의 영구 실패 목록에 있어 해당 큐 항목이 무한 재시도되지 않고 정리된다.
+     *
+     * {@code now}와 {@code userZone}은 같은 timezone 기준이어야 한다. 서로 다르면 skew 검증이
+     * 시차만큼 어긋나 정상 요청을 400으로 거절한다.
+     */
+    private LocalDateTime resolveTakenAt(Instant clientTakenAt, LocalDateTime now, ZoneId userZone) {
         if (clientTakenAt == null) {
             return now;
         }
-        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, SERVER_ZONE);
+        LocalDateTime takenAt = LocalDateTime.ofInstant(clientTakenAt, userZone);
         if (takenAt.isAfter(now.plus(MAX_CLIENT_CLOCK_SKEW))) {
             throw new InvalidQuickLogRequestException();
         }
@@ -413,12 +482,13 @@ public class MedicationService {
             Long scheduleId,
             LocalDate doseDate,
             LocalDateTime takenAt,
+            String doseTimezone,
             UserMedicationLogStatus status
     ) {
         try {
-            return logSaver.trySave(scheduleId, takenAt, status);
+            return logSaver.trySave(scheduleId, takenAt, doseTimezone, status);
         } catch (DataIntegrityViolationException e) {
-            return logSaver.updateExistingLog(scheduleId, doseDate, takenAt, status);
+            return logSaver.updateExistingLog(scheduleId, doseDate, takenAt, doseTimezone, status);
         }
     }
 

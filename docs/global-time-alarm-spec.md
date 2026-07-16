@@ -150,6 +150,24 @@ Content-Type: application/json
 
 ### 5.1 API 시간 포맷
 
+> **구현 현황(2026-07): 복약 기록의 시간 기준**
+>
+> 복약 기록(`user_medication_logs.taken_at`)은 **기록 시점 사용자 timezone(`user_settings.timezone`)의
+> 현지 벽시계**로 저장하고(naive `LocalDateTime`), 그때 쓴 IANA timezone ID를 `dose_timezone`에 함께
+> 남긴다. 둘을 합치면 실제 복용 순간(절대 시각)이 복원된다. 복용일은 `taken_at`의 날짜에서 파생되므로
+> 해외 체류 중 기록도 체류지 현지 날짜에 귀속된다. 복약 알림도 동일하게 사용자 timezone을 따른다.
+>
+> `dose_timezone`은 **오프라인 재전송의 멱등성에 필요하다.** 재전송이 도착하기 전에 사용자가 timezone을
+> 바꾸면 같은 절대 시각이 다른 복용일로 계산돼 기존 로그를 놓치고 중복 로그가 생긴다. 저장된 timezone으로
+> 기존 로그의 복용 순간을 복원해 같은 복용임을 식별한다.
+>
+> 별도의 절대시각(`Instant`/`TIMESTAMP`) 컬럼은 **도입하지 않았다.** `taken_at` + `dose_timezone`으로
+> 같은 정보를 표현할 수 있고, 국내 사용자 약 99% / 단기 출장이라는 사용 프로파일 대비 코어 테이블의
+> 절대시각 마이그레이션 비용과 위험이 과도하다고 판단했다.
+> 근거와 재검토 트리거: `docs/exec-plans/active/2026-07-16-medication-local-timezone-travel.md`
+>
+> `dose_timezone`이 NULL인 행(백필 이전, 롤링 배포 중 구 버전이 남긴 행)은 `Asia/Seoul`로 해석한다.
+
 API 응답 시간은 아래 기준을 따른다.
 
 | 필드 유형 | 예시 필드 | 응답 포맷 |
