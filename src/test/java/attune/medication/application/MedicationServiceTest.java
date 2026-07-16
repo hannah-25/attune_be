@@ -68,7 +68,8 @@ class MedicationServiceTest {
             mock(UserRepository.class),
             mock(ConsultationRepository.class),
             redisJsonCache,
-            userZoneResolver
+            userZoneResolver,
+            mock(MedicationLogSaver.class)
     );
 
     @AfterEach

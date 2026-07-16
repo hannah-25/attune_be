@@ -46,6 +46,33 @@ class JournalIntegrationTest extends IntegrationTest {
                 .andExpect(jsonPath("$.checked.conditions[0].condition").value("calm-custom"));
     }
 
+    /**
+     * 오프라인 큐가 같은 체크를 재전송해도 행이 하나만 남아야 한다.
+     * uk_journal_tag_logs_daily_check를 엔티티에 선언하기 전에는 테스트 DB에 제약이 없어
+     * JournalTagLogSaver의 유니크 위반 catch 경로가 실행되지 않았다.
+     */
+    @Test
+    void replayedTagCheckIsIdempotent() throws Exception {
+        User user = testUsers.activeUser("journal-replay@test.com");
+        LocalDate date = LocalDate.now().minusDays(1);
+        Long tagId = createConditionTag(user, "replay-calm");
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/v1/journals/tags/{tagId}/checks", tagId)
+                            .header("Authorization", testUsers.bearer(user))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of("journalDate", date.toString()))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.tagId").value(tagId))
+                    .andExpect(jsonPath("$.journalDate").value(date.toString()));
+        }
+
+        mockMvc.perform(get("/v1/journals/{date}", date)
+                        .header("Authorization", testUsers.bearer(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.checked.conditions.length()").value(1));
+    }
+
     @Test
     void anotherUsersTagCannotBeChecked() throws Exception {
         User owner = testUsers.activeUser("journal-owner@test.com");

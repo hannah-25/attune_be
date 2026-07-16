@@ -148,10 +148,11 @@
 |---|---|---|---|
 | id | BIGINT | PK, NOT NULL | 약물 복용 로그 고유 식별자 |
 | user_medication_schedule_id | BIGINT | FK → UserMedicationSchedule.id, NOT NULL | 사용자 약물 ID |
-| taken_at | TIMESTAMP | NOT NULL | 복용 일시 |
-| | | UNIQUE(user_medication_schedule_id, taken_at) | 동일 스케줄의 같은 시간 중복 로그 방지 |
+| taken_at | TIMESTAMP | NOT NULL | 복용 일시. 오프라인 재전송 시 클라이언트가 기록한 시각(`takenAt`)을 사용 |
 | status | VARCHAR | NOT NULL | 복용 여부 enum값 (TAKEN, SKIPPED). 미복용(missed)은 로그를 남기지 않고 "예정 대비 기록 부재"로 분석에서 도출 |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | 소프트 딜리트 플래그 (복용 취소 시 false로 변경) |
+| active_dose_date | DATE | NULL 허용 | `(is_active, taken_at)`에서 파생. 활성이면 `DATE(taken_at)`, 비활성이면 NULL |
+| | | UNIQUE(user_medication_schedule_id, active_dose_date) | 스케줄당 하루 활성 로그 1건 강제. MySQL은 유니크 인덱스에서 NULL을 서로 다른 값으로 취급하므로 취소된 로그는 같은 날 여러 건 공존 |
 
 ---
 
