@@ -3,6 +3,7 @@ package attune.alarm.adapter.web;
 import attune.alarm.application.NotificationSubscriptionService;
 import attune.alarm.application.dto.request.RegisterSubscriptionRequest;
 import attune.alarm.application.dto.response.SubscriptionResponse;
+import attune.alarm.application.dto.response.SubscriptionStatusResponse;
 import attune.common.ApiVersion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,12 @@ public class NotificationSubscriptionController {
     @PostMapping
     public ResponseEntity<SubscriptionResponse> register(@Valid @RequestBody RegisterSubscriptionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(subscriptionService.register(request));
+    }
+
+    @Operation(summary = "구독 상태 조회", description = "endpoint 또는 token 값으로 현재 사용자의 구독 활성화 여부를 조회합니다.")
+    @GetMapping
+    public ResponseEntity<SubscriptionStatusResponse> getStatus(@RequestParam String endpointOrToken) {
+        return ResponseEntity.ok(subscriptionService.getStatus(endpointOrToken));
     }
 
     @Operation(summary = "구독 해제", description = "endpoint 또는 token 값으로 구독을 비활성화합니다.")

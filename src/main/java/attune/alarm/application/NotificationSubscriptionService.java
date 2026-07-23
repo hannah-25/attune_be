@@ -2,6 +2,7 @@ package attune.alarm.application;
 
 import attune.alarm.application.dto.request.RegisterSubscriptionRequest;
 import attune.alarm.application.dto.response.SubscriptionResponse;
+import attune.alarm.application.dto.response.SubscriptionStatusResponse;
 import attune.alarm.domain.model.NotificationSubscription;
 import attune.alarm.domain.model.NotificationProvider;
 import attune.alarm.domain.repository.NotificationSubscriptionRepository;
@@ -75,6 +76,18 @@ public class NotificationSubscriptionService {
                         .updatedAt(now)
                         .build()));
         return SubscriptionResponse.from(subscription);
+    }
+
+    @Transactional(readOnly = true)
+    public SubscriptionStatusResponse getStatus(String endpointOrToken) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+
+        boolean enabled = subscriptionRepository.findByUserIdAndEndpoint(userId, endpointOrToken)
+                .or(() -> subscriptionRepository.findByUserIdAndToken(userId, endpointOrToken))
+                .map(NotificationSubscription::isEnabled)
+                .orElse(false);
+
+        return new SubscriptionStatusResponse(enabled);
     }
 
     @Transactional

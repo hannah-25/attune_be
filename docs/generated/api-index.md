@@ -1,7 +1,7 @@
 <!-- 자동 생성: scripts/agent/generate-api-index. 수동 수정 금지. -->
 # API 인덱스 (자동 생성)
 
-생성 시각: 2026-06-25 19:57:33
+생성 시각: 2026-07-24 02:20:42
 출처: 컨트롤러 @*Mapping 스캔. 권위 있는 명세는 /swagger-ui.html, /v3/api-docs.
 
 ### `admin` — AdminAuditLogController
@@ -42,6 +42,7 @@
 ```
 @RequestMapping(ApiVersion.V1 + "/alarm/subscriptions")
 @PostMapping
+@GetMapping
 @DeleteMapping
 ```
 
