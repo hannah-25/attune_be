@@ -492,11 +492,53 @@
 | alarm_scheduled_at | TIMESTAMP | NOT NULL | 예정 발송 시각 (중복 방지 기준) |
 | title | VARCHAR(255) | NOT NULL | 알람 제목 |
 | body | TEXT | | 알람 본문 |
+| url | VARCHAR(255) | | 알림함 클릭 시 이동 경로. NULL이면 애플리케이션이 `/home`으로 해석 |
 | status | VARCHAR(20) | NOT NULL | 발송 상태 Enum (SENDING, SENT, FAILED, SKIPPED) |
 | sent_at | TIMESTAMP | NOT NULL | 최근 발송 선점/시도 시각 |
+| read_at | TIMESTAMP | | 사용자가 알림함에서 읽음 처리한 최초 시각. `OPENED`(클릭)와는 별개 |
 | | | UNIQUE(user_id, alarm_type, reference_id, alarm_scheduled_at) | 중복 발송 방지 |
+| | | INDEX(idx_notification_history_user_read_sent on user_id, read_at, sent_at DESC, id DESC) | 알림함 상태 필터 + cursor pagination 지원 |
 
+---
 
+## NotificationDelivery (구독별 전송 단위)
+
+한 `NotificationHistory`를 한 활성 구독에 보내는 전체 단위. `provider_accepted_at` 등은 하위 `NotificationDeliveryAttempt`의 최초 시각을 요약한 값이다(PR2에서 채운다).
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID(BINARY 16) | PK, NOT NULL | delivery 고유 식별자 |
+| notification_history_id | BIGINT | FK → NotificationHistory.id ON DELETE CASCADE, NOT NULL | 발송 이력 ID |
+| subscription_id | BIGINT | FK → NotificationSubscription.id ON DELETE CASCADE, NOT NULL | 구독 ID |
+| provider_accepted_at | TIMESTAMP | | 하위 attempt 중 provider 수락 최초 시각 |
+| received_at | TIMESTAMP | | 하위 attempt 중 서비스 워커 수신 최초 시각 |
+| displayed_at | TIMESTAMP | | 하위 attempt 중 알림 표시 최초 시각 |
+| opened_at | TIMESTAMP | | 하위 attempt 중 클릭 최초 시각 |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |
+| updated_at | TIMESTAMP | NOT NULL | 수정일시 |
+| | | UNIQUE(notification_history_id, subscription_id) | 같은 구독의 중복 delivery 방지 |
+
+---
+
+## NotificationDeliveryAttempt (전송 시도)
+
+실제 외부 전송 시도마다 한 행. `receipt_token_hash`만 저장하고 토큰 평문·endpoint·payload 원문·원문 예외는 저장하지 않는다.
+
+| Column Name | DB Data Type | Constraints | Description |
+|---|---|---|---|
+| id | UUID(BINARY 16) | PK, NOT NULL | attempt 고유 식별자 |
+| delivery_id | UUID(BINARY 16) | FK → NotificationDelivery.id ON DELETE CASCADE, NOT NULL | delivery ID |
+| attempt_no | INT | NOT NULL | delivery 내 시도 순번(1부터) |
+| receipt_token_hash | CHAR(64) | NOT NULL | receipt token(256-bit CSPRNG, base64url)의 SHA-256 hex 해시 |
+| receipt_expires_at | TIMESTAMP | NOT NULL | 이 시각 이후로는 새 event를 기록하지 않음(Web Push TTL 기반) |
+| provider_accepted_at | TIMESTAMP | | provider HTTP 2xx 수락 시각 |
+| received_at | TIMESTAMP | | 서비스 워커 `push` 수신 시각 |
+| displayed_at | TIMESTAMP | | `showNotification()` 완료 시각 |
+| opened_at | TIMESTAMP | | `notificationclick` 시각 |
+| failed_at | TIMESTAMP | | 발송 실패 시각(404/410 등) |
+| failure_reason | VARCHAR(100) | | 실패 사유 요약(원문 예외 금지) |
+| created_at | TIMESTAMP | NOT NULL | 생성일시 |
+| | | UNIQUE(delivery_id, attempt_no) | 같은 delivery 내 시도 번호 중복 방지 |
 
 ---
 

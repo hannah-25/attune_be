@@ -42,12 +42,17 @@ public class NotificationHistory {
     @Column(columnDefinition = "TEXT")
     private String body;
 
+    @Column(length = 255)
+    private String url;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NotificationStatus status;
 
     @Column(nullable = false)
     private LocalDateTime sentAt;
+
+    private LocalDateTime readAt;
 
     public void updateStatus(NotificationStatus status) {
         this.status = status;
