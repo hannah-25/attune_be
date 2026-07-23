@@ -40,4 +40,11 @@ public class NotificationDelivery {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    public void recordProviderAccepted(LocalDateTime occurredAt) {
+        if (providerAcceptedAt == null) {
+            providerAcceptedAt = occurredAt;
+        }
+        updatedAt = occurredAt;
+    }
 }

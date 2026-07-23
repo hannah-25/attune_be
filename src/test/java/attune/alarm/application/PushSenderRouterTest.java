@@ -22,7 +22,7 @@ class PushSenderRouterTest {
     void recordsSuccessMetricWhenSenderCompletes() {
         PushSenderRouter router = new PushSenderRouter(List.of(sender(false)), metrics);
 
-        router.send(subscription(), new PushMessage("title", "body", "/home"));
+        router.send(subscription(), new PushMessage("title", "body", "/home"), attempt());
 
         assertThat(meterRegistry.counter("attune.push.requests",
                 "provider", "web_push",
@@ -34,7 +34,7 @@ class PushSenderRouterTest {
     void recordsInvalidSubscriptionMetricWhenSenderRejectsSubscription() {
         PushSenderRouter router = new PushSenderRouter(List.of(sender(true)), metrics);
 
-        assertThatThrownBy(() -> router.send(subscription(), new PushMessage("title", "body", "/home")))
+        assertThatThrownBy(() -> router.send(subscription(), new PushMessage("title", "body", "/home"), attempt()))
                 .isInstanceOf(InvalidSubscriptionException.class);
 
         assertThat(meterRegistry.counter("attune.push.requests",
@@ -51,7 +51,7 @@ class PushSenderRouterTest {
             }
 
             @Override
-            public void send(NotificationSubscription subscription, PushMessage message) {
+            public void send(NotificationSubscription subscription, PushMessage message, PushDeliveryAttempt attempt) {
                 if (invalidSubscription) {
                     throw new InvalidSubscriptionException("expired");
                 }
@@ -67,5 +67,9 @@ class PushSenderRouterTest {
                 .endpoint("https://push.example/subscription")
                 .enabled(true)
                 .build();
+    }
+
+    private PushDeliveryAttempt attempt() {
+        return new PushDeliveryAttempt(UUID.randomUUID(), "receipt-token");
     }
 }

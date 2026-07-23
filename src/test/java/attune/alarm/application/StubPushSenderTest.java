@@ -46,7 +46,7 @@ class StubPushSenderTest {
         // 본문에 건강 PII(복약 라벨 등)가 들어오는 상황을 모사
         PushMessage message = new PushMessage("타이레놀 복약 시간", "복약 시간이 됐어요.", "/medication");
 
-        sender.send(subscription, message);
+        sender.send(subscription, message, attempt());
 
         assertThat(appender.list).hasSize(1);
         String log = appender.list.get(0).getFormattedMessage();
@@ -71,11 +71,15 @@ class StubPushSenderTest {
                 .provider(NotificationProvider.APNS)
                 .build();
 
-        sender.send(subscription, new PushMessage(null, null, null));
+        sender.send(subscription, new PushMessage(null, null, null), attempt());
 
         assertThat(appender.list).hasSize(1);
         String log = appender.list.get(0).getFormattedMessage();
         assertThat(log).contains("titleLen=0");
         assertThat(log).contains("bodyLen=0");
+    }
+
+    private PushDeliveryAttempt attempt() {
+        return new PushDeliveryAttempt(UUID.randomUUID(), "receipt-token");
     }
 }
