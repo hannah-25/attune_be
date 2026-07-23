@@ -455,6 +455,30 @@
 
 ---
 
+### GET /v1/alarm/subscriptions
+
+현재 사용자의 구독 활성화 여부를 조회한다.
+
+**인증:** 필요 (JWT)
+
+**Query Parameters**
+
+| 파라미터 | 필수 | 설명 |
+|---------|------|------|
+| `endpointOrToken` | 필수 | 조회할 endpoint URL 또는 FCM/APNs 토큰 |
+
+**Response 200**
+
+```json
+{
+  "enabled": true
+}
+```
+
+인증된 사용자 본인의 구독만 조회되며, 구독이 없거나 비활성화된 경우에도 200과 `enabled: false`를 반환한다.
+
+---
+
 ### DELETE /v1/alarm/subscriptions
 
 구독을 비활성화한다.

@@ -133,6 +133,104 @@ class NotificationSubscriptionServiceTest {
         verify(repository, never()).save(any());
     }
 
+    @Test
+    void getStatusReturnsEnabledTrueWhenSubscriptionActiveForCurrentUser() {
+        NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
+
+        UUID currentUserId = UUID.randomUUID();
+        String endpoint = "https://push.example.com/my-endpoint";
+
+        NotificationSubscription subscription = NotificationSubscription.builder()
+                .userId(currentUserId)
+                .platform(NotificationPlatform.WEB)
+                .provider(NotificationProvider.WEB_PUSH)
+                .endpoint(endpoint)
+                .enabled(true)
+                .build();
+
+        when(repository.findByUserIdAndEndpoint(currentUserId, endpoint)).thenReturn(Optional.of(subscription));
+        authenticate(currentUserId);
+
+        assertThat(service.getStatus(endpoint).enabled()).isTrue();
+    }
+
+    @Test
+    void getStatusReturnsEnabledFalseWhenSubscriptionDisabled() {
+        NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
+
+        UUID currentUserId = UUID.randomUUID();
+        String endpoint = "https://push.example.com/my-endpoint";
+
+        NotificationSubscription subscription = NotificationSubscription.builder()
+                .userId(currentUserId)
+                .platform(NotificationPlatform.WEB)
+                .provider(NotificationProvider.WEB_PUSH)
+                .endpoint(endpoint)
+                .enabled(false)
+                .build();
+
+        when(repository.findByUserIdAndEndpoint(currentUserId, endpoint)).thenReturn(Optional.of(subscription));
+        authenticate(currentUserId);
+
+        assertThat(service.getStatus(endpoint).enabled()).isFalse();
+    }
+
+    @Test
+    void getStatusReturnsEnabledFalseWhenNoSubscriptionFound() {
+        NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
+
+        UUID currentUserId = UUID.randomUUID();
+        String endpointOrToken = "unknown";
+
+        when(repository.findByUserIdAndEndpoint(currentUserId, endpointOrToken)).thenReturn(Optional.empty());
+        when(repository.findByUserIdAndToken(currentUserId, endpointOrToken)).thenReturn(Optional.empty());
+        authenticate(currentUserId);
+
+        assertThat(service.getStatus(endpointOrToken).enabled()).isFalse();
+    }
+
+    @Test
+    void getStatusFallsBackToTokenLookupWhenEndpointNotFound() {
+        NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
+
+        UUID currentUserId = UUID.randomUUID();
+        String token = "fcm-token";
+
+        NotificationSubscription subscription = NotificationSubscription.builder()
+                .userId(currentUserId)
+                .platform(NotificationPlatform.ANDROID)
+                .provider(NotificationProvider.FCM)
+                .token(token)
+                .enabled(true)
+                .build();
+
+        when(repository.findByUserIdAndEndpoint(currentUserId, token)).thenReturn(Optional.empty());
+        when(repository.findByUserIdAndToken(currentUserId, token)).thenReturn(Optional.of(subscription));
+        authenticate(currentUserId);
+
+        assertThat(service.getStatus(token).enabled()).isTrue();
+    }
+
+    @Test
+    void getStatusOnlySeesCurrentUsersOwnSubscription() {
+        NotificationSubscriptionRepository repository = mock(NotificationSubscriptionRepository.class);
+        NotificationSubscriptionService service = new NotificationSubscriptionService(repository);
+
+        UUID currentUserId = UUID.randomUUID();
+        String otherUsersEndpoint = "https://push.example.com/other-users-endpoint";
+
+        when(repository.findByUserIdAndEndpoint(currentUserId, otherUsersEndpoint)).thenReturn(Optional.empty());
+        when(repository.findByUserIdAndToken(currentUserId, otherUsersEndpoint)).thenReturn(Optional.empty());
+        authenticate(currentUserId);
+
+        assertThat(service.getStatus(otherUsersEndpoint).enabled()).isFalse();
+        verify(repository).findByUserIdAndEndpoint(currentUserId, otherUsersEndpoint);
+    }
+
     private void authenticate(UUID userId) {
         CustomUserDetails principal = CustomUserDetails.fromJwt(userId, UserType.USER, UserStatus.ACTIVE);
         SecurityContextHolder.getContext().setAuthentication(
