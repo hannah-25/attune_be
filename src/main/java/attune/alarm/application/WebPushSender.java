@@ -20,6 +20,7 @@ public class WebPushSender implements PushSender {
     private final PushService pushService;
     private final CloseableHttpClient webPushHttpClient;
     private final ObjectMapper objectMapper;
+    private final int ttlSeconds;
 
     @Override
     public boolean supports(NotificationProvider provider) {
@@ -27,19 +28,22 @@ public class WebPushSender implements PushSender {
     }
 
     @Override
-    public void send(NotificationSubscription subscription, PushMessage message) {
+    public void send(NotificationSubscription subscription, PushMessage message, PushDeliveryAttempt attempt) {
         try {
             LinkedHashMap<String, String> pushPayload = new LinkedHashMap<>();
             pushPayload.put("title", message.title());
             pushPayload.put("body", message.body());
             pushPayload.put("url", message.url() == null ? "/home" : message.url());
+            pushPayload.put("deliveryAttemptId", attempt.id().toString());
+            pushPayload.put("receiptToken", attempt.receiptToken());
             byte[] payload = objectMapper.writeValueAsBytes(pushPayload);
 
             Notification notification = new Notification(
                     subscription.getEndpoint(),
                     subscription.getP256dh(),
                     subscription.getAuth(),
-                    payload
+                    payload,
+                    ttlSeconds
             );
             HttpPost post = pushService.preparePost(notification, Encoding.AES128GCM);
             try (CloseableHttpResponse response = webPushHttpClient.execute(post)) {

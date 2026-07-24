@@ -60,14 +60,14 @@ public class NotificationService {
                     userId, alarmType, referenceId, scheduledAt);
         }
 
-        List<NotificationSubscription> subscriptions = claimed.subscriptions();
+        List<NotificationDispatch> dispatches = claimed.dispatches();
 
-        if (subscriptions.isEmpty()) {
+        if (dispatches.isEmpty()) {
             return updateStatus(claimed, NotificationStatus.SKIPPED);
         }
 
         // 외부 API 호출 — DB 커넥션 없음
-        SendResult result = sendAll(subscriptions, message, userId);
+        SendResult result = sendAll(dispatches, message, userId);
 
         if (!result.invalidSubscriptionIds().isEmpty()) {
             txOps.disableSubscriptions(result.invalidSubscriptionIds());
@@ -86,27 +86,41 @@ public class NotificationService {
         return updated ? status : NotificationStatus.SENDING;
     }
 
+    private record AttemptResult(java.util.UUID attemptId, boolean providerAccepted, String failureReason) {}
+
     private record SendResult(NotificationStatus status, List<Long> invalidSubscriptionIds) {}
 
-    private SendResult sendAll(List<NotificationSubscription> subscriptions,
+    private SendResult sendAll(List<NotificationDispatch> dispatches,
                                PushMessage message,
                                UUID userId) {
         boolean anySuccess = false;
         List<Long> invalidIds = new ArrayList<>();
+        List<AttemptResult> attemptResults = new ArrayList<>();
 
-        for (NotificationSubscription subscription : subscriptions) {
+        for (NotificationDispatch dispatch : dispatches) {
+            NotificationSubscription subscription = dispatch.subscription();
             try {
-                pushSenderRouter.send(subscription, message);
+                pushSenderRouter.send(subscription, message, dispatch.attempt());
                 anySuccess = true;
+                attemptResults.add(new AttemptResult(dispatch.attempt().id(), true, null));
             } catch (InvalidSubscriptionException e) {
                 log.warn("[ALARM INVALID SUBSCRIPTION] userId={} subscriptionId={} error={}",
                         userId, subscription.getId(), e.getMessage());
                 invalidIds.add(subscription.getId());
+                attemptResults.add(new AttemptResult(dispatch.attempt().id(), false, "INVALID_SUBSCRIPTION"));
             } catch (Exception e) {
                 log.warn("[ALARM FAIL] userId={} subscriptionId={} error={}",
                         userId, subscription.getId(), e.getMessage());
+                attemptResults.add(new AttemptResult(dispatch.attempt().id(), false, "DELIVERY_FAILURE"));
             }
         }
+        attemptResults.forEach(result -> {
+            if (result.providerAccepted()) {
+                txOps.recordProviderAccepted(result.attemptId());
+            } else {
+                txOps.recordAttemptFailure(result.attemptId(), result.failureReason());
+            }
+        });
         NotificationStatus status = anySuccess ? NotificationStatus.SENT : NotificationStatus.FAILED;
         return new SendResult(status, invalidIds);
     }

@@ -23,6 +23,7 @@ public class WebPushConfig {
     private static final int MAX_CONN_PER_ROUTE = 50;
     private static final int MAX_CONN_TOTAL = 200;
     private static final int TIMEOUT_MS = 5_000;
+    private static final int MAX_TTL_SECONDS = 2_419_200;
 
     @Bean
     CloseableHttpClient webPushHttpClient() {
@@ -58,13 +59,23 @@ public class WebPushConfig {
     }
 
     @Bean
-    WebPushSender webPushSender(PushService webPushService, CloseableHttpClient webPushHttpClient, ObjectMapper objectMapper) {
-        return new WebPushSender(webPushService, webPushHttpClient, objectMapper);
+    WebPushSender webPushSender(PushService webPushService,
+                                CloseableHttpClient webPushHttpClient,
+                                ObjectMapper objectMapper,
+                                WebPushProperties properties) {
+        requireValidTtl(properties.ttlSeconds());
+        return new WebPushSender(webPushService, webPushHttpClient, objectMapper, properties.ttlSeconds());
     }
 
     private void requireValue(String value, String propertyName) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(propertyName + " must be configured when Web Push is enabled");
+        }
+    }
+
+    private void requireValidTtl(int ttlSeconds) {
+        if (ttlSeconds < 0 || ttlSeconds > MAX_TTL_SECONDS) {
+            throw new IllegalStateException("notification.push.web-push.ttl-seconds must be between 0 and " + MAX_TTL_SECONDS);
         }
     }
 }

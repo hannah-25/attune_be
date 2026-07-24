@@ -26,7 +26,7 @@ public class PushSenderRouter {
         senders.forEach(s -> log.info("[PUSH ROUTER] registered: {}", s.getClass().getSimpleName()));
     }
 
-    public void send(NotificationSubscription subscription, PushMessage message) {
+    public void send(NotificationSubscription subscription, PushMessage message, PushDeliveryAttempt attempt) {
         PushSender sender = senders.stream()
                 .filter(s -> s.supports(subscription.getProvider()))
                 .findFirst()
@@ -34,7 +34,7 @@ public class PushSenderRouter {
                         "No PushSender registered for provider: " + subscription.getProvider()));
         String provider = subscription.getProvider() == null ? "unknown" : subscription.getProvider().name();
         try {
-            sender.send(subscription, message);
+            sender.send(subscription, message, attempt);
             metrics.recordPushRequest(provider, OUTCOME_SUCCESS);
         } catch (InvalidSubscriptionException e) {
             metrics.recordPushRequest(provider, OUTCOME_INVALID_SUBSCRIPTION);

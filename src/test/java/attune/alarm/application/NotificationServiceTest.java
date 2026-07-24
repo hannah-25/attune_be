@@ -36,7 +36,7 @@ class NotificationServiceTest {
     void sendsAndReturnsSentWhenClaimSucceedsAndPushSucceeds() {
         NotificationSubscription sub = mock(NotificationSubscription.class);
         NotificationTxOperations.ClaimResult claim = new NotificationTxOperations.ClaimResult(
-                historyWithId(1L), List.of(sub)
+                historyWithId(1L), List.of(dispatch(sub))
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(1L), any(), eq(NotificationStatus.SENT))).thenReturn(true);
@@ -44,7 +44,8 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENT);
-        verify(pushSenderRouter).send(sub, MESSAGE);
+        verify(pushSenderRouter).send(eq(sub), eq(MESSAGE), any());
+        verify(txOps).recordProviderAccepted(any());
     }
 
     @Test
@@ -58,7 +59,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SKIPPED);
-        verify(pushSenderRouter, never()).send(any(), any());
+        verify(pushSenderRouter, never()).send(any(), any(), any());
     }
 
     @Test
@@ -74,7 +75,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENDING);
-        verify(pushSenderRouter, never()).send(any(), any());
+        verify(pushSenderRouter, never()).send(any(), any(), any());
     }
 
     @Test
@@ -82,7 +83,7 @@ class NotificationServiceTest {
         // 이전 발송이 FAILED 또는 stale SENDING → reclaim 성공 → 재발송
         NotificationSubscription sub = mock(NotificationSubscription.class);
         NotificationTxOperations.ClaimResult reclaim = new NotificationTxOperations.ClaimResult(
-                historyWithId(3L), List.of(sub)
+                historyWithId(3L), List.of(dispatch(sub))
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE))
                 .thenThrow(new DataIntegrityViolationException("duplicate"));
@@ -93,7 +94,7 @@ class NotificationServiceTest {
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENT);
-        verify(pushSenderRouter).send(sub, MESSAGE);
+        verify(pushSenderRouter).send(eq(sub), eq(MESSAGE), any());
     }
 
     @Test
@@ -101,16 +102,17 @@ class NotificationServiceTest {
         NotificationSubscription sub = mock(NotificationSubscription.class);
         when(sub.getId()).thenReturn(99L);
         NotificationTxOperations.ClaimResult claim = new NotificationTxOperations.ClaimResult(
-                historyWithId(4L), List.of(sub)
+                historyWithId(4L), List.of(dispatch(sub))
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(4L), any(), eq(NotificationStatus.FAILED))).thenReturn(true);
-        doThrow(new InvalidSubscriptionException("expired")).when(pushSenderRouter).send(sub, MESSAGE);
+        doThrow(new InvalidSubscriptionException("expired")).when(pushSenderRouter).send(eq(sub), eq(MESSAGE), any());
 
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.FAILED);
         verify(txOps).disableSubscriptions(List.of(99L));
+        verify(txOps).recordAttemptFailure(any(), eq("INVALID_SUBSCRIPTION"));
     }
 
     @Test
@@ -119,16 +121,18 @@ class NotificationServiceTest {
         NotificationSubscription invalidSub = mock(NotificationSubscription.class);
         when(invalidSub.getId()).thenReturn(77L);
         NotificationTxOperations.ClaimResult claim = new NotificationTxOperations.ClaimResult(
-                historyWithId(5L), List.of(validSub, invalidSub)
+                historyWithId(5L), List.of(dispatch(validSub), dispatch(invalidSub))
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(5L), any(), eq(NotificationStatus.SENT))).thenReturn(true);
-        doThrow(new InvalidSubscriptionException("expired")).when(pushSenderRouter).send(invalidSub, MESSAGE);
+        doThrow(new InvalidSubscriptionException("expired")).when(pushSenderRouter).send(eq(invalidSub), eq(MESSAGE), any());
 
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.SENT);
         verify(txOps).disableSubscriptions(List.of(77L));
+        verify(txOps).recordProviderAccepted(any());
+        verify(txOps).recordAttemptFailure(any(), eq("INVALID_SUBSCRIPTION"));
     }
 
     @Test
@@ -136,16 +140,17 @@ class NotificationServiceTest {
         NotificationSubscription sub1 = mock(NotificationSubscription.class);
         NotificationSubscription sub2 = mock(NotificationSubscription.class);
         NotificationTxOperations.ClaimResult claim = new NotificationTxOperations.ClaimResult(
-                historyWithId(6L), List.of(sub1, sub2)
+                historyWithId(6L), List.of(dispatch(sub1), dispatch(sub2))
         );
         when(txOps.claimAndLoadSubscriptions(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE)).thenReturn(claim);
         when(txOps.updateHistoryStatus(eq(6L), any(), eq(NotificationStatus.FAILED))).thenReturn(true);
-        doThrow(new RuntimeException("network error")).when(pushSenderRouter).send(sub1, MESSAGE);
-        doThrow(new RuntimeException("network error")).when(pushSenderRouter).send(sub2, MESSAGE);
+        doThrow(new RuntimeException("network error")).when(pushSenderRouter).send(eq(sub1), eq(MESSAGE), any());
+        doThrow(new RuntimeException("network error")).when(pushSenderRouter).send(eq(sub2), eq(MESSAGE), any());
 
         NotificationStatus result = service.sendToUser(USER_ID, TYPE, REF_ID, SCHEDULED_AT, MESSAGE);
 
         assertThat(result).isEqualTo(NotificationStatus.FAILED);
+        verify(txOps, org.mockito.Mockito.times(2)).recordAttemptFailure(any(), eq("DELIVERY_FAILURE"));
     }
 
     private attune.alarm.domain.model.NotificationHistory historyWithId(Long id) {
@@ -160,5 +165,9 @@ class NotificationServiceTest {
                 .status(NotificationStatus.SENDING)
                 .sentAt(LocalDateTime.now())
                 .build();
+    }
+
+    private NotificationDispatch dispatch(NotificationSubscription subscription) {
+        return new NotificationDispatch(subscription, new PushDeliveryAttempt(UUID.randomUUID(), "receipt-token"));
     }
 }

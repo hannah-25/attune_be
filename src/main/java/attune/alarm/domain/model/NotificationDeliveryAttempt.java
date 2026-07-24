@@ -48,4 +48,13 @@ public class NotificationDeliveryAttempt {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void recordProviderAccepted(LocalDateTime occurredAt) {
+        providerAcceptedAt = occurredAt;
+    }
+
+    public void recordFailure(LocalDateTime occurredAt, String reason) {
+        failedAt = occurredAt;
+        failureReason = reason;
+    }
 }

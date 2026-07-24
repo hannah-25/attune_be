@@ -2,15 +2,23 @@ package attune.alarm.application;
 
 import attune.alarm.domain.model.*;
 import attune.alarm.domain.repository.NotificationHistoryRepository;
+import attune.alarm.domain.repository.NotificationDeliveryAttemptRepository;
+import attune.alarm.domain.repository.NotificationDeliveryRepository;
 import attune.alarm.domain.repository.NotificationSubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,8 +34,16 @@ public class NotificationTxOperations {
 
     private final NotificationHistoryRepository historyRepository;
     private final NotificationSubscriptionRepository subscriptionRepository;
+    private final NotificationDeliveryRepository deliveryRepository;
+    private final NotificationDeliveryAttemptRepository deliveryAttemptRepository;
 
-    record ClaimResult(NotificationHistory history, List<NotificationSubscription> subscriptions) {}
+    private static final SecureRandom RECEIPT_TOKEN_RANDOM = new SecureRandom();
+    private static final int RECEIPT_EXPIRY_CLOCK_SKEW_SECONDS = 60;
+
+    @Value("${notification.push.web-push.ttl-seconds:86400}")
+    private int webPushTtlSeconds;
+
+    record ClaimResult(NotificationHistory history, List<NotificationDispatch> dispatches) {}
 
     /**
      * SENDING 상태로 발송 이력을 선점 INSERT하고 활성 구독 목록을 함께 반환한다.
@@ -49,12 +65,13 @@ public class NotificationTxOperations {
                         .alarmScheduledAt(scheduledAt)
                         .title(message.title())
                         .body(message.body())
+                        .url(message.url())
                         .status(NotificationStatus.SENDING)
                         .sentAt(claimedAt)
                         .build()
         );
         List<NotificationSubscription> subscriptions = subscriptionRepository.findAllByUserIdAndEnabledTrue(userId);
-        return new ClaimResult(history, subscriptions);
+        return new ClaimResult(history, createDispatches(history, subscriptions, claimedAt));
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -80,7 +97,7 @@ public class NotificationTxOperations {
         NotificationHistory history = historyRepository.findHistory(userId, alarmType, referenceId, scheduledAt)
                 .orElseThrow();
         List<NotificationSubscription> subscriptions = subscriptionRepository.findAllByUserIdAndEnabledTrue(userId);
-        return Optional.of(new ClaimResult(history, subscriptions));
+        return Optional.of(new ClaimResult(history, createDispatches(history, subscriptions, claimedAt)));
     }
 
     @Transactional(readOnly = true)
@@ -108,5 +125,73 @@ public class NotificationTxOperations {
         LocalDateTime now = LocalDateTime.now();
         targets.forEach(subscription -> subscription.disable(now));
         log.info("[ALARM SUBSCRIPTION DISABLED] ids={}", subscriptionIds);
+    }
+
+    @Transactional
+    public void recordProviderAccepted(UUID attemptId) {
+        LocalDateTime occurredAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
+        NotificationDeliveryAttempt attempt = deliveryAttemptRepository.findById(attemptId).orElseThrow();
+        attempt.recordProviderAccepted(occurredAt);
+        deliveryRepository.findById(attempt.getDeliveryId())
+                .ifPresent(delivery -> delivery.recordProviderAccepted(occurredAt));
+    }
+
+    @Transactional
+    public void recordAttemptFailure(UUID attemptId, String failureReason) {
+        NotificationDeliveryAttempt attempt = deliveryAttemptRepository.findById(attemptId).orElseThrow();
+        attempt.recordFailure(LocalDateTime.now().truncatedTo(ChronoUnit.MICROS), failureReason);
+    }
+
+    private List<NotificationDispatch> createDispatches(NotificationHistory history,
+                                                         List<NotificationSubscription> subscriptions,
+                                                         LocalDateTime createdAt) {
+        return subscriptions.stream()
+                .map(subscription -> createDispatch(history, subscription, createdAt))
+                .toList();
+    }
+
+    private NotificationDispatch createDispatch(NotificationHistory history,
+                                                NotificationSubscription subscription,
+                                                LocalDateTime createdAt) {
+        NotificationDelivery delivery = deliveryRepository
+                .findByNotificationHistoryIdAndSubscriptionId(history.getId(), subscription.getId())
+                .orElseGet(() -> deliveryRepository.save(NotificationDelivery.builder()
+                        .notificationHistoryId(history.getId())
+                        .subscriptionId(subscription.getId())
+                        .createdAt(createdAt)
+                        .updatedAt(createdAt)
+                        .build()));
+        String receiptToken = newReceiptToken();
+        NotificationDeliveryAttempt attempt = deliveryAttemptRepository.save(NotificationDeliveryAttempt.builder()
+                .deliveryId(delivery.getId())
+                .attemptNo(nextAttemptNo(delivery.getId()))
+                .receiptTokenHash(hashReceiptToken(receiptToken))
+                .receiptExpiresAt(createdAt.plusSeconds(webPushTtlSeconds)
+                        .plusSeconds(RECEIPT_EXPIRY_CLOCK_SKEW_SECONDS))
+                .createdAt(createdAt)
+                .build());
+        return new NotificationDispatch(subscription, new PushDeliveryAttempt(attempt.getId(), receiptToken));
+    }
+
+    private int nextAttemptNo(UUID deliveryId) {
+        return deliveryAttemptRepository.findAllByDeliveryId(deliveryId).stream()
+                .mapToInt(NotificationDeliveryAttempt::getAttemptNo)
+                .max()
+                .orElse(0) + 1;
+    }
+
+    private static String newReceiptToken() {
+        byte[] token = new byte[32];
+        RECEIPT_TOKEN_RANDOM.nextBytes(token);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
+    }
+
+    private static String hashReceiptToken(String receiptToken) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(receiptToken.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
     }
 }
