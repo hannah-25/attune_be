@@ -1,5 +1,61 @@
 # API Guide
 
+## Notification inbox
+
+### GET /v1/notifications?status=&cursor=&size=
+
+현재 사용자의 알림함을 `sentAt DESC, id DESC` 순서로 cursor pagination 한다. `status`는 생략하거나 `UNREAD`/`READ`로 필터할 수 있다. 알림은 push 수신 여부와 무관하게 `NotificationHistory` 단위로 반환한다.
+
+**인증:** 필요 (JWT)
+
+| Query parameter | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `status` | string | 선택 | `UNREAD`(`readAt`이 없음) 또는 `READ`(`readAt`이 있음). 생략하면 모두 조회 |
+| `cursor` | string | 선택 | 직전 응답의 `nextCursor`. 클라이언트가 내용을 해석하지 않는 불투명 값 |
+| `size` | number | 선택 | 페이지 크기. 기본 `20`, 범위 `1..100` |
+
+**Response 200**
+
+```json
+{
+  "notifications": [
+    {
+      "id": 42,
+      "alarmType": "MEDICATION",
+      "title": "복약 시간",
+      "body": "복약 시간이 됐어요.",
+      "url": "/medication",
+      "status": "SENT",
+      "deliveryStatus": "DISPLAYED",
+      "sentAt": "2026-07-24T10:00:00",
+      "readAt": null
+    }
+  ],
+  "nextCursor": "MjAyNi0wNy0yNFQxMDowMDowMHw0Mg"
+}
+```
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `notifications` | array | 현재 페이지의 알림 목록 |
+| `notifications[].url` | string | 이동할 내부 경로. 저장값이 없으면 `/home` |
+| `notifications[].status` | string | 발송 이력 상태: `SENDING` / `SENT` / `FAILED` / `SKIPPED` |
+| `notifications[].deliveryStatus` | string\|null | 구독별 delivery 중 가장 진전된 상태: `PROVIDER_ACCEPTED` / `RECEIVED` / `DISPLAYED` / `OPENED`. 실제 기기 표시나 인지를 보장하지 않음 |
+| `notifications[].readAt` | LocalDateTime\|null | 사용자가 알림함에서 읽음 처리한 최초 시각. 클릭 상태(`OPENED`)와 별개 |
+| `nextCursor` | string\|null | 다음 페이지 cursor. 다음 페이지가 없으면 `null` |
+
+### PATCH /v1/notifications/{notificationHistoryId}/read
+
+현재 사용자의 알림을 읽음 처리한다. 이미 읽은 알림은 최초 `readAt`을 유지한 채 성공한다.
+
+**인증:** 필요 (JWT)
+
+**Response 204**
+
+다른 사용자의 알림이거나 존재하지 않는 ID는 `404`를 반환한다.
+
+---
+
 ## Onboarding
 
 ### GET /v1/onboarding/history

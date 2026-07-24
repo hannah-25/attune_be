@@ -15,6 +15,11 @@ import java.util.UUID;
 public class UserDataDeletionExecutor {
 
     private static final List<String> DELETE_STATEMENTS = List.of(
+            "DELETE FROM notification_delivery_attempts WHERE delivery_id IN (" +
+                    "SELECT nd.id FROM notification_deliveries nd " +
+                    "JOIN notification_history nh ON nh.id = nd.notification_history_id WHERE nh.user_id = ?)",
+            "DELETE FROM notification_deliveries WHERE notification_history_id IN (" +
+                    "SELECT id FROM notification_history WHERE user_id = ?)",
             "DELETE FROM notification_history WHERE user_id = ?",
             "DELETE FROM notification_subscriptions WHERE user_id = ?",
             "DELETE FROM external_calendar_events WHERE user_id = ?",
