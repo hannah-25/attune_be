@@ -207,6 +207,7 @@ Content-Type: application/json
 - 2026-07-24: 알림함 cursor 조회는 JPQL이 지원하지 않는 row-value 비교 대신 OR 전개 또는 native query로 구현하며, 기존 `Pageable` 컨벤션과 의도적으로 다른 방식을 쓴다.
 - 2026-07-24: custom metric 예산은 시계열 수가 아니라 메트릭 이름 개수(10개 이하) 기준이며, 이번 추가로 7개→8개가 된다.
 - 2026-07-24 (PR1 구현 중): 탈퇴 삭제는 FK `ON DELETE CASCADE` 단독이 아니라 `UserDataDeletionExecutor.DELETE_STATEMENTS`에 `notification_delivery_attempts`/`notification_deliveries` 삭제문을 명시적으로 추가하는 방식과 **함께** 쓴다. `ddl-auto=create-drop`으로 생성되는 테스트 스키마는 이 코드베이스의 기존 `NotificationHistory`/`NotificationSubscription`처럼 순수 `@Column` FK라 Hibernate가 FK 제약을 생성하지 않으므로, cascade만으로는 테스트로 검증할 수 없다. 명시적 삭제문이 1차 보장 수단이고, migration의 `ON DELETE CASCADE`는 이 executor를 거치지 않는 경로에 대한 방어선이다. 기존 `notification_history`/`notification_subscriptions` → `users` 관계도 이미 이 이중 구조를 쓰고 있어 새 패턴이 아니다.
+- 2026-07-24 (PR1 브랜치 구성): 알림함 API(PR4)는 `notification_deliveries`/`notification_delivery_attempts`(PR1) 외 다른 진행 중 작업과 파일이 겹치지 않아, 별도 브랜치로 분리하지 않고 `feature/notification-delivery-schema` 브랜치에 PR1과 함께 커밋해 하나의 PR로 진행한다. PR2(발송 경로, `feature/notification-delivery-send-path`)는 PR1 커밋 시점에서 분기해 별도로 진행 중이며, 알림함 API와 파일이 겹치지 않으므로 PR1을 먼저 머지한 뒤 develop을 받아오는 것만으로 충돌 없이 합류한다.
 
 ## 완료 조건
 
