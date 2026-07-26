@@ -1,5 +1,41 @@
 # API Guide
 
+## Web Push 영수증
+
+### POST /v1/notification-delivery-attempts/{deliveryAttemptId}/events
+
+서비스 워커가 push 도달 단계(`RECEIVED`/`DISPLAYED`/`OPENED`)를 기록한다. 서비스 워커는 JWT를 갖고 있지 않으므로 이 경로만 인증 없이 허용하고, attempt id와 발급 시 함께 내려준 `receiptToken`으로만 요청을 검증한다.
+
+**인증:** 불필요 (JWT 없음). `receiptToken`이 attempt별 검증 수단이다.
+
+**Request**
+
+```json
+{
+  "event": "RECEIVED",
+  "receiptToken": "opaque-random-token"
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `event` | string | 필수 | `RECEIVED`, `DISPLAYED`, `OPENED` 중 하나. 그 외 값은 무시되고 204로 응답한다 |
+| `receiptToken` | string | 필수 | push payload에 함께 내려준 opaque token. attempt id와 짝이 맞아야 한다 |
+
+**Response 204**
+
+정상 처리, 중복 요청, 존재하지 않는 attempt id, token 불일치, 만료된 token 모두 동일하게 `204 No Content`를 반환한다. attempt 존재 여부를 외부에 노출하지 않기 위한 의도적 설계다. 서버 내부에서는 이 다섯 가지 결과를 `attune.notification.delivery.receipts` 메트릭의 `outcome` 태그(`accepted`/`duplicate`/`invalid`/`expired`)로만 구분한다.
+
+**Response 429**
+
+attempt 단위, 클라이언트 IP 단위, 전역 단위 rate limit 중 하나라도 초과하면 `429 Too Many Requests`를 반환한다.
+
+**동작 참고**
+
+- 중복 요청은 최초 기록 시각을 바꾸지 않는다.
+- `DISPLAYED`가 `RECEIVED`보다 먼저 도착하면(또는 `OPENED`가 `DISPLAYED`/`RECEIVED`보다 먼저 도착하면) 비어 있는 선행 단계를 같은 시각으로 backfill한다 — 이 backfill된 값은 실제 관측이 아닌 추정치다.
+- token은 `receipt_expires_at`(발송 시 지정한 Web Push TTL 기준) 이전까지만 유효하다.
+
 ## Notification inbox
 
 ### GET /v1/notifications?status=&cursor=&size=

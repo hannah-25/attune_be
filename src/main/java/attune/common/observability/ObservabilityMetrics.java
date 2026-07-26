@@ -28,6 +28,7 @@ public class ObservabilityMetrics {
     private static final String TAG_PROVIDER = "provider";
     private static final String TAG_SCHEDULER = "scheduler";
     private static final String TAG_OPERATION = "operation";
+    private static final String TAG_EVENT = "event";
 
     private final MeterRegistry meterRegistry;
     private final ConcurrentMap<String, AtomicLong> schedulerLastSuccessEpochSeconds = new ConcurrentHashMap<>();
@@ -61,6 +62,13 @@ public class ObservabilityMetrics {
     public void recordSchedulerRun(String scheduler, String outcome) {
         meterRegistry.counter("attune.scheduler.runs",
                 TAG_SCHEDULER, normalize(scheduler),
+                TAG_OUTCOME, outcome
+        ).increment();
+    }
+
+    public void recordNotificationDeliveryReceipt(String event, String outcome) {
+        meterRegistry.counter("attune.notification.delivery.receipts",
+                TAG_EVENT, normalize(event),
                 TAG_OUTCOME, outcome
         ).increment();
     }

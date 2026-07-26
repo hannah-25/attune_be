@@ -99,6 +99,9 @@ public class SecurityConfig {
                         // 공지사항 조회 (비로그인 허용)
                         .requestMatchers(HttpMethod.GET, ApiVersion.V1 + "/notices/**").permitAll()
 
+                        // Web Push 영수증: 서비스 워커는 JWT를 갖고 있지 않음. attempt id + receipt token hash로 자체 인증
+                        .requestMatchers(HttpMethod.POST, ApiVersion.V1 + "/notification-delivery-attempts/*/events").permitAll()
+
                         // 관리자 전용
                         .requestMatchers(ApiVersion.V1 + "/admin/**").hasRole("ADMIN")
 

@@ -57,4 +57,34 @@ public class NotificationDeliveryAttempt {
         failedAt = occurredAt;
         failureReason = reason;
     }
+
+    /**
+     * RECEIVED보다 먼저 도착한 DISPLAYED/OPENED는 비어 있는 receivedAt을 같은 시각으로 backfill한다(추정치).
+     * 반환값은 이 event 자체의 시각이 이번 호출로 새로 기록됐는지(false면 중복 요청) 여부다.
+     */
+    public boolean recordReceived(LocalDateTime occurredAt) {
+        if (receivedAt != null) {
+            return false;
+        }
+        receivedAt = occurredAt;
+        return true;
+    }
+
+    public boolean recordDisplayed(LocalDateTime occurredAt) {
+        recordReceived(occurredAt);
+        if (displayedAt != null) {
+            return false;
+        }
+        displayedAt = occurredAt;
+        return true;
+    }
+
+    public boolean recordOpened(LocalDateTime occurredAt) {
+        recordDisplayed(occurredAt);
+        if (openedAt != null) {
+            return false;
+        }
+        openedAt = occurredAt;
+        return true;
+    }
 }

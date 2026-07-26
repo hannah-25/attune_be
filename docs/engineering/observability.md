@@ -42,8 +42,9 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 | `attune.calendar.requests` | counter | `operation`, `outcome` | Google Calendar 호출 성공/재연동 필요(reauth)/일시 장애(unavailable)/실패 추적. operation: `token`/`userinfo`/`calendar_list`/`events`. HTTP 요청 단위로 집계 — `events`는 페이지네이션 시 페이지마다 1회 기록 |
 | `attune.scheduler.runs` | counter | `scheduler`, `outcome` | 주요 scheduler 실행 성공/실패 추적 |
 | `attune.scheduler.last.success` | gauge | `scheduler` | scheduler 마지막 성공 epoch seconds |
+| `attune.notification.delivery.receipts` | counter | `event`(`received`/`displayed`/`opened`/`unknown`), `outcome`(`accepted`/`duplicate`/`invalid`/`expired`/`rate_limited`/`error`) | 서비스 워커 영수증 API(`POST /v1/notification-delivery-attempts/{id}/events`) 처리 결과 추적. `outcome`은 HTTP 응답과 무관하게 내부적으로만 구분한다(응답은 대부분 204로 동일) |
 
-현재 애플리케이션에는 위 custom metric을 in-process Micrometer meter로 생성한다. CloudWatch 전송 registry, EC2 IAM 권한, dashboard/alarm 리소스 생성은 후속 운영 설정 단계에서 붙인다. `attune.mail.requests`는 1차 구현에서 `type=general`로 기록하고, 메일 템플릿별 세분화는 필요 시 별도 PR에서 확장한다.
+현재 애플리케이션에는 위 custom metric을 in-process Micrometer meter로 생성한다. CloudWatch 전송 registry, EC2 IAM 권한, dashboard/alarm 리소스 생성은 후속 운영 설정 단계에서 붙인다. `attune.mail.requests`는 1차 구현에서 `type=general`로 기록하고, 메일 템플릿별 세분화는 필요 시 별도 PR에서 확장한다. `event` 태그는 요청이 유효한 `RECEIVED`/`DISPLAYED`/`OPENED`가 아니면 항상 고정값 `unknown`으로 묶는다 — 이 엔드포인트는 `permitAll`이라 태그 값에 요청 원문을 그대로 쓰면 카디널리티 공격에 노출된다.
 
 1차 alarm 후보(10개 이하):
 
@@ -56,6 +57,7 @@ AI 에이전트가 문제를 빠르게 좁히기 위한 진입점.
 | Mail 실패 증가 | 10분 실패율 5% 초과 |
 | Push 실패 증가 | 10분 실패율 10% 초과 |
 | Scheduler 지연 | 마지막 성공 시각이 허용 주기 초과 |
+| 영수증 API 오류 증가 | 10분간 `attune.notification.delivery.receipts{outcome=error}` 비율 5% 초과 |
 
 ## 로컬 로그
 
