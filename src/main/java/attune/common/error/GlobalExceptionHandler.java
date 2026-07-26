@@ -174,6 +174,14 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, e.getClientMessage()));
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestsException e) {
+        log.info("429 TooManyRequests: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", "1")
+                .body(ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS, e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception e) {
         log.error("500 Unexpected", e);

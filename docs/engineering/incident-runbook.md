@@ -142,6 +142,40 @@ Google API 오류 응답 body에는 일정 제목이나 계정 정보가 포함�
 | invalid subscription 증가 | 만료되거나 폐기된 브라우저 구독 | subscription 비활성화 처리 확인 |
 | recovery window 대상 누락 | 조회 조건 또는 시간대 문제 | due alarm 조회 조건, user zone 변환 확인 |
 
+## Web Push 영수증 API 오류
+
+### 증상
+
+- `attune.notification.delivery.receipts{outcome=error}` 비율이 증가한다.
+- provider 수락(`attune.push.requests{outcome=success}`) 대비 수신(`event=received`) 비율이 급감한다.
+- 서비스 워커/프론트엔드에서 영수증 전송 실패 문의가 들어온다(단, 이 API는 fail-open이므로 알림 표시 자체는 영향받지 않아야 한다).
+
+### 확인 순서
+
+1. `attune.notification.delivery.receipts` 메트릭에서 `outcome` 분포를 확인한다. `invalid`/`expired`가 대부분이면 클라이언트(서비스 워커) 쪽 문제일 가능성이 높고, `error`가 대부분이면 서버/DB/Redis 문제일 가능성이 높다.
+2. `error`가 높으면 Sentry에서 `NotificationDeliveryEventController`/`NotificationDeliveryReceiptService` 관련 500 이벤트를 확인한다.
+3. `rate_limited` 비율이 높으면 특정 attempt id 또는 IP의 비정상 반복 호출인지 CloudWatch Logs에서 확인한다.
+4. `expired` 비율이 높으면 배포 간 Web Push TTL(`notification.push.web-push.ttl-seconds`) 변경 여부, 또는 서비스 워커가 만료된 payload를 오래 붙들고 있는지 확인한다.
+5. 이 API는 `permitAll`이므로 `requestId` 기반 CloudWatch Logs 검색과 함께 `NotificationDeliveryEventController` 로그를 확인한다.
+
+### 확인할 지표
+
+| 지표 | 확인 목적 |
+|------|-----------|
+| `attune.notification.delivery.receipts{event=...,outcome=...}` | event/outcome 조합별 증가 추이 |
+| `attune.push.requests{outcome=success}` 대비 `receipts{event=received}` | provider 수락 대비 수신 급감 여부 |
+
+### 원인 분리
+
+| 단서 | 가능한 원인 | 대응 |
+|------|-------------|------|
+| `invalid` 급증 | 잘못된 attempt id/token, 서비스 워커 payload 파싱 오류, 오래된 payload 재전송 | 프론트 배포 버전, 구 payload 하위 호환 처리 확인 |
+| `expired` 급증 | TTL 설정 변경, 클라이언트 시계 오차, 서비스 워커가 지연 처리 | `ttl-seconds` 설정값과 `receipt_expires_at` 계산 확인 |
+| `rate_limited` 급증 | 특정 attempt/IP의 비정상 반복 호출, 또는 정상 트래픽 급증으로 한도가 낮음 | rate limit 설정값 재검토, 악성 트래픽이면 별도 차단 |
+| `error` 급증 | DB/Redis 장애, 코드 예외 | readiness, Redis 연결 로그, Sentry stack trace 확인 |
+
+Web Push 영수증 API는 attempt 존재 여부를 노출하지 않기 위해 모든 결과를 `204`로 응답한다. HTTP 상태만으로는 원인을 알 수 없으므로 반드시 위 메트릭으로 원인을 구분한다.
+
 ## Readiness 실패
 
 ### 증상

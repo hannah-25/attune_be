@@ -13,12 +13,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -165,7 +162,7 @@ public class NotificationTxOperations {
         NotificationDeliveryAttempt attempt = deliveryAttemptRepository.save(NotificationDeliveryAttempt.builder()
                 .deliveryId(delivery.getId())
                 .attemptNo(nextAttemptNo(delivery.getId()))
-                .receiptTokenHash(hashReceiptToken(receiptToken))
+                .receiptTokenHash(ReceiptTokenHasher.hash(receiptToken))
                 .receiptExpiresAt(createdAt.plusSeconds(webPushTtlSeconds)
                         .plusSeconds(RECEIPT_EXPIRY_CLOCK_SKEW_SECONDS))
                 .createdAt(createdAt)
@@ -184,14 +181,5 @@ public class NotificationTxOperations {
         byte[] token = new byte[32];
         RECEIPT_TOKEN_RANDOM.nextBytes(token);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
-    }
-
-    private static String hashReceiptToken(String receiptToken) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(receiptToken.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is unavailable", e);
-        }
     }
 }

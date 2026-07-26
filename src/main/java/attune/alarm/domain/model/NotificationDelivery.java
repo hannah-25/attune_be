@@ -47,4 +47,27 @@ public class NotificationDelivery {
         }
         updatedAt = occurredAt;
     }
+
+    public void recordReceived(LocalDateTime occurredAt) {
+        if (receivedAt == null) {
+            receivedAt = occurredAt;
+        }
+        updatedAt = occurredAt;
+    }
+
+    public void recordDisplayed(LocalDateTime occurredAt) {
+        recordReceived(occurredAt);
+        if (displayedAt == null) {
+            displayedAt = occurredAt;
+        }
+        updatedAt = occurredAt;
+    }
+
+    public void recordOpened(LocalDateTime occurredAt) {
+        recordDisplayed(occurredAt);
+        if (openedAt == null) {
+            openedAt = occurredAt;
+        }
+        updatedAt = occurredAt;
+    }
 }
