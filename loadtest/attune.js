@@ -1,9 +1,12 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
+import { Counter } from 'k6/metrics';
 
 const baseUrl = __ENV.BASE_URL || 'https://dev.attune-me.com';
 const password = __ENV.LOADTEST_PASSWORD || 'AttuneLoadtest!1';
+const accountCount = Number(__ENV.ACCOUNT_COUNT || 100);
 const today = new Date().toISOString().slice(0, 10);
+const medicationStatus = new Counter('loadtest_medication_status');
 
 export const options = {
   stages: [
@@ -19,7 +22,7 @@ export const options = {
 
 export function setup() {
   const accounts = [];
-  for (let index = 1; index <= 100; index++) {
+  for (let index = 1; index <= accountCount; index++) {
     const email = `loadtest-${String(index).padStart(3, '0')}@attune.invalid`;
     const response = http.post(`${baseUrl}/v1/auth/login`, JSON.stringify({ email, password }), {
       headers: { 'Content-Type': 'application/json', 'X-Client-Type': 'mobile' },
@@ -33,6 +36,7 @@ export function setup() {
 export default function (tokens) {
   const headers = { Authorization: `Bearer ${tokens[__VU - 1]}` };
   const medications = http.get(`${baseUrl}/v1/user-medications`, { headers });
+  medicationStatus.add(1, { status: String(medications.status) });
   check(medications, { 'medications are returned': (value) => value.status === 200 });
   if (__ITER % 5 === 0 && medications.status === 200) {
     const medication = JSON.parse(medications.body)[0];
@@ -44,4 +48,9 @@ export default function (tokens) {
     http.get(`${baseUrl}/v1/schedules?startDate=${today}&endDate=${today}`, { headers });
   }
   sleep(1 + Math.random() * 2);
+}
+
+export function handleSummary(data) {
+  delete data.setup_data;
+  return { stdout: JSON.stringify(data) };
 }
