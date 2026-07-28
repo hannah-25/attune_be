@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Actuator 접근 제어 검증.
  * - health/liveness/readiness probe는 공개(배포 게이트·컨테이너 폴링용).
  * - 배포 게이트는 readiness(= readinessState + db, Redis 비의존)를 폴링한다.
- * - metrics 등 나머지 actuator는 외부 노출 차단(401).
+ * - metrics 등 나머지 actuator는 loadtest 프로파일 외에는 차단(401).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
