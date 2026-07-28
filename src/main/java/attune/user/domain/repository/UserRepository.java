@@ -20,6 +20,7 @@ import jakarta.persistence.LockModeType;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
+    List<User> findByEmailStartingWith(String emailPrefix);
     Optional<User> findByProviderAndProviderId(OAuthProvider provider, String providerId);
     boolean existsByNickname(String nickname);
     Slice<User> findAllByUserStatus(UserStatus status, Pageable pageable);
