@@ -5,7 +5,7 @@
 ```
 push develop ─> GitHub Actions(deploy-dev) ─> gradle build(-x test)
    ─> Docker build/push (hannah098/attune-be:dev)
-   ─> EC2 SSH: docker pull/run (host network, SPRING_PROFILES_ACTIVE=dev)
+   ─> EC2 SSH: docker pull/run (host network, 기본 SPRING_PROFILES_ACTIVE=dev)
    ─> 127.0.0.1:8081 /actuator/health/readiness 200 대기(최대 600s)
 ```
 
@@ -18,6 +18,7 @@ push develop ─> GitHub Actions(deploy-dev) ─> gradle build(-x test)
 3. dev 배포는 `APP_MIGRATION_DEFAULTTAGS_ENABLED=false` 환경변수로 마이그레이션 토글을 끈 채 기동한다(중복 시드 방지).
 4. readiness 헬스체크가 600초 내 200이 아니면 배포 실패로 간주하고 컨테이너 로그를 확인한다. dev/prod는 management server를 `127.0.0.1:8081`에 바인딩하고, 배포 워크플로는 EC2 내부에서 `http://127.0.0.1:8081/actuator/health/readiness`를 폴링한다. readiness는 `readinessState + db` 기준이며, Redis/메일 등 비필수 의존성 장애에는 묶지 않는다.
 5. 롤백: 직전 이미지 태그로 `docker run` 하거나, 문제 커밋을 revert 후 재배포.
+6. 부하 테스트는 `deploy-dev`를 수동 실행하고 `loadtest=true`을 선택한다. 이때만 `dev,loadtest` 프로파일로 기동하며, Actuator metrics는 EC2 loopback에서만 수집 가능하다. 테스트 뒤에는 `loadtest=false`(기본값)로 다시 수동 배포한다.
 
 ## 배포 전 확인
 

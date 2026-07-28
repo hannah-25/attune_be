@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -32,6 +33,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsProperties corsProperties;
     private final SecurityErrorResponseWriter securityErrorResponseWriter;
+    private final Environment environment;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -78,12 +80,20 @@ public class SecurityConfig {
                                 )))
 
                 // OPTIONS 요청(Preflight 요청)을 허용
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> {
+                    auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // 헬스/인포는 무조건 허용 (배포 게이트·컨테이너가 localhost로 폴링)
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
-                        // metrics 등 나머지 actuator는 외부 노출 차단 (운영 정보 보호)
+                        // management server는 loopback에만 바인딩된다. 부하 테스트 중에만 서버 내부 수집을 허용한다.
+                        .requestMatchers("/actuator/metrics/**")
+                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                environment.matchesProfiles("loadtest")
+                        ));
+
+                    auth
+                        // metrics 외 actuator는 항상 외부 노출 차단
                         .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(ApiVersion.V1 + "/health/**").permitAll()
 
@@ -109,9 +119,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
 
                         //Health Check
-                        .anyRequest().authenticated()
-
-                )
+                        .anyRequest().authenticated();
+                })
                 // JWT 인증 필터를 UsernamePassword 필터 앞에 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
