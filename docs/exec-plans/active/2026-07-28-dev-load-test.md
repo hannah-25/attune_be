@@ -27,10 +27,10 @@
 
 1. 변경을 검증·머지한다.
 2. `deploy-dev`를 수동 실행하고 `loadtest=true`으로 dev를 재배포한다.
-3. 전용 테스트 계정 100개와 각 계정의 복약·일지·일정 데이터를 만든다.
+3. `deploy-dev`를 수동 실행해 `loadtest=true`, `loadtest_data_action=seed`으로 전용 활성 계정 100개와 계정별 복약·스케줄 데이터를 만든다.
 4. k6에서 1→10→25→50→75→100 VU를 각 10분간 실행한다. 조회 80%, 빠른 복약 기록 20%, 요청 간 1~3초 대기를 사용한다.
 5. k6 결과(RPS, p50/p95/p99, 실패율·5xx), 15초 간격 readiness, 5초 간격 docker CPU/메모리, 서버 내부 Actuator JVM/Hikari metrics와 오류 로그를 수집한다.
-6. 테스트 데이터만 삭제하고, `deploy-dev`를 수동 실행해 기본 `loadtest=false`로 dev 단독 프로파일을 복구한다.
+6. `loadtest_data_action=cleanup`으로 전용 계정만 영구 삭제하고, `deploy-dev`를 수동 실행해 기본 `loadtest=false`로 dev 단독 프로파일을 복구한다.
 
 ## 검증 방법
 

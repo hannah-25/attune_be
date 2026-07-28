@@ -26,3 +26,8 @@ notification:
   push:
     # Prevent dev load tests from sending real browser push notifications.
     provider: stub
+
+loadtest:
+  data:
+    # none | seed | cleanup. The deploy workflow supplies this only for an explicit manual run.
+    action: ${LOADTEST_DATA_ACTION:none}
