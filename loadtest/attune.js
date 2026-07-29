@@ -5,11 +5,16 @@ import { Counter } from 'k6/metrics';
 const baseUrl = __ENV.BASE_URL || 'https://dev.attune-me.com';
 const password = __ENV.LOADTEST_PASSWORD || 'AttuneLoadtest!1';
 const accountCount = Number(__ENV.ACCOUNT_COUNT || 100);
+const soakTest = __ENV.TEST_MODE === 'soak';
 const today = new Date().toISOString().slice(0, 10);
 const medicationStatus = new Counter('loadtest_medication_status');
 
 export const options = {
-  stages: [
+  stages: soakTest ? [
+    { duration: '30m', target: 25 },
+    { duration: '4h', target: 100 },
+    { duration: '15m', target: 0 },
+  ] : [
     { duration: '2m', target: 10 }, { duration: '10m', target: 10 },
     { duration: '2m', target: 25 }, { duration: '10m', target: 25 },
     { duration: '2m', target: 50 }, { duration: '10m', target: 50 },
