@@ -94,6 +94,17 @@ dev 웹/앱에서 다음 흐름을 한 사용자 기준으로 처음부터 끝�
 - 중단 기준: 5xx 또는 요청 실패율 1% 이상, readiness 실패, Hikari pending 지속 발생, CPU 95% 이상이 10분 지속, 힙이 지속 증가하거나 OOM 징후 발생
 - 종료 후: 전용 데이터 cleanup, `loadtest=false`로 dev 일반 프로파일 복구
 
+#### 실행 현황 (2026-07-30 KST)
+
+- 상태: **진행 중**
+- 대상: `api-dev.attune-me.com`의 dev EC2. 운영 서버나 로컬 애플리케이션은 대상이 아니다.
+- 부하 생성기: 로컬 노트북이 아닌 GitHub-hosted runner에서 실행한다. 따라서 노트북 전원·절전 상태와 무관하게 시험이 계속된다.
+- 부하 프로파일: k6 `TEST_MODE=soak` — 25 VU 30분 워밍업 → 100 VU 4시간 유지 → 15분 종료 관찰. 요청은 기존과 동일하게 조회 80%, 복약 빠른 기록 20%다.
+- 데이터·관측 설정: dev를 `dev,loadtest` 프로파일로 재배포하고 전용 `loadtest-*` 계정 100개를 사용한다. `loadtest` 프로파일은 실제 Web Push 발송을 stub으로 전환한다.
+- 실행 workflow: [Dev Soak Load Test #30480821412](https://github.com/hannah-25/attune_be/actions/runs/30480821412). `soak` job은 k6를 실행하고, `observe` job은 dev EC2에서 5분 간격으로 Hikari active/pending, JVM heap, 컨테이너 CPU·메모리를 기록한다.
+- 사전 배포: 전용 계정 생성은 [deploy run #30479898571](https://github.com/hannah-25/attune_be/actions/runs/30479898571), loadtest 프로파일 재전환은 [deploy run #30480622732](https://github.com/hannah-25/attune_be/actions/runs/30480622732)에서 성공했다.
+- 결과 기록 원칙: k6 summary와 서버 지표만 남기며, 테스트 계정 비밀번호·JWT·외부 인증 토큰은 결과물에 기록하지 않는다.
+
 ### 4. 운영 준비 확인
 
 1. dev 배포 후 readiness 통과와 정상 API 확인
