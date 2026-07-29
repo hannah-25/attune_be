@@ -24,7 +24,7 @@
 | 항목 | 확인 내용 |
 | --- | --- |
 | 배포 워크플로 | `.github/workflows/deploy-prod.yml`. dev 와 동일 패턴(빌드 → Docker push → SSH → readiness 폴링). `main` push 또는 `workflow_dispatch` |
-| 시크릿 프로파일 분리 | `APPLICATION_SECRET_YML` 하나를 dev/prod 워크플로가 공유한다. `on-profile` 로 분리돼 있음을 사용자가 확인 |
+| 시크릿 저장 | GitHub Secrets. 리포지터리에 커밋되지 않는다. 환경별 분리는 GitHub Environments 로 전환했다([시크릿 노출](#시크릿-노출)) |
 | 부하테스트 코드 격리 | `LoadtestDataRunner` 는 `@Profile("loadtest")` + `loadtest.data.action` 기본값 `none`. `deploy-prod.yml` 은 두 값 모두 넘기지 않아 이중 차단 |
 | prod EC2 | 존재 |
 | 관측 | prod 만 `SENTRY_ENABLED=true`, `APP_RELEASE=${{ github.sha }}` 주입 |
@@ -44,11 +44,58 @@
 5. **`APP_MIGRATION_DEFAULTTAGS_ENABLED` 는 죽은 환경변수** — `app.migration.*` 프로퍼티도 Migration 클래스도 코드에 없다. dev/prod 워크플로 양쪽에 남은 잔재이며 무해하다.
 6. **롤백 대상이 없음** — `deployment-rules.md` 의 롤백은 "직전 이미지 태그로 재실행"인데 prod 는 첫 배포라 직전 이미지가 없다.
 
+7. **시크릿이 public Docker 이미지에 구워지고 있었음** — 아래 [시크릿 노출](#시크릿-노출) 참고. → 수정 완료
+
+8. **prod 로그가 배포마다 소실** — `application-prod.yml:27-32` 가 `/var/log/attune-me/app.log` 에 30일 보관으로 설정하지만 `docker run` 에 볼륨이 없었다. 배포마다 `docker rm` 이 돌아 보관 설정과 무관하게 전부 사라지고 장애 추적이 불가능하다. → 수정 완료
+
+## 시크릿 노출
+
+배포 워크플로가 `APPLICATION_SECRET_YML` 을 빌드 전에 `src/main/resources/` 에 쓰고
+있었다. `build.gradle` 에 리소스 제외 규칙이 없어 `src/main/resources` 전체가 jar 로
+패키징되고, `Dockerfile` 이 그 jar 를 이미지에 넣고, 워크플로가 이미지를 push 한다.
+
+Docker Hub 리포지터리가 public 이었으므로 이미지를 pull 하면 누구나 `unzip app.jar` 로
+DB 자격증명, JWT 서명키, Gemini API 키, Google/Apple OAuth secret, SMTP 앱 비밀번호,
+VAPID private key, Sentry DSN, admin HMAC secret 을 읽을 수 있었다.
+dev/prod 가 같은 시크릿을 공유했으므로 `:dev` 태그에도 prod 값이 들어있었다.
+
+GitHub Secrets 자체는 올바른 저장소다. 문제는 워크플로가 러너에서 그 값을 꺼내
+빌드 산출물에 넣은 것이며, GitHub Secrets 의 보호는 러너 주입 시점까지만 유효하다.
+
+### git 히스토리 (종결)
+
+`.gitignore:6` 이 `src/main/resources/application-secret.yml*` 를 막고 있으나 그 전에
+커밋된 이력이 있다(`4e85106`, `a98bf71`, `888ca8c`, `0338602`, `d1052a4` 에서 추적 제거).
+GitHub 리포지터리가 public 이므로 값이 노출됐다.
+
+값이 실제로 있던 것은 `0338602`(2026-03-02)의 JWT `secret-key` 와 DB 자격증명 3세트,
+`888ca8c`(2026-02-28)의 DB 자격증명 3세트다. Gemini·OAuth·SMTP·VAPID·Sentry·HMAC 은
+해당 시점에 존재하지 않던 설정이라 히스토리에 없다.
+
+**둘 다 이후 교체됐음을 사용자가 확인했으므로 이 경로는 종결됐다.** 히스토리 리라이트는
+하지 않는다. 5개월간 public 이었던 값을 되돌릴 수 없어 실익이 없고, force-push 로
+커밋 그래프가 재작성된다.
+
+### 대응
+
+| 단계 | 상태 |
+| --- | --- |
+| GitHub 리포지터리는 public 유지 (포트폴리오 용도), Docker Hub 는 private 전환 | 사용자 작업 |
+| dev DB 보안그룹 확인 — `0.0.0.0/0` 이면 EC2 보안그룹만 허용하도록 좁힌다 | 사용자 작업 |
+| 워크플로에서 시크릿을 빌드에서 분리하고 호스트 마운트로 전환 | 완료 |
+| 이미지에 노출된 현재 값 전부 회전 | 사용자 작업 |
+
+회전은 워크플로 수정 **후에** 한다. 먼저 하면 새 키가 다시 이미지에 구워진다.
+4단계에서 시크릿 파일을 환경별로 새로 만들 예정이므로, 그 시점에 전 항목을 한 번에
+재발급하는 것이 추가 비용이 가장 적다.
+
 ## 변경 범위
 
 - `src/main/resources/application-prod.yml` — `app.frontend-url` 값 지정
 - `src/test/java/attune/common/config/FrontendUrlProfileConfigTest.java` — 신규
 - `scripts/dump-prod-seed.sh` — 신규
+- `.github/workflows/deploy-prod.yml`, `deploy-dev.yml` — 시크릿을 빌드에서 분리, `environment` 키 추가, prod 로그 볼륨
+- `src/main/resources/application.yml` — 마운트된 시크릿 파일 import 경로 추가
 - prod 인프라(RDS, Redis 컨테이너) 생성 — 코드 외 작업
 - `main` ← `develop` 머지
 
@@ -99,26 +146,35 @@
 
    검토 후 제외한 후보: `ConsultationQuestion`(consultation FK), `ScheduleCategory`(user FK), `OnboardingSymptom`(user FK), `Notice`(어드민 콘텐츠, 신규 prod 는 빈 상태가 정상), `Hospital`(코드에 없음).
 
+4. **시크릿을 이미지에서 분리** (`457c07e`, `36f834a`)
+   - 빌드 전 `src/main/resources/` 에 쓰던 단계를 삭제하고, SSH 단계에서 배포 대상 호스트의 `$HOME/attune/application-secret.yml` 에 `umask 077` 로 내린다. `/opt` 대신 `$HOME` 을 쓴 이유는 sudo 가 필요 없기 때문이다.
+   - 컨테이너에 `:ro` 로 마운트하고, `application.yml` 의 import 목록에 `optional:file:/app/config/application-secret.yml` 을 추가한다. `classpath:` 항목은 로컬 개발용으로 유지한다.
+   - job 에 `environment: production` / `development` 를 추가한다. 환경 시크릿 미등록 상태에서는 리포 레벨 값으로 동작하므로 지금 머지해도 배포가 깨지지 않는다.
+   - `deploy-dev.yml` 의 `debug: true` 를 제거한다. 시크릿 쓰기가 SSH 스크립트로 들어왔다.
+   - prod 로그 디렉터리를 볼륨으로 마운트한다.
+
 ### 남은 작업
 
-4. **prod 인프라 생성**
+5. **시크릿 노출 대응** — [시크릿 노출](#시크릿-노출)의 대응 표 참고. Docker Hub private 전환, dev DB 보안그룹 확인, 현재 값 전부 회전.
+
+6. **prod 인프라 생성**
    - RDS MySQL 8.4.x (`application-prod.yml` 주석 기준)
    - Redis — EC2 에 Docker 컨테이너로 기동. `deploy-prod.yml` 이 `--network host` 라 loopback 으로 접근한다.
    - 생성한 접속 정보를 `APPLICATION_SECRET_YML` 의 prod 문서와 일치시킨다.
 
-5. **DB 구축**
+7. **DB 구축**
    - 덤프 전 dev 실물 확인. 스크립트 헤더의 information_schema 쿼리로 `user_id`/`owner_user_id` 컬럼이 없는 테이블 중 데이터가 있는 것이 위 4개 외에 있는지 본다.
    - `./scripts/dump-prod-seed.sh` 실행 → `schema.sql`, `seed.sql`
    - prod DB 에 순서대로 주입한다.
 
-6. **PR 및 머지**
+8. **PR 및 머지**
    - `chore/prod-release-prep` → `develop`
    - `develop` → `main` (606 파일)
 
-7. **배포**
+9. **배포**
    - `deploy-prod` 를 `workflow_dispatch` 로 수동 실행한다.
 
-8. **배포 후 검증**
+10. **배포 후 검증**
    - readiness 200
    - 회원가입 인증 메일과 비밀번호 재설정 메일의 링크가 `https://attune-me.com/...` 절대경로인지 실제 수신으로 확인 (1번 수정의 실효 확인)
 
@@ -154,6 +210,9 @@
 - 2026-07-30 **Redis 는 EC2 에 Docker 로 기동**한다. `--network host` 배포라 컨테이너 하나면 되고 추가 비용이 없다. 트래픽이 늘면 ElastiCache 로 옮긴다.
 - 2026-07-30 **`LoadtestDataRunner` 는 코드에 유지**하고 덤프에서 데이터만 제외한다. 프로파일로 이미 prod 차단이 돼 있고, 삭제하면 직전에 만든 soak 부하테스트 기능(#117, #118)이 함께 죽는다.
 - 2026-07-30 **`frontend-url` 은 시크릿 대신 `application-prod.yml` 에 명시**한다. 비밀이 아니고 같은 파일의 CORS 목록에 이미 같은 도메인이 있다. 프로파일 yml 이 import 된 시크릿보다 우선순위가 높아, 빈 값을 두면 시크릿에 값이 있어도 덮어쓴다.
+- 2026-07-30 **GitHub 리포지터리는 public 유지, Docker Hub 는 private 전환**한다. 공개가 필요한 것은 포트폴리오로 보여지는 소스 리포지터리이고, 이미지를 pull 해서 보는 사람은 없어 Docker Hub 공개는 이득이 없다. 시크릿을 이미지에서 뺐으므로 원한다면 이미지도 공개할 수 있으나 굳이 하지 않는다.
+- 2026-07-30 **시크릿 저장은 GitHub Secrets 를 유지**하고 배치 위치만 바꾼다. 호스트에 수동 배치하는 방식은 운영 부담이 늘고, AWS Secrets Manager 는 IAM 과 기동 의존성이 추가된다. 환경별 분리는 GitHub Environments 라는 기본 기능으로 해결된다.
+- 2026-07-30 **git 히스토리는 리라이트하지 않는다.** 노출된 JWT 서명키와 DB 비밀번호가 이후 교체돼 값이 이미 죽었고, 5개월간 public 이었던 것을 되돌릴 수 없어 실익이 없다. force-push 로 커밋 그래프가 재작성되는 손실이 더 크다.
 - 2026-07-30 메일 링크 도메인은 **non-www(`https://attune-me.com`)** 로 한다. CORS 는 www 도 허용하지만 링크는 하나만 고를 수 있고 dev 가 non-www 규칙을 쓴다. 프론트가 www 로 정규화하면 변경한다.
 
 ## 완료 조건
@@ -161,6 +220,12 @@
 - [x] `app.frontend-url` prod 값 지정 및 회귀 테스트 추가
 - [x] 마스터 테이블 목록을 `db_schema.md` + `docs/sql` 전체와 대조해 확정
 - [x] dev→prod 덤프 스크립트 작성
+- [x] 시크릿을 빌드 산출물에서 분리하고 호스트 마운트로 전환
+- [x] prod 로그 볼륨 마운트
+- [ ] Docker Hub 리포지터리 private 전환
+- [ ] dev DB 보안그룹 확인 및 필요 시 축소
+- [ ] dev 배포로 시크릿 마운트 동작 검증 (readiness 200) — prod 보다 **먼저**
+- [ ] 노출된 자격증명 전부 회전 후 GitHub Environments 에 등록
 - [ ] prod RDS MySQL 8.4 생성 및 시크릿 prod 문서와 접속 정보 일치
 - [ ] prod Redis 컨테이너 기동
 - [ ] `schema.sql` / `seed.sql` 생성 및 prod DB 주입, 마스터 4개 테이블 행 수 확인
