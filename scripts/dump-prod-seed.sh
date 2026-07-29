@@ -9,6 +9,22 @@
 #   - journal_tags : scope='SYSTEM' 만. scope='USER' 는 owner_user_id 로 users 를 참조하므로
 #                    유저가 없는 prod 에 넣으면 FK 제약으로 import 가 실패한다.
 #
+# 마스터 테이블 4개는 docs/db_schema.md 와 docs/sql/*.sql 전체를 대조해 정한 목록이다.
+# 다만 db_schema.md 에는 코드에 없는 Hospital 이 남아있는 등 드리프트가 있으므로,
+# 덤프 전에 dev 실물로 한 번 더 확인한다. user_id 계열 컬럼이 없는 테이블을 뽑아
+# 아래 4개 외에 데이터가 들어있는 테이블이 있는지 눈으로 본다:
+#
+#   SELECT t.TABLE_NAME, t.TABLE_ROWS
+#     FROM information_schema.TABLES t
+#    WHERE t.TABLE_SCHEMA = DATABASE()
+#      AND NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS c
+#                       WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA
+#                         AND c.TABLE_NAME = t.TABLE_NAME
+#                         AND c.COLUMN_NAME IN ('user_id', 'owner_user_id'))
+#    ORDER BY t.TABLE_ROWS DESC;
+#
+#   (InnoDB 의 TABLE_ROWS 는 근사치다. 정확한 수가 필요하면 해당 테이블만 COUNT(*) 한다.)
+#
 # 사용:
 #   DEV_DB_HOST=... DEV_DB_USER=... DEV_DB_PASS=... ./scripts/dump-prod-seed.sh [출력디렉터리]
 #
