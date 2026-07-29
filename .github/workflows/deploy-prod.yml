@@ -78,6 +78,7 @@ jobs:
             docker run -d --name attune-prod-apps --network host \
               --restart unless-stopped \
               -v "$HOME/attune/application-secret.yml:/app/config/application-secret.yml:ro" \
+              -v /var/log/attune-me:/var/log/attune-me \
               -e SPRING_PROFILES_ACTIVE=prod \
               -e APP_MIGRATION_DEFAULTTAGS_ENABLED=false \
               -e SENTRY_ENABLED=true \
