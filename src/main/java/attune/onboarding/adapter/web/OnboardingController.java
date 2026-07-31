@@ -56,7 +56,7 @@ public class OnboardingController {
     @GetMapping("/history/{id}")
     public ResponseEntity<OnboardingHistoryDetailResponse> getHistoryDetail(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long id
+            @PathVariable String id
     ) {
         return ResponseEntity.ok(onboardingService.getHistoryDetail(userDetails.getId(), id));
     }
