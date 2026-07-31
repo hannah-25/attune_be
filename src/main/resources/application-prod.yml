@@ -1,5 +1,7 @@
 # Prod 환경 설정 (MySQL 8.4.x 사용)
 spring:
+  config:
+    import: optional:file:/app/config/application-secret-prod.yml
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
