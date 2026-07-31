@@ -96,7 +96,7 @@ GitHub 리포지터리가 public 이므로 값이 노출됐다.
 - `scripts/dump-prod-seed.sh` — 신규
 - `.github/workflows/deploy-prod.yml`, `deploy-dev.yml` — 시크릿을 빌드에서 분리, `environment` 키 추가, prod 로그 볼륨
 - `src/main/resources/application.yml` — 마운트된 시크릿 파일 import 경로 추가
-- prod 인프라(RDS, Redis 컨테이너) 생성 — 코드 외 작업
+- prod 인프라(MySQL·Redis 컨테이너, 백업 cron) 생성 — 코드 외 작업
 - `main` ← `develop` 머지
 
 ## 제외 범위
@@ -157,26 +157,57 @@ GitHub 리포지터리가 public 이므로 값이 노출됐다.
 
 5. **시크릿 노출 대응** — [시크릿 노출](#시크릿-노출)의 대응 표 참고. Docker Hub private 전환, dev DB 보안그룹 확인, 현재 값 전부 회전.
 
-6. **prod 인프라 생성**
-   - RDS MySQL 8.4.x (`application-prod.yml` 주석 기준)
-   - Redis — EC2 에 Docker 컨테이너로 기동. `deploy-prod.yml` 이 `--network host` 라 loopback 으로 접근한다.
-   - 생성한 접속 정보를 `APPLICATION_SECRET_YML` 의 prod 문서와 일치시킨다.
+6. **prod 인프라 생성** — 둘 다 prod EC2 에 Docker 컨테이너로 올린다. `deploy-prod.yml` 이 `--network host` 라 앱이 loopback 으로 접근한다.
+   - MySQL 8.4 (`application-prod.yml` 주석 기준 버전)
 
-7. **DB 구축**
+     ```bash
+     docker run -d --name attune_prod_db --network host --restart unless-stopped \
+       -v attune_prod_db_data:/var/lib/mysql \
+       -e MYSQL_ROOT_PASSWORD='...' -e MYSQL_DATABASE=attune \
+       -e MYSQL_USER='...' -e MYSQL_PASSWORD='...' \
+       mysql:8.4 \
+       --bind-address=127.0.0.1 \
+       --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci \
+       --default-time-zone='+09:00'
+     ```
+
+     `--bind-address=127.0.0.1` 이 없으면 `--network host` 라 3306 이 인터넷에 열린다.
+     `--default-time-zone` 을 빼면 UTC 로 뜨면서 시각이 9시간 밀린다.
+     볼륨은 **이름을 붙인다**. dev(`attune_dev_db`)는 익명 볼륨이라 컨테이너를 새로 만들면
+     새 빈 볼륨이 생기고 이전 데이터는 해시 디렉터리에 고아로 남는다. 에러가 없어 발견이 늦다.
+   - Redis — `redis-server --bind 127.0.0.1 --protected-mode yes --requirepass '...'`
+     시크릿의 prod 문서에는 `spring.data.redis.password` 항목이 **없다**(dev 에만 있음).
+     `requirepass` 를 걸면 이 키를 추가해야 하며, 빠뜨리면 인증 실패로 기동하지 않는다.
+   - 생성한 접속 정보를 `APPLICATION_SECRET_YML` 의 prod 문서와 일치시킨다. DB URL 은 dev 와 같이 `localhost` 를 쓴다.
+
+7. **DB 백업 구성** — RDS 자동 백업을 대신하는 항목이다. prod EC2 crontab:
+
+   ```bash
+   0 4 * * * docker exec attune_prod_db mysqldump -uroot -p'...' \
+     --single-transaction --no-tablespaces attune | gzip \
+     > /backup/attune-$(date +\%F).sql.gz && \
+     find /backup -name 'attune-*.sql.gz' -mtime +14 -delete
+   30 4 * * * aws s3 sync /backup s3://<버킷>/db-backup/
+   ```
+
+   두 번째 줄이 없으면 EC2 가 죽을 때 백업도 같이 죽는다. 덤프는 gzip 후 수 MB 라 S3 비용은 무시할 수준이다.
+
+8. **DB 구축**
    - 덤프 전 dev 실물 확인. 스크립트 헤더의 information_schema 쿼리로 `user_id`/`owner_user_id` 컬럼이 없는 테이블 중 데이터가 있는 것이 위 4개 외에 있는지 본다.
    - `./scripts/dump-prod-seed.sh` 실행 → `schema.sql`, `seed.sql`
-   - prod DB 에 순서대로 주입한다.
+   - prod EC2 로 파일을 옮긴 뒤 컨테이너 안에서 순서대로 주입한다.
 
-8. **PR 및 머지**
+9. **PR 및 머지**
    - `chore/prod-release-prep` → `develop`
    - `develop` → `main` (606 파일)
 
-9. **배포**
+10. **배포**
    - `deploy-prod` 를 `workflow_dispatch` 로 수동 실행한다.
 
-10. **배포 후 검증**
+11. **배포 후 검증**
    - readiness 200
    - 회원가입 인증 메일과 비밀번호 재설정 메일의 링크가 `https://attune-me.com/...` 절대경로인지 실제 수신으로 확인 (1번 수정의 실효 확인)
+   - 백업 cron 이 실제로 파일을 만드는지 하루 뒤 `/backup` 과 S3 양쪽 확인
 
 ## 검증 방법
 
@@ -208,6 +239,9 @@ GitHub 리포지터리가 public 이므로 값이 노출됐다.
 
 - 2026-07-30 **DB 스키마를 dev 덤프로 구축**한다. `docs/sql` 21개를 순서대로 재생하는 방식은 중간 실패 지점을 찾기 어렵고, `20260614` 가 `terms` 에 행을 추가하는 등 시드 파일만으로는 불완전하다. 실사용자 데이터가 없어 통째 복제가 가능하다.
 - 2026-07-30 **Redis 는 EC2 에 Docker 로 기동**한다. `--network host` 배포라 컨테이너 하나면 되고 추가 비용이 없다. 트래픽이 늘면 ElastiCache 로 옮긴다.
+- 2026-07-31 **DB 도 RDS 대신 EC2 에 Docker 로 기동**한다. 비용 부담이 이유다. dev 가 이미 같은 구성(`attune_dev_db`)으로 돌고 있어 리소스와 구성은 검증됐다.
+  RDS 를 포기하면서 잃는 것은 **자동 백업 하나**이고, 이것만 cron 두 줄로 대신한다(7단계). 실사용자의 복약 기록은 재생성이 불가능하므로 백업은 생략하지 않는다.
+  트래픽이나 데이터가 커지면 RDS 로 옮긴다.
 - 2026-07-30 **`LoadtestDataRunner` 는 코드에 유지**하고 덤프에서 데이터만 제외한다. 프로파일로 이미 prod 차단이 돼 있고, 삭제하면 직전에 만든 soak 부하테스트 기능(#117, #118)이 함께 죽는다.
 - 2026-07-30 **`frontend-url` 은 시크릿 대신 `application-prod.yml` 에 명시**한다. 비밀이 아니고 같은 파일의 CORS 목록에 이미 같은 도메인이 있다. 프로파일 yml 이 import 된 시크릿보다 우선순위가 높아, 빈 값을 두면 시크릿에 값이 있어도 덮어쓴다.
 - 2026-07-30 **GitHub 리포지터리는 public 유지, Docker Hub 는 private 전환**한다. 공개가 필요한 것은 포트폴리오로 보여지는 소스 리포지터리이고, 이미지를 pull 해서 보는 사람은 없어 Docker Hub 공개는 이득이 없다. 시크릿을 이미지에서 뺐으므로 원한다면 이미지도 공개할 수 있으나 굳이 하지 않는다.
@@ -226,8 +260,9 @@ GitHub 리포지터리가 public 이므로 값이 노출됐다.
 - [ ] dev DB 보안그룹 확인 및 필요 시 축소
 - [ ] dev 배포로 시크릿 마운트 동작 검증 (readiness 200) — prod 보다 **먼저**
 - [ ] 노출된 자격증명 전부 회전 후 GitHub Environments 에 등록
-- [ ] prod RDS MySQL 8.4 생성 및 시크릿 prod 문서와 접속 정보 일치
-- [ ] prod Redis 컨테이너 기동
+- [ ] prod MySQL 8.4 컨테이너 기동 (이름 붙인 볼륨, `--bind-address=127.0.0.1`, KST) 및 시크릿 prod 문서와 접속 정보 일치
+- [ ] prod Redis 컨테이너 기동 (`--bind 127.0.0.1`, `requirepass`) 및 시크릿 prod 문서에 `spring.data.redis.password` 추가
+- [ ] DB 백업 cron 등록 및 S3 동기화 확인
 - [ ] `schema.sql` / `seed.sql` 생성 및 prod DB 주입, 마스터 4개 테이블 행 수 확인
 - [ ] `chore/prod-release-prep` → `develop` 머지
 - [ ] `develop` → `main` 머지
