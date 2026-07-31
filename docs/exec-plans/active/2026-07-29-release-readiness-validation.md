@@ -94,6 +94,46 @@ dev 웹/앱에서 다음 흐름을 한 사용자 기준으로 처음부터 끝�
 - 중단 기준: 5xx 또는 요청 실패율 1% 이상, readiness 실패, Hikari pending 지속 발생, CPU 95% 이상이 10분 지속, 힙이 지속 증가하거나 OOM 징후 발생
 - 종료 후: 전용 데이터 cleanup, `loadtest=false`로 dev 일반 프로파일 복구
 
+#### 실행 현황 (2026-07-30 KST)
+
+- 상태: **완료**
+- 대상: `api-dev.attune-me.com`의 dev EC2. 운영 서버나 로컬 애플리케이션은 대상이 아니다.
+- 부하 생성기: 로컬 노트북이 아닌 GitHub-hosted runner에서 실행한다. 따라서 노트북 전원·절전 상태와 무관하게 시험이 계속된다.
+- 부하 프로파일: k6 `TEST_MODE=soak` — 25 VU 30분 워밍업 → 100 VU 4시간 유지 → 15분 종료 관찰. 요청은 기존과 동일하게 조회 80%, 복약 빠른 기록 20%다.
+- 데이터·관측 설정: dev를 `dev,loadtest` 프로파일로 재배포하고 전용 `loadtest-*` 계정 100개를 사용한다. `loadtest` 프로파일은 실제 Web Push 발송을 stub으로 전환한다.
+- 실행 workflow: [Dev Soak Load Test #30480821412](https://github.com/hannah-25/attune_be/actions/runs/30480821412). `soak` job은 k6를 실행하고, `observe` job은 dev EC2에서 5분 간격으로 Hikari active/pending, JVM heap, 컨테이너 CPU·메모리를 기록한다.
+- 사전 배포: 전용 계정 생성은 [deploy run #30479898571](https://github.com/hannah-25/attune_be/actions/runs/30479898571), loadtest 프로파일 재전환은 [deploy run #30480622732](https://github.com/hannah-25/attune_be/actions/runs/30480622732)에서 성공했다.
+- 결과 기록 원칙: k6 summary와 서버 지표만 남기며, 테스트 계정 비밀번호·JWT·외부 인증 토큰은 결과물에 기록하지 않는다.
+
+#### 장기 시험 결과
+
+| 항목 | 결과 |
+| --- | --- |
+| 총 실행 시간 | 4시간 45분 31초 (25 VU 워밍업 30분, 100 VU 유지 4시간, 종료 관찰 15분) |
+| 완료 iteration | 388,408 |
+| HTTP 요청 | 1,087,600 (평균 63.49 req/s) |
+| HTTP 오류율 | 0% |
+| HTTP 지연시간 | 평균 168.47 ms, 중앙값 164.23 ms, p90 171.71 ms, p95 174.16 ms |
+| 임계값 | p95 1초 미만·p99 2초 미만·오류율 1% 미만 모두 통과 |
+| 최장 단일 요청 | 13.98초 — p95/p99에는 영향을 주지 않은 단발성 outlier로 기록 |
+| 서버 관측 | 5분 간격 57회. Hikari pending 최대 0, 컨테이너 CPU 최고 44.24%, 컨테이너 메모리 최고 410.3 MiB, JVM heap 최고 336.4 MiB |
+
+결론: 핵심 조회·복약 시나리오를 100 VU로 4시간 유지해도 오류·DB 커넥션 대기·CPU 포화·지속적인 메모리 증가 징후가 관측되지 않았다. 이 결과는 외부 연동을 stub으로 둔 서버 자체의 장기 안정성 결과다.
+
+#### 시험 종료 정리
+
+- 전용 `loadtest-*` 계정과 연관 데이터는 [cleanup deploy #30615659210](https://github.com/hannah-25/attune_be/actions/runs/30615659210)에서 삭제했다.
+- dev는 [일반 프로파일 복구 deploy #30615779448](https://github.com/hannah-25/attune_be/actions/runs/30615779448)에서 `loadtest=false`로 복구했다.
+- 이로써 장기 안정성 시험의 데이터·프로파일 정리 조건을 충족했다.
+
+#### 외부 호출 부하 사전 점검
+
+- Gemini와 Google Calendar/OAuth 호출은 현재 요청 처리 스레드에서 동기적으로 수행된다. 외부 서비스가 느리면 해당 요청은 외부 응답을 기다리는 동안 서버 처리 여유를 점유할 수 있다.
+- Gemini는 연결 5초·응답 30초 제한이며, 502/503/504 또는 연결 실패일 때 300 ms 뒤 1회 재시도한다. 외부 장애 시 한 요청이 약 60초까지 기다릴 수 있으므로, 혼합 시험에서는 Gemini 동시 호출 수를 낮게 제한한다.
+- Google Calendar/OAuth는 연결 5초·응답 10초 제한이다. Calendar 연결·동기화도 별도 저부하 호출로 시작한다.
+- 메일과 관리자 푸시는 비동기 executor에서 처리한다. Web Push는 연결·응답·커넥션 대기 5초 제한, route당 50개·전체 200개 연결 제한을 사용한다.
+- 따라서 외부 연동 혼합 부하는 `100 VU 전체가 외부 호출`하는 방식으로 실행하지 않는다. 일반 조회·복약 부하를 유지하고, 소수의 외부 호출을 별도 시나리오로 동시 실행해 일반 API의 p95/p99·오류율·CPU가 악화되는지 확인한다.
+
 ### 4. 운영 준비 확인
 
 1. dev 배포 후 readiness 통과와 정상 API 확인
