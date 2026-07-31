@@ -5,7 +5,7 @@
 | 파일 | 트리거 | 역할 |
 |------|--------|------|
 | `.github/workflows/ci.yml` | PR + push(비배포 브랜치) | **검증 게이트**: 빌드 + 테스트 + 아키텍처 규칙 + 문서 점검 |
-| `.github/workflows/deploy-dev.yml` | push `develop` | dev 빌드(`-x test`) → Docker → EC2 배포 + health 대기 |
+| `.github/workflows/deploy-dev.yml` | push `develop` / 수동 | dev 빌드(`-x test`) → `dev`와 `dev-<commit SHA>` 이미지 push → EC2 배포 + health 대기. 수동 실행은 기존 불변 태그로 롤백 가능 |
 | `.github/workflows/deploy-prod.yml` | (운영 배포) | prod 배포 |
 
 > 배포 워크플로는 하네스 도입 시 **변경하지 않았다**. 검증은 신규 `ci.yml` 이 담당한다.
