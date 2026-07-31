@@ -110,7 +110,8 @@ attempt 단위, 클라이언트 IP 단위, 전역 단위 rate limit 중 하나�
       "doneAt": "2026-06-13T10:00:00",
       "inattentionScore": 12,
       "hyperactivityScore": 6,
-      "goalCount": 3
+      "goalCount": 3,
+      "isQuickOnboarding": false
     }
   ]
 }
@@ -123,6 +124,7 @@ attempt 단위, 클라이언트 IP 단위, 전역 단위 rate limit 중 하나�
 | `inattentionScore` | number | 부주의 점수 (Q1-9 합계) |
 | `hyperactivityScore` | number | 과잉행동·충동성 점수 (Q10-18 합계) |
 | `goalCount` | number | 현재 활성화된 치료 목표 수 |
+| `isQuickOnboarding` | boolean | 빠른 온보딩 이력 여부 |
 
 이력이 없으면 `records: []`를 반환한다.
 

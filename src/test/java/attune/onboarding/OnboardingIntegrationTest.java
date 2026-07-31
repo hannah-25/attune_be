@@ -128,6 +128,48 @@ class OnboardingIntegrationTest extends IntegrationTest {
     }
 
     @Test
+    void quickOnboardingCompletionAppearsInHistory() throws Exception {
+        User user = testUsers.activeUser("quick-onboarding-history@test.com");
+
+        mockMvc.perform(post("/v1/onboarding/symptoms")
+                        .header("Authorization", testUsers.bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "selectedSymptomTypes", List.of("INATTENTION"),
+                                "selectedFunctionalAreas", List.of("TIME_MANAGEMENT"),
+                                "isQuickOnboarding", true))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/v1/onboarding/goals")
+                        .header("Authorization", testUsers.bearer(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "goals", List.of(Map.of("title", "Start the day with a plan", "type", "TIME_MANAGEMENT"))))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/v1/onboarding/complete")
+                        .header("Authorization", testUsers.bearer(user)))
+                .andExpect(status().isOk());
+
+        MvcResult history = mockMvc.perform(get("/v1/onboarding/history")
+                        .header("Authorization", testUsers.bearer(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].isQuickOnboarding").value(true))
+                .andReturn();
+        String historyId = JsonPath.read(history.getResponse().getContentAsString(), "$.records[0].id");
+
+        mockMvc.perform(get("/v1/onboarding/history/{id}", historyId)
+                        .header("Authorization", testUsers.bearer(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(historyId))
+                .andExpect(jsonPath("$.doneAt").exists())
+                .andExpect(jsonPath("$.symptom.isQuickOnboarding").value(true))
+                .andExpect(jsonPath("$.symptom.selectedSymptomTypes[0]").value("INATTENTION"))
+                .andExpect(jsonPath("$.symptom.selectedFunctionalAreas[0]").value("TIME_MANAGEMENT"))
+                .andExpect(jsonPath("$.goals[0].title").value("Start the day with a plan"));
+    }
+
+    @Test
     void skipOnboardingSetsSkippedStatus() throws Exception {
         User user = testUsers.activeUser("onboarding-skip@test.com");
 

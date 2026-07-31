@@ -330,15 +330,43 @@ public class OnboardingService {
                         a.getCompletedAt(),
                         calcInattentionScore(a),
                         calcHyperactivityScore(a),
-                        (int) goalCount
+                        (int) goalCount,
+                        false
                 ))
-                .toList();
+                .collect(Collectors.toList());
+
+        userRepository.findById(userId)
+                .filter(User::isOnboarded)
+                .ifPresent(user -> records.addAll(onboardingSymptomRepository
+                        .findAllByUserIdAndIsQuickOnboardingTrueOrderBySavedAtDesc(userId)
+                        .stream()
+                        .filter(s -> !s.getSavedAt().isAfter(user.getOnboardedAt()))
+                        .map(s -> new OnboardingHistoryResponse.HistoryRecord(
+                                quickHistoryId(s.getId()),
+                                user.getOnboardedAt(),
+                                0,
+                                0,
+                                (int) goalCount,
+                                true))
+                        .toList()));
+
+        records.sort(java.util.Comparator.comparing(OnboardingHistoryResponse.HistoryRecord::doneAt).reversed());
 
         return new OnboardingHistoryResponse(records);
     }
 
     @Transactional(readOnly = true)
-    public OnboardingHistoryDetailResponse getHistoryDetail(UUID userId, Long assessmentId) {
+    public OnboardingHistoryDetailResponse getHistoryDetail(UUID userId, String historyId) {
+        if (historyId.startsWith("quick-")) {
+            return getQuickHistoryDetail(userId, parseQuickHistoryId(historyId));
+        }
+
+        Long assessmentId;
+        try {
+            assessmentId = Long.valueOf(historyId);
+        } catch (NumberFormatException e) {
+            throw new AsrsAssessmentNotFoundException();
+        }
         AsrsAssessment assessment = asrsAssessmentRepository
                 .findByIdAndUserWithAnswers(assessmentId, userId)
                 .orElseThrow(AsrsAssessmentNotFoundException::new);
@@ -390,6 +418,45 @@ public class OnboardingService {
                 symptomDetail,
                 goals
         );
+    }
+
+    private OnboardingHistoryDetailResponse getQuickHistoryDetail(UUID userId, Long symptomId) {
+        User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        OnboardingSymptom symptom = onboardingSymptomRepository
+                .findByIdAndUserIdAndIsQuickOnboardingTrue(symptomId, userId)
+                .filter(s -> user.isOnboarded() && !s.getSavedAt().isAfter(user.getOnboardedAt()))
+                .orElseThrow(AsrsAssessmentNotFoundException::new);
+
+        List<OnboardingHistoryDetailResponse.GoalItem> goals = onboardingGoalSnapshotRepository
+                .findGoalsByUserAndTimeFrom(userId, symptom.getSavedAt())
+                .stream()
+                .map(g -> new OnboardingHistoryDetailResponse.GoalItem(g.getId(), g.getDailyGoal(), g.getType()))
+                .toList();
+
+        return new OnboardingHistoryDetailResponse(
+                quickHistoryId(symptomId),
+                user.getOnboardedAt(),
+                0,
+                0,
+                new OnboardingHistoryDetailResponse.SymptomDetail(
+                        null,
+                        null,
+                        true,
+                        List.of(symptom.getSelectedSymptomTypes().split(",")),
+                        List.of(symptom.getSelectedFunctionalAreas().split(","))),
+                goals);
+    }
+
+    private String quickHistoryId(Long symptomId) {
+        return "quick-" + symptomId;
+    }
+
+    private Long parseQuickHistoryId(String historyId) {
+        try {
+            return Long.valueOf(historyId.substring("quick-".length()));
+        } catch (NumberFormatException e) {
+            throw new AsrsAssessmentNotFoundException();
+        }
     }
 
     private int calcInattentionScore(AsrsAssessment assessment) {
