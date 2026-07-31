@@ -1,8 +1,8 @@
 # 실행 계획: Web Push 도달 상태 추적
 
-- 상태: active
+- 상태: active (PR1~PR5 완료, PR6 남음)
 - 작성일: 2026-07-17
-- 관련 이슈/PR: 미정
+- 관련 이슈/PR: #106(스키마 + 알림함 API), #108(발송 경로), #109(영수증 API), 프론트 #89(서비스 워커 + 알림함 UI)
 
 ## 목표
 
@@ -124,21 +124,21 @@ Content-Type: application/json
 1. 새 테이블·컬럼, token/attempt 보존 기간, 알림함 정렬·cursor·인덱스에 대해 담당자의 스키마 변경 승인을 받는다.
 2. 프론트 저장소의 서비스 워커·인증·알림 UI를 조사하고 API 계약(요청/응답 필드, 인증 방식, 알림함 UX)을 확정한다. PR1의 DTO/스키마 설계에 반영해야 하므로 승인 절차와 병행한다.
 
-### PR 1 — DB 스키마 (다른 모든 백엔드 작업의 전제)
+### PR 1 — DB 스키마 (다른 모든 백엔드 작업의 전제) — 완료 (#106)
 
 - `docs/db_schema.md`와 `docs/sql/` migration: `notification_deliveries`, `notification_delivery_attempts`, `notification_history.url`/`read_at`, 모든 FK에 `ON DELETE CASCADE`, `(user_id, read_at, sent_at, id)` 인덱스.
 - JPA 엔티티 추가/수정.
 - 사용자 탈퇴 삭제 경로: cascade로 해결되는지 Testcontainers로 검증한다(`UserDataDeletionExecutor.java` 자체는 변경이 없을 수 있다).
 - DB 통합 테스트: delivery/attempt unique 제약, cascade delete.
 
-### PR 2 — 발송 경로 (PR1에 의존)
+### PR 2 — 발송 경로 (PR1에 의존) — 완료 (#108)
 
 - `WebPushSender`에 명시적 TTL 지정.
 - `NotificationTxOperations`: 구독별 delivery/attempt find-or-create와 token 생성을 TX1(`claimAndLoadSubscriptions`/`reclaimAndLoadSubscriptions`)에 편입.
 - `PushSender`/`PushSenderRouter`/`WebPushSender` 시그니처를 attempt별 payload(`deliveryAttemptId`, `receiptToken`)로 변경.
 - 기존 발송·재시도·중복 방지 회귀 테스트가 계속 통과하는지 확인.
 
-### PR 3 — 영수증 API와 보안 (PR2에 의존, PR4와 병렬 가능)
+### PR 3 — 영수증 API와 보안 (PR2에 의존, PR4와 병렬 가능) — 완료 (#109)
 
 - `POST /v1/notification-delivery-attempts/{id}/events`, `SecurityConfig`에 `HttpMethod.POST`로 스코프한 `permitAll` 추가.
 - attempt ID·token 검증(상수 시간 비교), 만료 체크, 멱등/backfill.
@@ -146,21 +146,22 @@ Content-Type: application/json
 - `attune.notification.delivery.receipts` 메트릭, `observability.md`/`incident-runbook.md` 갱신.
 - 보안/멱등 통합 테스트.
 
-### PR 4 — 알림함 API (PR1에 의존, PR3와 병렬 가능)
+### PR 4 — 알림함 API (PR1에 의존, PR3와 병렬 가능) — 완료 (#106에 포함)
 
 - `GET /v1/notifications`(cursor — native query 또는 OR 전개로 구현), `PATCH /v1/notifications/{id}/read`.
 - DTO, `api-guide.md` 갱신.
 - cursor pagination·인덱스 사용 통합 테스트.
 
-### PR 5 — 프론트엔드 서비스 워커 (PR3·PR4 배포 후)
+### PR 5 — 프론트엔드 서비스 워커 (PR3·PR4 배포 후) — 완료 (프론트 #89)
 
 - `push`/`showNotification`/`notificationclick`에 fail-open `event.waitUntil()` 영수증 전송.
 - 알림함 UI, 구 payload 하위 호환.
 - 프론트 저장소의 서비스 워커/알림함 사용자 문서 갱신.
 
-### PR 6 — 통합 검증과 점진 배포
+### PR 6 — 통합 검증과 점진 배포 — 남음
 
 - 지원 브라우저에서 frontend-backend 통합 테스트, feature flag 기반 점진 배포.
+- 실기기 Web Push 수신 검증은 [실사용 환경 검증](2026-07-29-release-readiness-validation.md)의 1단계 범위에서 제외돼 아직 수행되지 않았다. 따라서 fail-open 동작과 브라우저별 수신율은 코드·통합 테스트 수준까지만 확인된 상태다.
 
 ## 검증 방법
 
@@ -208,22 +209,29 @@ Content-Type: application/json
 - 2026-07-24: custom metric 예산은 시계열 수가 아니라 메트릭 이름 개수(10개 이하) 기준이며, 이번 추가로 7개→8개가 된다.
 - 2026-07-24 (PR1 구현 중): 탈퇴 삭제는 FK `ON DELETE CASCADE` 단독이 아니라 `UserDataDeletionExecutor.DELETE_STATEMENTS`에 `notification_delivery_attempts`/`notification_deliveries` 삭제문을 명시적으로 추가하는 방식과 **함께** 쓴다. `ddl-auto=create-drop`으로 생성되는 테스트 스키마는 이 코드베이스의 기존 `NotificationHistory`/`NotificationSubscription`처럼 순수 `@Column` FK라 Hibernate가 FK 제약을 생성하지 않으므로, cascade만으로는 테스트로 검증할 수 없다. 명시적 삭제문이 1차 보장 수단이고, migration의 `ON DELETE CASCADE`는 이 executor를 거치지 않는 경로에 대한 방어선이다. 기존 `notification_history`/`notification_subscriptions` → `users` 관계도 이미 이 이중 구조를 쓰고 있어 새 패턴이 아니다.
 - 2026-07-24 (PR1 머지): 알림함 API(PR4)는 `notification_deliveries`/`notification_delivery_attempts`(PR1) 외 다른 진행 중 작업과 파일이 겹치지 않아 별도 브랜치로 분리하지 않고 PR1과 함께 `#106`으로 develop에 머지했다. PR2(발송 경로)는 PR1 커밋 시점에서 분기해 별도로 진행했으며, `NotificationDelivery`/`NotificationDeliveryAttempt`/`NotificationDeliveryRepository`에서 PR1 계열과 서로 다른 메서드를 추가한 add/add 충돌만 발생해 양쪽을 합치는 것으로 해결했다(도메인 메서드는 PR2가, `findAllByNotificationHistoryIdIn`은 PR1 계열이 추가).
+- 2026-07-26 (PR3 구현 중): rate limit은 기존 인프라가 없어 Redis 고정 윈도 방식으로 새로 구현했고, attempt·IP·전역 세 단위를 함께 적용했다. `permitAll` 경로라 attempt 단위만으로는 IP 하나가 임의의 attempt id를 훑는 요청을 막지 못하기 때문이다. rate limit 초과만 `429`로 응답하는데, 이는 attempt 존재 여부와 무관한 정보라 204 통일 원칙과 충돌하지 않는다.
+- 2026-07-26 (PR3 구현 중): metric의 `event` 태그는 허용값(`RECEIVED`/`DISPLAYED`/`OPENED`) 외 요청을 모두 고정값 `unknown`으로 묶는다. 인증 없는 엔드포인트에 요청 원문을 태그로 쓰면 카디널리티 공격에 노출된다.
+- 2026-07-26 (PR5 머지, 프론트 #89): 서비스 워커는 `showNotification()`이 실제로 fulfilled일 때만 `DISPLAYED`를 보낸다. `DISPLAYED`의 정의가 "표시 요청 성공"이므로 표시 시도와 구분해야 한다. `RECEIVED`와 `showNotification()`은 `Promise.allSettled`로 묶어 서로 의존하지 않게 했고, 영수증 필드가 없는 구 payload는 영수증 없이 표시만 한다.
 
 ## 완료 조건
 
-- [ ] provider 수락, 수신, 표시, 클릭, 읽음이 서로 다른 의미로 기록된다.
-- [ ] 한 사용자의 여러 Web Push 구독 및 재시도 attempt 결과를 개별 추적할 수 있다.
-- [ ] JWT 없는 service worker 영수증이 token 검증을 통과할 때만 기록된다.
-- [ ] 만료된 receipt token은 영수증을 기록할 수 없고, 영수증 API 장애가 알림 표시나 앱 열기를 막지 않는다.
-- [ ] 사용자는 push 유실 여부와 관계없이 알림함에서 미확인 알림을 확인할 수 있다.
-- [ ] 알림함의 상태 필터와 cursor pagination이 중복·누락 없이 동작하며 인덱스가 이를 지원한다.
-- [ ] 기존 발송·중복 방지·재시도 테스트와 새 보안/통합 테스트가 통과한다.
-- [ ] DB 스키마, API, 관측성, incident runbook이 구현과 일치한다.
+- [x] provider 수락, 수신, 표시, 클릭, 읽음이 서로 다른 의미로 기록된다.
+- [x] 한 사용자의 여러 Web Push 구독 및 재시도 attempt 결과를 개별 추적할 수 있다.
+- [x] JWT 없는 service worker 영수증이 token 검증을 통과할 때만 기록된다.
+- [x] 만료된 receipt token은 영수증을 기록할 수 없고, 영수증 API 장애가 알림 표시나 앱 열기를 막지 않는다.
+  - 만료 거부는 `NotificationDeliveryEventIntegrationTest`로 검증했다. fail-open은 서비스 워커 코드(`Promise.allSettled` + 표시/창 열기 비의존)로 구현했으나 실기기 검증은 PR6에 남아 있다.
+- [x] 사용자는 push 유실 여부와 관계없이 알림함에서 미확인 알림을 확인할 수 있다.
+- [x] 알림함의 상태 필터와 cursor pagination이 중복·누락 없이 동작하며 인덱스가 이를 지원한다.
+- [x] 기존 발송·중복 방지·재시도 테스트와 새 보안/통합 테스트가 통과한다.
+  - #106, #108, #109의 `build + test + architecture` CI가 모두 통과했다.
+- [x] DB 스키마, API, 관측성, incident runbook이 구현과 일치한다.
+
+남은 것은 PR6뿐이다. 지원 브라우저 실기기에서의 frontend-backend 통합 검증과 feature flag 기반 점진 배포는 아직 수행하지 않았다.
 
 ## 작업 후 문서 업데이트
 
-- [ ] `docs/db_schema.md`
-- [ ] `docs/api-guide.md`
-- [ ] `docs/engineering/observability.md`
-- [ ] `docs/engineering/incident-runbook.md`
-- [ ] 프론트 저장소의 서비스 워커/알림함 사용자 문서
+- [x] `docs/db_schema.md` (#106)
+- [x] `docs/api-guide.md` (#106 알림함, #109 영수증)
+- [x] `docs/engineering/observability.md` (#109)
+- [x] `docs/engineering/incident-runbook.md` (#109)
+- [ ] 프론트 저장소의 서비스 워커/알림함 사용자 문서 — 프론트 #89는 코드만 반영했고 문서는 갱신하지 않았다.
