@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -18,13 +17,6 @@ import java.util.UUID;
 public class DailyStatusLogService {
 
     private final DailyStatusLogRepository dailyStatusLogRepository;
-
-    @Transactional(readOnly = true)
-    public Optional<DailyStatusResponse> get(LocalDate date) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        return dailyStatusLogRepository.findByUserIdAndDate(userId, date)
-                .map(DailyStatusResponse::from);
-    }
 
     @Transactional
     public DailyStatusResponse create(LocalDate date, CreateDailyStatusRequest request) {

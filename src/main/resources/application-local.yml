@@ -30,14 +30,15 @@ logging:
   level:
     attune: DEBUG
     org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type: TRACE
-    org.hibernate.orm.jdbc.bind: TRACE
+    # Alarm schedulers run every minute, so enable SQL logs only when needed.
+    org.hibernate.SQL: ${LOGGING_LEVEL_HIBERNATE_SQL:OFF}
+    org.hibernate.orm.jdbc.bind: ${LOGGING_LEVEL_HIBERNATE_BIND:OFF}
     org.springframework.security: INFO
 
 # 로컬 CORS
 cors:
   allowed-origin-patterns:
+    - "http://192.168.219.104:3000" ## 임시용
     - "https://attune-me.com:*"
     - "https://attune-me.com.s3-website.ap-northeast-2.amazonaws.com:*"
     - "http://localhost:*"
@@ -47,3 +48,7 @@ cors:
 
 app:
   frontend-url: http://localhost:3000
+
+admin:
+  audit:
+    hmac-secret: ${ADMIN_AUDIT_HMAC_SECRET:local-admin-audit-secret-change-me}

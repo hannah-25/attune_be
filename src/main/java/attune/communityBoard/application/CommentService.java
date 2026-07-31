@@ -6,6 +6,7 @@ import attune.communityBoard.application.dto.request.UpdateCommentRequest;
 import attune.communityBoard.application.dto.response.CommentResponse;
 import attune.communityBoard.application.dto.response.CreateCommentResponse;
 import attune.communityBoard.application.dto.response.UpdateCommentResponse;
+import attune.communityBoard.application.event.CommentCreatedEvent;
 import attune.communityBoard.domain.model.Comment;
 import attune.communityBoard.domain.model.CommunityBoard;
 import attune.communityBoard.domain.repository.CommentRepository;
@@ -13,6 +14,7 @@ import attune.communityBoard.domain.repository.CommunityBoardRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class CommentService {
     private final UserRepository userRepository;
     private final CommunityBoardRepository communityBoardRepository;
     private final CommentRepository commentRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(Long postId) {
@@ -67,7 +70,13 @@ public class CommentService {
                 .build();
 
         Comment saved = commentRepository.save(comment);
-        return CreateCommentResponse.from(saved, post.getUser().getId());
+
+        UUID postAuthorId = post.getUser().getId();
+        if (!userId.equals(postAuthorId)) {
+            eventPublisher.publishEvent(new CommentCreatedEvent(saved.getId(), postId, post.getTitle(), postAuthorId, userId));
+        }
+
+        return CreateCommentResponse.from(saved, postAuthorId);
     }
 
     @Transactional
@@ -80,7 +89,7 @@ public class CommentService {
             throw new AccessDeniedException("수정 권한이 없습니다.");
         }
 
-        comment.update(request.isAnonymous(), request.content());
+        comment.update(request.isAnonymous(), request.content(), LocalDateTime.now());
         return UpdateCommentResponse.from(comment);
     }
 

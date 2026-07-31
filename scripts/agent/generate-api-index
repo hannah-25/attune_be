@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# REST 엔드포인트 인덱스 생성 → docs/generated/api-index.md (수동 수정 금지)
+# 컨트롤러의 @*Mapping 애너테이션을 스캔한다. 정확한 명세는 Swagger(/v3/api-docs) 기준.
+source "$(dirname "$0")/_lib.sh"
+OUT="docs/generated/api-index.md"
+mkdir -p docs/generated
+
+{
+  echo "<!-- 자동 생성: scripts/agent/generate-api-index. 수동 수정 금지. -->"
+  echo "# API 인덱스 (자동 생성)"
+  echo
+  echo "생성 시각: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "출처: 컨트롤러 @*Mapping 스캔. 권위 있는 명세는 /swagger-ui.html, /v3/api-docs."
+  echo
+  while IFS= read -r f; do
+    rel="${f#src/main/java/attune/}"
+    domain="${rel%%/*}"
+    cls="$(basename "$f" .java)"
+    maps=$( { grep -oE '@(Get|Post|Put|Patch|Delete|Request)Mapping(\([^)]*\))?' "$f" 2>/dev/null || true; } | head -200)
+    [ -z "$maps" ] && continue
+    echo "### \`$domain\` — $cls"
+    echo '```'
+    echo "$maps"
+    echo '```'
+    echo
+  done < <(grep -rl '@RestController\|@Controller' src/main/java/attune --include='*.java' | sort)
+} > "$OUT"
+ok "생성: $OUT"

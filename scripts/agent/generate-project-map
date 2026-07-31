@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# 도메인 모듈 지도 생성 → docs/generated/project-map.md (수동 수정 금지)
+source "$(dirname "$0")/_lib.sh"
+OUT="docs/generated/project-map.md"
+mkdir -p docs/generated
+
+BASE="src/main/java/attune"
+{
+  echo "<!-- 자동 생성: scripts/agent/generate-project-map. 수동 수정 금지. -->"
+  echo "# 프로젝트 지도 (자동 생성)"
+  echo
+  echo "생성 시각: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo
+  echo "| 모듈 | 컨트롤러 | 서비스 | 엔티티(model) | Repository |"
+  echo "|------|----------|--------|----------------|------------|"
+  for d in "$BASE"/*/; do
+    name="$(basename "$d")"
+    [ "$name" = "AttuneApplication.java" ] && continue
+    ctrl=$( { find "$d" -name '*Controller.java' 2>/dev/null || true; } | wc -l | tr -d ' ')
+    svc=$( { find "$d" -name '*Service.java' 2>/dev/null || true; } | wc -l | tr -d ' ')
+    model=$( { find "$d/domain/model" -name '*.java' 2>/dev/null || true; } | wc -l | tr -d ' ')
+    repo=$( { find "$d/domain/repository" -name '*.java' 2>/dev/null || true; } | wc -l | tr -d ' ')
+    echo "| \`$name\` | $ctrl | $svc | $model | $repo |"
+  done
+  echo
+  total=$(find "$BASE" -name '*.java' | wc -l | tr -d ' ')
+  echo "총 main Java 파일: $total"
+} > "$OUT"
+ok "생성: $OUT"

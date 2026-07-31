@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# 클린 빌드 (테스트 포함).
+source "$(dirname "$0")/_lib.sh"
+log "clean build"
+if ! "$GRADLE" clean build "$@"; then
+  fail "빌드 실패." "컴파일/테스트/아키텍처 규칙 중 무엇이 깨졌는지 로그 확인"
+fi
+ok "빌드 성공"

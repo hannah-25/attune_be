@@ -3,10 +3,31 @@ name: Attune Backend Dev Deploy
 on:
   push:
     branches: [ "develop" ] # develop 브랜치에 푸시될 때 작동
+  workflow_dispatch:
+    inputs:
+      loadtest:
+        description: 'Run the dev container with the loadtest profile (loopback-only metrics access)'
+        required: false
+        default: false
+        type: boolean
+      loadtest_data_action:
+        description: 'Load-test data action: none, seed, or cleanup'
+        required: false
+        default: 'none'
+        type: choice
+        options: [none, seed, cleanup]
+      image_tag:
+        description: 'Deploy an existing immutable dev-<40-char commit SHA> image tag (leave empty for this workflow commit)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 환경별 시크릿 분리. development 환경에 APPLICATION_SECRET_YML 을 등록하면
+    # 리포 레벨 시크릿을 덮어쓴다. 미등록 상태에서는 리포 레벨 값으로 동작한다.
+    environment: development
 
     steps:
       - name: Checkout code
@@ -30,11 +51,9 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Make application-secret.yml
-        run: |
-          mkdir -p ./src/main/resources
-          echo "${{ secrets.APPLICATION_SECRET_YML }}" | base64 --decode > ./src/main/resources/application-secret.yml
-        shell: bash
+      # 시크릿은 빌드에 포함하지 않는다. 이미지가 public 레지스트리로 push 되므로
+      # jar 에 구우면 이미지를 pull 하는 누구나 자격증명을 읽을 수 있다.
+      # 대신 배포 대상 호스트에 파일로 내려 컨테이너에 read-only 로 마운트한다.
 
       - name: Build with Gradle
         run: ./gradlew clean build -x test
@@ -50,7 +69,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: hannah098/attune-be:dev
+          tags: |
+            hannah098/attune-be:dev
+            hannah098/attune-be:dev-${{ github.sha }}
 
       - name: Execute Remote SSH Commands
         uses: appleboy/ssh-action@v1.0.3
@@ -58,15 +79,65 @@ jobs:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USERNAME }}
           key: ${{ secrets.DEV_EC2_SSH_KEY }}
-          debug: true
+          # debug 출력은 시크릿을 다루는 스크립트와 함께 쓰지 않는다.
+          script_stop: true
+          command_timeout: 12m
           script: |
+            set -eu
+
+            IMAGE_TAG="${{ inputs.image_tag || format('dev-{0}', github.sha) }}"
+            if ! printf '%s' "$IMAGE_TAG" | grep -Eq '^dev-[0-9a-f]{40}$'; then
+              echo "Invalid immutable image tag: $IMAGE_TAG"
+              exit 2
+            fi
+
+            # 시크릿을 호스트에 배치한다. 소유자만 읽을 수 있게 umask 를 좁힌다.
+            umask 077
+            mkdir -p "$HOME/attune"
+            echo "${{ secrets.APPLICATION_SECRET_YML }}" | base64 --decode > "$HOME/attune/application-secret.yml"
+
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             docker stop attune-dev-apps || true
             docker rm attune-dev-apps || true
             docker image prune -f
-            docker pull hannah098/attune-be:dev
+            docker pull "hannah098/attune-be:$IMAGE_TAG"
             docker run -d --name attune-dev-apps --network host \
-              -e SPRING_PROFILES_ACTIVE=dev \
-              hannah098/attune-be:dev
-            sleep 20
-            curl -f http://localhost:8080/actuator/health || exit 1
+              --restart unless-stopped \
+              -v "$HOME/attune/application-secret.yml:/app/config/application-secret.yml:ro" \
+              -e SPRING_PROFILES_ACTIVE=${{ inputs.loadtest && 'dev,loadtest' || 'dev' }} \
+              -e LOADTEST_DATA_ACTION=${{ inputs.loadtest_data_action || 'none' }} \
+              -e APP_MIGRATION_DEFAULTTAGS_ENABLED=false \
+              "hannah098/attune-be:$IMAGE_TAG"
+
+            for attempt in $(seq 1 120); do
+              health_status="$(curl --silent --output /tmp/attune-dev-health.json \
+                --write-out '%{http_code}' http://127.0.0.1:8081/actuator/health/readiness || true)"
+
+              if [ "$health_status" = "200" ]; then
+                cat /tmp/attune-dev-health.json
+                echo
+                echo "Dev application is healthy."
+                exit 0
+              fi
+
+              if [ "$(docker inspect --format '{{.State.Running}}' attune-dev-apps 2>/dev/null || true)" != "true" ]; then
+                echo "Dev application container exited before becoming healthy."
+                docker inspect attune-dev-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+                docker logs --tail 300 attune-dev-apps
+                exit 1
+              fi
+
+              if [ $((attempt % 12)) -eq 0 ]; then
+                echo "Waiting for readiness: attempt=${attempt}/120, httpStatus=${health_status}"
+                cat /tmp/attune-dev-health.json 2>/dev/null || true
+                echo
+                docker logs --tail 100 attune-dev-apps
+              fi
+
+              sleep 5
+            done
+
+            echo "Dev application did not become healthy within 600 seconds."
+            docker inspect attune-dev-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+            docker logs --tail 300 attune-dev-apps
+            exit 1

@@ -7,9 +7,13 @@ import attune.onboarding.application.OnboardingService;
 import attune.onboarding.application.dto.request.AsrsRequest;
 import attune.onboarding.application.dto.request.GoalRequest;
 import attune.onboarding.application.dto.request.SymptomRequest;
+import attune.onboarding.application.dto.response.AiRecommendationResponse;
 import attune.onboarding.application.dto.response.AsrsResponse;
 import attune.onboarding.application.dto.response.CompleteOnboardingResponse;
 import attune.onboarding.application.dto.response.GoalResponse;
+import attune.onboarding.application.dto.response.OnboardingHistoryDetailResponse;
+import attune.onboarding.application.dto.response.OnboardingHistoryResponse;
+import attune.onboarding.application.dto.response.OnboardingStatusResponse;
 import attune.onboarding.application.dto.response.SymptomResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +38,37 @@ import org.springframework.web.bind.annotation.RestController;
 public class OnboardingController {
 
     private final OnboardingService onboardingService;
+
+    @Operation(summary = "자가 체크 이력 목록 조회", description = "현재 로그인한 사용자의 ASRS 자가 체크 이력 목록을 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/history")
+    public ResponseEntity<OnboardingHistoryResponse> getHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(onboardingService.getHistory(userDetails.getId()));
+    }
+
+    @Operation(summary = "자가 체크 이력 상세 조회", description = "특정 ASRS 자가 체크 이력의 증상 서술, 점수, 목표를 반환합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "404", description = "이력 없음")
+    })
+    @GetMapping("/history/{id}")
+    public ResponseEntity<OnboardingHistoryDetailResponse> getHistoryDetail(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(onboardingService.getHistoryDetail(userDetails.getId(), id));
+    }
+
+    @Operation(summary = "온보딩 상태 조회", description = "현재 로그인한 사용자의 온보딩 완료 여부를 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/status")
+    public ResponseEntity<OnboardingStatusResponse> getOnboardingStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(onboardingService.getOnboardingStatus(userDetails.getId()));
+    }
 
     @Operation(summary = "ASRS 체크리스트 제출", description = "ADHD 자가 진단 척도(ASRS) 응답을 저장하고 점수를 반환합니다.")
     @ApiResponse(responseCode = "201", description = "저장 성공")
@@ -55,6 +92,15 @@ public class OnboardingController {
                 .body(onboardingService.saveSymptom(userDetails.getId(), request));
     }
 
+    @Operation(summary = "AI 추천 조회", description = "Gemini 분석 결과(추천 태그 + 치료 목표)를 반환합니다. 저장 전 사용자가 확인/편집하는 단계입니다.")
+    @ApiResponse(responseCode = "200", description = "분석 완료")
+    @PostMapping("/ai-recommendations")
+    public ResponseEntity<AiRecommendationResponse> getAiRecommendations(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(onboardingService.getAiRecommendations(userDetails.getId()));
+    }
+
     @Operation(summary = "치료 목표 저장", description = "치료 기대치 및 목표를 저장합니다.")
     @ApiResponse(responseCode = "201", description = "저장 성공")
     @PostMapping("/goals")
@@ -76,5 +122,15 @@ public class OnboardingController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return ResponseEntity.ok(onboardingService.completeOnboarding(userDetails.getId()));
+    }
+
+    @Operation(summary = "온보딩 건너뜀", description = "온보딩 전체를 건너뛰고 나중에 진행할 수 있도록 처리합니다.")
+    @ApiResponse(responseCode = "204", description = "건너뜀 처리 완료")
+    @PostMapping("/skip")
+    public ResponseEntity<Void> skipOnboarding(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        onboardingService.skipOnboarding(userDetails.getId());
+        return ResponseEntity.noContent().build();
     }
 }

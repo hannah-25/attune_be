@@ -7,27 +7,32 @@ import attune.auth.application.dto.response.LoginResponse;
 import attune.auth.domain.model.UserAuthCache;
 import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.config.JwtConfig;
+import attune.common.error.ConflictException;
+import attune.common.error.UnauthorizedException;
 import attune.common.error.badrequest.InvalidAccountStatusException;
+import attune.common.error.notfound.UserNotFoundException;
 import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
-import attune.common.error.notfound.UserNotFoundException;
 import attune.common.security.CustomUserDetails;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.User;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
 import attune.user.domain.repository.UserRepository;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -43,12 +48,31 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public AuthResult login(LoginRequest request) {
+        userRepository.findByEmail(request.email()).ifPresent(user -> {
+            if (user.getUserStatus() == UserStatus.WITHDRAWAL
+                    && user.getPassword() != null
+                    && passwordEncoder.matches(request.password(), user.getPassword())) {
+                throw new ConflictException("탈퇴한 계정입니다. 복구 확인이 필요합니다.");
+            }
+        });
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+        } catch (LockedException e) {
+            throw new UnauthorizedException("정지된 계정입니다.");
+        } catch (DisabledException e) {
+            throw new UnauthorizedException("활성화되지 않은 계정입니다.");
+        } catch (AuthenticationException e) {
+            throw new UnauthorizedException("이메일 또는 비밀번호가 일치하지 않습니다.");
+        }
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(UserNotFoundException::new);
+        user.recordLogin(LocalDateTime.now());
 
         String accessToken = jwtProvider.generateAccessToken(userDetails.getId(), userDetails.getUserType(), userDetails.getUserStatus());
         String refreshToken = jwtProvider.generateRefreshToken();
@@ -112,6 +136,7 @@ public class AuthService {
         }
 
         user.restore();
+        user.recordLogin(LocalDateTime.now());
 
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getUserType(), UserStatus.ACTIVE);
         String refreshToken = jwtProvider.generateRefreshToken();

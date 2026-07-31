@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "consultations")
+@Table(
+        name = "consultations",
+        indexes = @Index(name = "idx_consultations_user_deleted_date", columnList = "user_id, is_deleted, consultation_date")
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -40,9 +43,6 @@ public class Consultation {
     private String summaryReport;  // 확인
 
     @Column(columnDefinition = "TEXT")
-    private String preConsultationNote;
-
-    @Column(columnDefinition = "TEXT")
     private String doctorAdvice;
 
     @Column(columnDefinition = "TEXT")
@@ -62,35 +62,30 @@ public class Consultation {
 
     private LocalDateTime updatedAt;
 
-    public void updateSchedule(LocalDateTime consultationDate, String place, Boolean alarmSettings) {
+    public void updateSchedule(LocalDateTime consultationDate, String place, Boolean alarmSettings, LocalDateTime now) {
         if (consultationDate != null) this.consultationDate = consultationDate;
         if (place != null) this.place = place;
         if (alarmSettings != null) this.alarmSettings = alarmSettings;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void updatePreparation(String preConsultationNote) {
-        if (preConsultationNote != null) this.preConsultationNote = preConsultationNote;
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public void updateResult(String doctorAdvice, String prescriptionNote, String nextTreatmentGoal) {
+    public void updateResult(String doctorAdvice, String prescriptionNote, String nextTreatmentGoal, LocalDateTime now) {
         if (doctorAdvice != null) this.doctorAdvice = doctorAdvice;
         if (prescriptionNote != null) this.prescriptionNote = prescriptionNote;
         if (nextTreatmentGoal != null) this.nextTreatmentGoal = nextTreatmentGoal;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void clearResult() {
+    public void clearResult(LocalDateTime now) {
         this.doctorAdvice = null;
         this.prescriptionNote = null;
         this.nextTreatmentGoal = null;
         this.summaryReport = null;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
-    public void delete() {
+    public void delete(LocalDateTime now) {
         this.isDeleted = true;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 }

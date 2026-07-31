@@ -3,10 +3,14 @@ name: Attune Backend Prod Deploy
 on:
   push:
     branches: [ "main" ] # main 브랜치에 푸시될 때 작동
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 환경별 시크릿 분리. production 환경에 APPLICATION_SECRET_YML 을 등록하면
+    # 리포 레벨 시크릿을 덮어쓴다. 미등록 상태에서는 리포 레벨 값으로 동작한다.
+    environment: production
 
     steps:
       - name: Checkout code
@@ -30,11 +34,9 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Make application-secret.yml
-        run: |
-          mkdir -p ./src/main/resources
-          echo "${{ secrets.APPLICATION_SECRET_YML }}" | base64 --decode > ./src/main/resources/application-secret.yml
-        shell: bash
+      # 시크릿은 빌드에 포함하지 않는다. 이미지가 public 레지스트리로 push 되므로
+      # jar 에 구우면 이미지를 pull 하는 누구나 자격증명을 읽을 수 있다.
+      # 대신 배포 대상 호스트에 파일로 내려 컨테이너에 read-only 로 마운트한다.
 
       - name: Build with Gradle
         run: ./gradlew clean build -x test
@@ -58,14 +60,60 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USERNAME }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 12m
           script: |
+            set -eu
+
+            # 시크릿을 호스트에 배치한다. 소유자만 읽을 수 있게 umask 를 좁힌다.
+            umask 077
+            mkdir -p "$HOME/attune"
+            echo "${{ secrets.APPLICATION_SECRET_YML }}" | base64 --decode > "$HOME/attune/application-secret.yml"
+
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
             docker stop attune-prod-apps || true
             docker rm attune-prod-apps || true
             docker image prune -f
             docker pull hannah098/attune-be:prod
             docker run -d --name attune-prod-apps --network host \
+              --restart unless-stopped \
+              -v "$HOME/attune/application-secret.yml:/app/config/application-secret.yml:ro" \
+              -v /var/log/attune-me:/var/log/attune-me \
               -e SPRING_PROFILES_ACTIVE=prod \
+              -e APP_MIGRATION_DEFAULTTAGS_ENABLED=false \
+              -e SENTRY_ENABLED=true \
+              -e APP_RELEASE=${{ github.sha }} \
               hannah098/attune-be:prod
-            sleep 20
-            curl -f http://localhost:8080/actuator/health || exit 1
+
+            for attempt in $(seq 1 120); do
+              health_status="$(curl --silent --output /tmp/attune-prod-health.json \
+                --write-out '%{http_code}' http://127.0.0.1:8081/actuator/health/readiness || true)"
+
+              if [ "$health_status" = "200" ]; then
+                cat /tmp/attune-prod-health.json
+                echo
+                echo "Prod application is healthy."
+                exit 0
+              fi
+
+              if [ "$(docker inspect --format '{{.State.Running}}' attune-prod-apps 2>/dev/null || true)" != "true" ]; then
+                echo "Prod application container exited before becoming healthy."
+                docker inspect attune-prod-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+                docker logs --tail 300 attune-prod-apps
+                exit 1
+              fi
+
+              if [ $((attempt % 12)) -eq 0 ]; then
+                echo "Waiting for readiness: attempt=${attempt}/120, httpStatus=${health_status}"
+                cat /tmp/attune-prod-health.json 2>/dev/null || true
+                echo
+                docker logs --tail 100 attune-prod-apps
+              fi
+
+              sleep 5
+            done
+
+            echo "Prod application did not become healthy within 600 seconds."
+            docker inspect attune-prod-apps --format 'status={{.State.Status}} exitCode={{.State.ExitCode}} error={{.State.Error}}'
+            docker logs --tail 300 attune-prod-apps
+            exit 1

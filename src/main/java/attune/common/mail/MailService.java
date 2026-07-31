@@ -1,23 +1,38 @@
 package attune.common.mail;
 
+import attune.common.error.internalserver.MailSendFailedException;
+import attune.common.observability.ObservabilityMetrics;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_FAILURE;
+import static attune.common.observability.ObservabilityMetrics.OUTCOME_SUCCESS;
+import static attune.common.util.ExceptionUtils.sanitized;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MailService {
 
     private final JavaMailSender mailSender;
+    private final ObservabilityMetrics metrics;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    private void sendEmail(String to, String subject, String html) {
+    private void sendEmail(String to, String subject, String html, String replyTo) {
+        sendEmail("general", to, subject, html, replyTo);
+    }
+
+    private void sendEmail(String type, String to, String subject, String html, String replyTo) {
+        boolean success = false;
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, "UTF-8");
@@ -25,9 +40,14 @@ public class MailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);
+            if (replyTo != null) helper.setReplyTo(replyTo);
             mailSender.send(mimeMessage);
+            success = true;
         } catch (MessagingException e) {
-            throw new RuntimeException("메일 발송에 실패했습니다.", e);
+            // MessagingException 메시지에는 수신자 주소(PII)가 포함될 수 있으므로 cause로 보존하지 않는다.
+            throw new MailSendFailedException(sanitized("Mail send failed", e));
+        } finally {
+            metrics.recordMailRequest(type, success ? OUTCOME_SUCCESS : OUTCOME_FAILURE);
         }
     }
 
@@ -35,20 +55,34 @@ public class MailService {
 
     //sendEmail 메서드들
     public void sendVerificationEmail(String to, String nickname, String verificationLink) {
-        sendEmail(to, "[Attune] 이메일 인증을 완료해주세요", buildVerificationHtml(nickname, verificationLink));
+        sendEmail(to, "[Attune] 이메일 인증을 완료해주세요", buildVerificationHtml(nickname, verificationLink), null);
     }
 
     public void sendWelcomeEmail(String to, String nickname) {
-        sendEmail(to, "[Attune] 회원가입을 축하합니다!", buildWelcomeHtml(nickname));
+        sendEmail(to, "[Attune] 회원가입을 축하합니다!", buildWelcomeHtml(nickname), null);
     }
 
     public void sendPasswordResetEmail(String to, String nickname, String resetLink) {
-        sendEmail(to, "[Attune] 비밀번호 재설정 안내", buildPasswordResetHtml(nickname, resetLink));
+        sendEmail(to, "[Attune] 비밀번호 재설정 안내", buildPasswordResetHtml(nickname, resetLink), null);
     }
 
     public void sendTermsUpdateEmail(String to, String title, String htmlContent) {
-        sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent));
+        sendEmail(to, "[Attune] " + title, wrapWithLayout(htmlContent), null);
     }
+
+    public void sendNoticeEmail(String to, String title, String htmlContent) {
+        sendEmail(to, "[Attune 공지] " + title, wrapWithLayout(htmlContent), null);
+    }
+
+    public void sendInquiryEmail(String replyTo, String type, String title, String content) {
+        try {
+            sendEmail(fromEmail, "[Attune 문의] " + title, buildInquiryHtml(replyTo, type, content), replyTo);
+            log.info("문의 이메일 발송 완료");
+        } catch (Exception e) {
+            log.error("문의 이메일 발송 실패", sanitized("Mail send failed", e));
+        }
+    }
+
 
     private String wrapWithLayout(String bodyHtml) {
         return """
@@ -102,8 +136,21 @@ public class MailService {
     }
 
 
-
     // html 생성 메서드들
+
+    private String buildInquiryHtml(String replyTo, String type, String content) {
+        return wrapWithLayout("""
+                <p style="margin:0 0 8px;font-size:13px;color:#888;">문의 유형</p>
+                <p style="margin:0 0 24px;font-size:15px;color:#222;">%s</p>
+
+                <p style="margin:0 0 8px;font-size:13px;color:#888;">연락처</p>
+                <p style="margin:0 0 24px;font-size:15px;color:#222;">%s</p>
+
+                <p style="margin:0 0 8px;font-size:13px;color:#888;">문의 내용</p>
+                <p style="margin:0;font-size:15px;color:#444;line-height:1.8;white-space:pre-wrap;">%s</p>
+                """.formatted(type, replyTo, content));
+    }
+
     private String buildVerificationHtml(String nickname, String verificationLink) {
         return """
                 <!DOCTYPE html>

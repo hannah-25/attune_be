@@ -10,7 +10,6 @@ public record ConsultationRecordResponse(
         String doctorName,
         boolean isFirstVisit,
         String summaryReport,
-        String preConsultationNote,
         String doctorAdvice,
         String prescriptionNote,
         String nextTreatmentGoal
@@ -22,7 +21,6 @@ public record ConsultationRecordResponse(
                 consultation.getDoctorName(),
                 consultation.isFirstVisit(),
                 consultation.getSummaryReport(),
-                consultation.getPreConsultationNote(),
                 consultation.getDoctorAdvice(),
                 consultation.getPrescriptionNote(),
                 consultation.getNextTreatmentGoal()

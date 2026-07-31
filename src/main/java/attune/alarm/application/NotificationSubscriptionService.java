@@ -1,0 +1,105 @@
+package attune.alarm.application;
+
+import attune.alarm.application.dto.request.RegisterSubscriptionRequest;
+import attune.alarm.application.dto.response.SubscriptionResponse;
+import attune.alarm.application.dto.response.SubscriptionStatusResponse;
+import attune.alarm.domain.model.NotificationSubscription;
+import attune.alarm.domain.model.NotificationProvider;
+import attune.alarm.domain.repository.NotificationSubscriptionRepository;
+import attune.common.util.SecurityUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@RequiredArgsConstructor
+@Service
+public class NotificationSubscriptionService {
+
+    private final NotificationSubscriptionRepository subscriptionRepository;
+
+    @Transactional
+    public SubscriptionResponse register(RegisterSubscriptionRequest request) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+
+        if (request.provider() == NotificationProvider.WEB_PUSH) {
+            return registerWebPush(userId, request);
+        }
+        return registerTokenBased(userId, request);
+    }
+
+    private SubscriptionResponse registerWebPush(UUID userId, RegisterSubscriptionRequest request) {
+        LocalDateTime now = LocalDateTime.now();
+        subscriptionRepository.findAllByEndpointAndUserIdNotAndEnabledTrue(request.endpoint(), userId)
+                .forEach(subscription -> subscription.disable(now));
+
+        NotificationSubscription subscription = subscriptionRepository
+                .findByUserIdAndEndpoint(userId, request.endpoint())
+                .map(existing -> {
+                    existing.updateKeys(request.p256dh(), request.auth(), now);
+                    return existing;
+                })
+                .orElseGet(() -> subscriptionRepository.save(NotificationSubscription.builder()
+                        .userId(userId)
+                        .platform(request.platform())
+                        .provider(request.provider())
+                        .endpoint(request.endpoint())
+                        .p256dh(request.p256dh())
+                        .auth(request.auth())
+                        .enabled(true)
+                        .createdAt(now)
+                        .updatedAt(now)
+                        .build()));
+        return SubscriptionResponse.from(subscription);
+    }
+
+    private SubscriptionResponse registerTokenBased(UUID userId, RegisterSubscriptionRequest request) {
+        LocalDateTime now = LocalDateTime.now();
+        subscriptionRepository.findAllByTokenAndUserIdNotAndEnabledTrue(request.token(), userId)
+                .forEach(subscription -> subscription.disable(now));
+
+        NotificationSubscription subscription = subscriptionRepository
+                .findByUserIdAndToken(userId, request.token())
+                .map(existing -> {
+                    existing.updateToken(request.token(), now);
+                    return existing;
+                })
+                .orElseGet(() -> subscriptionRepository.save(NotificationSubscription.builder()
+                        .userId(userId)
+                        .platform(request.platform())
+                        .provider(request.provider())
+                        .token(request.token())
+                        .enabled(true)
+                        .createdAt(now)
+                        .updatedAt(now)
+                        .build()));
+        return SubscriptionResponse.from(subscription);
+    }
+
+    @Transactional(readOnly = true)
+    public SubscriptionStatusResponse getStatus(String endpointOrToken) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+
+        boolean enabled = subscriptionRepository.findByUserIdAndEndpoint(userId, endpointOrToken)
+                .or(() -> subscriptionRepository.findByUserIdAndToken(userId, endpointOrToken))
+                .map(NotificationSubscription::isEnabled)
+                .orElse(false);
+
+        return new SubscriptionStatusResponse(enabled);
+    }
+
+    @Transactional
+    public void unregister(String endpointOrToken) {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime now = LocalDateTime.now();
+
+        subscriptionRepository.findByUserIdAndEndpoint(userId, endpointOrToken)
+                .ifPresentOrElse(
+                        subscription -> subscription.disable(now),
+                        () -> subscriptionRepository.findByUserIdAndToken(userId, endpointOrToken)
+                                .ifPresent(subscription -> subscription.disable(now))
+                );
+    }
+}

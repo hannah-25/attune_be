@@ -12,7 +12,13 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "community_boards")
+@Table(
+        name = "community_boards",
+        indexes = {
+                @Index(name = "idx_community_boards_deleted_created", columnList = "created_at, is_deleted"),
+                @Index(name = "idx_community_boards_deleted_category_created", columnList = "is_deleted, post_category, created_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -41,11 +47,11 @@ public class CommunityBoard {
 
     private Boolean isDeleted;
 
-    public void update(String title, String content, PostCategory postCategory) {
+    public void update(String title, String content, PostCategory postCategory, LocalDateTime now) {
         this.title = title;
         this.content = content;
         this.postCategory = postCategory;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     public void delete() {

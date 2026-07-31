@@ -2,18 +2,22 @@ package attune.consultation.application;
 
 import attune.common.error.badrequest.InvalidDateRangeException;
 import attune.common.error.notfound.ConsultationNotFoundException;
+import attune.common.error.notfound.ConsultationQuestionNotFoundException;
 import attune.common.util.SecurityUtils;
+import attune.consultation.application.dto.request.AddConsultationQuestionRequest;
 import attune.consultation.application.dto.request.CreateConsultationRequest;
-import attune.consultation.application.dto.request.UpdateConsultationPreparationRequest;
 import attune.consultation.application.dto.request.UpdateConsultationResultRequest;
 import attune.consultation.application.dto.request.UpdateConsultationScheduleRequest;
 import attune.consultation.application.dto.response.ConsultationListItemResponse;
 import attune.consultation.application.dto.response.ConsultationListResponse;
+import attune.consultation.application.dto.response.ConsultationQuestionResponse;
 import attune.consultation.application.dto.response.ConsultationRecordResponse;
 import attune.consultation.application.dto.response.ConsultationScheduleResponse;
 import attune.consultation.application.dto.response.ConsultationUpdateResponse;
 import attune.consultation.application.dto.response.CreateConsultationResponse;
 import attune.consultation.domain.model.Consultation;
+import attune.consultation.domain.model.ConsultationQuestion;
+import attune.consultation.domain.repository.ConsultationQuestionRepository;
 import attune.consultation.domain.repository.ConsultationRepository;
 import attune.user.domain.model.User;
 import attune.user.domain.repository.UserRepository;
@@ -33,6 +37,7 @@ import java.util.UUID;
 public class ConsultationService {
 
     private final ConsultationRepository consultationRepository;
+    private final ConsultationQuestionRepository consultationQuestionRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -58,13 +63,13 @@ public class ConsultationService {
     @Transactional
     public void deleteConsultation(Long consultationId) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.delete();
+        consultation.delete(LocalDateTime.now());
     }
 
     @Transactional
     public void deleteResult(Long consultationId) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.clearResult();
+        consultation.clearResult(LocalDateTime.now());
     }
 
     @Transactional(readOnly = true)
@@ -73,19 +78,45 @@ public class ConsultationService {
         return ConsultationRecordResponse.from(consultation);
     }
 
+    @Transactional(readOnly = true)
+    public List<ConsultationQuestionResponse> getQuestions(Long consultationId) {
+        loadOwned(consultationId);
+        return consultationQuestionRepository.findAllByConsultation_IdOrderByCreatedAtAsc(consultationId)
+                .stream()
+                .map(ConsultationQuestionResponse::from)
+                .toList();
+    }
+
     @Transactional
-    public ConsultationUpdateResponse updatePreparation(Long consultationId,
-                                                        UpdateConsultationPreparationRequest request) {
+    public ConsultationQuestionResponse addQuestion(Long consultationId, AddConsultationQuestionRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updatePreparation(request.preConsultationNote());
-        return ConsultationUpdateResponse.from(consultation);
+        ConsultationQuestion question = ConsultationQuestion.builder()
+                .consultation(consultation)
+                .text(request.text())
+                .createdAt(LocalDateTime.now())
+                .build();
+        return ConsultationQuestionResponse.from(consultationQuestionRepository.save(question));
+    }
+
+    @Transactional
+    public void deleteQuestion(Long consultationId, Long questionId) {
+        loadOwned(consultationId);
+        ConsultationQuestion question = consultationQuestionRepository
+                .findByIdAndConsultation_Id(questionId, consultationId)
+                .orElseThrow(ConsultationQuestionNotFoundException::new);
+        consultationQuestionRepository.delete(question);
     }
 
     @Transactional
     public ConsultationUpdateResponse updateResult(Long consultationId,
                                                    UpdateConsultationResultRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateResult(request.doctorAdvice(), request.prescriptionNote(), request.nextTreatmentGoal());
+        consultation.updateResult(
+                request.doctorAdvice(),
+                request.prescriptionNote(),
+                request.nextTreatmentGoal(),
+                LocalDateTime.now()
+        );
         return ConsultationUpdateResponse.from(consultation);
     }
 
@@ -110,7 +141,12 @@ public class ConsultationService {
     public ConsultationScheduleResponse updateSchedule(Long consultationId,
                                                        UpdateConsultationScheduleRequest request) {
         Consultation consultation = loadOwned(consultationId);
-        consultation.updateSchedule(request.consultationDate(), request.place(), request.alarmSettings());
+        consultation.updateSchedule(
+                request.consultationDate(),
+                request.place(),
+                request.alarmSettings(),
+                LocalDateTime.now()
+        );
         return ConsultationScheduleResponse.from(consultation);
     }
 

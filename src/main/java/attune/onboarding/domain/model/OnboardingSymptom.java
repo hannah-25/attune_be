@@ -14,7 +14,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "onboarding_symptoms")
+@Table(
+        name = "onboarding_symptoms",
+        indexes = @Index(name = "idx_onboarding_symptoms_user_saved", columnList = "user_id, saved_at")
+)
 public class OnboardingSymptom {
 
     @Id
@@ -32,4 +35,15 @@ public class OnboardingSymptom {
     private String emotionalEvent;
 
     private LocalDateTime savedAt;
+
+    // 경로 B: 이미 진단받은 사용자가 직접 체크한 취약 영역
+    @Column
+    private String selectedSymptomTypes;    // 예: "INATTENTION,TIME_MANAGEMENT"
+
+    @Column
+    private String selectedFunctionalAreas; // 예: "업무/학업,시간관리"
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isQuickOnboarding = false;
 }

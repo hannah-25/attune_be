@@ -6,6 +6,9 @@ public record UpdateUserSettingRequest(
         Boolean medicationNotification,
         Boolean reportNotification,
         Boolean marketingNotification,
+        Boolean communityNotification,
+        Boolean todoNotification,
         Boolean takeMedicationOnHoliday,
-        Theme theme
+        Theme theme,
+        String timezone
 ) {}

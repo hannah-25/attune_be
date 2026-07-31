@@ -1,11 +1,13 @@
 package attune.user.application;
 
+import attune.auth.domain.repository.UserAuthCacheRepository;
 import attune.common.error.conflict.DuplicateEmailException;
 import attune.common.error.conflict.DuplicateNicknameException;
 import attune.common.error.unauthorized.InvalidPasswordException;
 import attune.common.error.unauthorized.TokenException;
 import attune.common.error.notfound.UserNotFoundException;
 import attune.common.mail.MailService;
+import attune.common.event.UserActivatedEvent;
 import attune.common.mail.event.WelcomeEmailEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import attune.user.application.dto.request.ChangePasswordRequest;
@@ -13,11 +15,13 @@ import attune.user.application.dto.request.CreateUserRequest;
 import attune.user.application.dto.request.PasswordResetConfirmRequest;
 import attune.user.application.dto.request.UpdateNicknameRequest;
 import attune.user.application.dto.request.UpdateProfileImageRequest;
+import attune.user.application.dto.request.WithdrawRequest;
 import attune.user.application.dto.response.CreateUserResponse;
 import attune.term.application.TermService;
 import attune.user.domain.model.EmailVerificationToken;
 import attune.user.domain.model.PasswordResetToken;
 import attune.user.domain.model.User;
+import attune.user.domain.model.OAuthProvider;
 import attune.user.domain.model.UserSetting;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
@@ -46,6 +50,7 @@ public class AccountService {
     private final MailService mailService;
     private final TermService termService;
     private final ApplicationEventPublisher eventPublisher;
+    private final UserAuthCacheRepository userAuthCacheRepository;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -61,10 +66,11 @@ public class AccountService {
         termService.saveAgreement(user, request.termsOfService(), request.privacyPolicy(), request.marketingConsent());
 
         String token = UUID.randomUUID().toString();
+        LocalDateTime now = LocalDateTime.now();
         emailVerificationTokenRepository.save(EmailVerificationToken.builder()
                 .userId(user.getId())
                 .token(token)
-                .createdAt(LocalDateTime.now())
+                .createdAt(now)
                 .build());
 
         String verificationLink = frontendUrl + "/verify-email?token=" + token;
@@ -80,6 +86,7 @@ public class AccountService {
                 .nickname(request.nickname())
                 .userType(UserType.USER)
                 .userStatus(UserStatus.PENDING)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         userRepository.save(user);
@@ -93,7 +100,7 @@ public class AccountService {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
-        if (verificationToken.isExpired()) {
+        if (verificationToken.isExpired(LocalDateTime.now())) {
             emailVerificationTokenRepository.delete(verificationToken);
             throw new TokenException("만료된 링크입니다.");
         }
@@ -103,6 +110,7 @@ public class AccountService {
 
         user.activate();
         emailVerificationTokenRepository.delete(verificationToken);
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
         eventPublisher.publishEvent(new WelcomeEmailEvent(user.getEmail(), user.getNickname()));
     }
 
@@ -124,10 +132,11 @@ public class AccountService {
             passwordResetTokenRepository.deleteByUserId(user.getId());
 
             String token = UUID.randomUUID().toString();
+            LocalDateTime now = LocalDateTime.now();
             passwordResetTokenRepository.save(PasswordResetToken.builder()
                     .userId(user.getId())
                     .token(token)
-                    .createdAt(LocalDateTime.now())
+                    .createdAt(now)
                     .build());
 
             String resetLink = frontendUrl + "/password/reset?token=" + token;
@@ -140,19 +149,19 @@ public class AccountService {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
-        if (resetToken.isExpired()) {
+        if (resetToken.isExpired(LocalDateTime.now())) {
             throw new TokenException("만료된 링크입니다.");
         }
     }
 
     @Transactional
     public void updateNickname(UUID userId, UpdateNicknameRequest request) {
-        if (userRepository.existsByNickname(request.newNickname())) {
+        if (userRepository.existsByNickname(request.newNickName())) {
             throw new DuplicateNicknameException();
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(UserNotFoundException::new);
-        user.changeNickname(request.newNickname());
+        user.changeNickname(request.newNickName());
     }
 
     @Transactional
@@ -163,11 +172,55 @@ public class AccountService {
     }
 
     @Transactional
+    public User createSocialUser(String email, String nickname, OAuthProvider provider, String providerId) {
+        String finalNickname = generateUniqueNickname(nickname);
+        User user = User.builder()
+                .email(email)
+                .provider(provider)
+                .providerId(providerId)
+                .nickname(finalNickname)
+                .userType(UserType.USER)
+                .userStatus(UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .build();
+        userRepository.save(user);
+        userSettingRepository.save(UserSetting.createDefault(user));
+        eventPublisher.publishEvent(new UserActivatedEvent(user.getId()));
+        return user;
+    }
+
+    private String generateUniqueNickname(String base) {
+        String candidate = (base != null && !base.isBlank()) ? base.strip() : "사용자";
+        if (candidate.length() > 20) candidate = candidate.substring(0, 20);
+        if (!userRepository.existsByNickname(candidate)) return candidate;
+        String prefix = candidate.length() > 13 ? candidate.substring(0, 13) : candidate;
+        return prefix + "_" + UUID.randomUUID().toString().substring(0, 6);
+    }
+
+    @Transactional
+    public void withdraw(UUID userId, WithdrawRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getPassword() != null) {
+            if (request.password() == null || request.password().isBlank()) {
+                throw new InvalidPasswordException();
+            }
+            if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+                throw new InvalidPasswordException();
+            }
+        }
+
+        user.withdraw(LocalDateTime.now());
+        userAuthCacheRepository.delete(userId);
+    }
+
+    @Transactional
     public void confirmPasswordReset(PasswordResetConfirmRequest request) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.token())
                 .orElseThrow(() -> new TokenException("유효하지 않은 토큰입니다."));
 
-        if (resetToken.isExpired()) {
+        if (resetToken.isExpired(LocalDateTime.now())) {
             throw new TokenException("만료된 링크입니다.");
         }
 

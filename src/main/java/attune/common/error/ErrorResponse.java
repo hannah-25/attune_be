@@ -2,15 +2,15 @@ package attune.common.error;
 
 import org.springframework.http.HttpStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ErrorResponse(
         int status,
         String error,
         String message,
-        LocalDateTime timestamp
+        Instant timestamp
 ) {
     public static ErrorResponse of(HttpStatus status, String message) {
-        return new ErrorResponse(status.value(), status.getReasonPhrase(), message, LocalDateTime.now());
+        return new ErrorResponse(status.value(), status.getReasonPhrase(), message, Instant.now());
     }
 }

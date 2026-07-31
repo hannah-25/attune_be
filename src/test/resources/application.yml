@@ -2,16 +2,22 @@ spring:
   config:
     import: []  # application-secret.yml 미사용
 
+  test:
+    database:
+      replace: none  # @DataJpaTest가 임베디드 DB로 교체하지 않도록 (아래 Testcontainers datasource 사용)
+
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    # Testcontainers JDBC URL — 첫 커넥션 시 MySQL 8.4 컨테이너를 자동 기동하고 JVM 종료까지 재사용한다.
+    # TC_DAEMON=true: 모든 커넥션이 닫혀도 컨테이너를 유지. 로컬/CI 모두 Docker 필요.
+    url: jdbc:tc:mysql:8.4:///attune_test?TC_DAEMON=true
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
 
   jpa:
     hibernate:
       ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: false
 
   data:
@@ -31,6 +37,13 @@ spring:
           starttls:
             enable: true
 
+# 통합 테스트는 JavaMailSender를 인터페이스 mock으로 교체한다(IntegrationTest 베이스).
+# mail health indicator는 JavaMailSenderImpl 구체 타입 빈을 요구해 mock과 충돌하므로 끈다.
+management:
+  health:
+    mail:
+      enabled: false
+
 jwt:
   secret-key: test-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
   access-token-expiration: 1800
@@ -42,3 +55,19 @@ cors:
 
 app:
   frontend-url: http://localhost:3000
+
+# GeminiProperties(prefix=gemini) 바인딩 — base-url 누락 시 GeminiConfig의 RestClient 생성이 깨진다
+gemini:
+  api-key: test-gemini-api-key
+  base-url: http://localhost:1/gemini-not-called-in-tests
+  model: gemini-2.5-flash
+
+oauth:
+  google:
+    client-ids: test-google-client-id
+  apple:
+    app-id: com.example.attune.test
+
+admin:
+  audit:
+    hmac-secret: test-admin-audit-hmac-secret

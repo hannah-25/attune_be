@@ -5,5 +5,6 @@ public enum TroubleType {
     HYPERACTIVITY,
     IMPULSIVITY,
     TIME_MANAGEMENT,
-    COGNITIVE_ERROR
+    COGNITIVE_ERROR,
+    USER_INPUT
 }

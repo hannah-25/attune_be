@@ -32,11 +32,11 @@ public class Notice {
 
     private LocalDateTime updatedAt;
 
-    public void update(String title, String content, Boolean isPinned) {
+    public void update(String title, String content, Boolean isPinned, LocalDateTime now) {
         if (title != null) this.title = title;
         if (content != null) this.content = content;
         if (isPinned != null) this.isPinned = isPinned;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     public void delete() {

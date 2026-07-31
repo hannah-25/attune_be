@@ -16,6 +16,8 @@ import java.util.UUID;
 @Table(name = "user_settings")
 public class UserSetting {
 
+    public static final String DEFAULT_TIMEZONE = "Asia/Seoul";
+
     @Id
     private UUID id;
 
@@ -27,18 +29,29 @@ public class UserSetting {
     private boolean medicationNotification;
     private boolean reportNotification;
     private boolean marketingNotification;
+    private boolean communityNotification;
+    private boolean todoNotification;
     private boolean takeMedicationOnHoliday;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Theme theme;
 
-    public void update(Boolean medicationNotification, Boolean reportNotification, Boolean marketingNotification, Boolean takeMedicationOnHoliday, Theme theme) {
+    @Builder.Default
+    @Column(nullable = false, length = 64)
+    private String timezone = DEFAULT_TIMEZONE;
+
+    public void update(Boolean medicationNotification, Boolean reportNotification, Boolean marketingNotification,
+                       Boolean communityNotification, Boolean todoNotification,
+                       Boolean takeMedicationOnHoliday, Theme theme, String timezone) {
         if (medicationNotification != null) this.medicationNotification = medicationNotification;
         if (reportNotification != null) this.reportNotification = reportNotification;
         if (marketingNotification != null) this.marketingNotification = marketingNotification;
+        if (communityNotification != null) this.communityNotification = communityNotification;
+        if (todoNotification != null) this.todoNotification = todoNotification;
         if (takeMedicationOnHoliday != null) this.takeMedicationOnHoliday = takeMedicationOnHoliday;
         if (theme != null) this.theme = theme;
+        if (timezone != null) this.timezone = timezone;
     }
 
     public static UserSetting createDefault(User user) {
@@ -47,8 +60,18 @@ public class UserSetting {
                 .medicationNotification(true)
                 .reportNotification(true)
                 .marketingNotification(false)
+                .communityNotification(true)
+                .todoNotification(true)
                 .takeMedicationOnHoliday(false)
                 .theme(Theme.SYSTEM)
+                .timezone(DEFAULT_TIMEZONE)
                 .build();
+    }
+
+    @PrePersist
+    void initializeDefaults() {
+        if (timezone == null) {
+            timezone = DEFAULT_TIMEZONE;
+        }
     }
 }

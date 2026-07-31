@@ -29,7 +29,7 @@ public class EmailVerificationToken {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public boolean isExpired() {
-        return LocalDateTime.now().isAfter(createdAt.plusHours(24));
+    public boolean isExpired(LocalDateTime now) {
+        return now.isAfter(createdAt.plusHours(24));
     }
 }

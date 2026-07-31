@@ -1,5 +1,6 @@
 package attune.medication.domain.model;
 
+import attune.consultation.domain.model.Consultation;
 import attune.user.domain.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,7 +10,13 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "user_medications")
+@Table(
+        name = "user_medications",
+        indexes = {
+                @Index(name = "idx_user_medications_user_active_created_id", columnList = "user_id, is_active, created_at, id"),
+                @Index(name = "idx_user_medications_user_started_end", columnList = "user_id, started_at, end_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,30 +31,36 @@ public class UserMedication {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "medication_id", nullable = false)
-    private Medication medication;
+    @JoinColumn(name = "consultation_id")
+    private Consultation consultation;
 
-    @Column(name = "hospital_id")
-    private Long hospitalId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "medication_dosage_id", nullable = false)
+    private MedicationDosage medicationDosage;
 
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
-    @Column(nullable = false)
-    private Boolean alarmActive;
+    @Builder.Default
+    @Column(name = "alarm_active", nullable = false)
+    private Boolean alarmActive = true;
 
+    @Column(name = "started_at")
     private LocalDate startedAt;
 
+    @Column(name = "end_at")
     private LocalDate endAt;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void update(LocalDate endAt, Boolean isActive, Boolean alarmActive) {
-        if (endAt != null) this.endAt = endAt;
+    public void update(LocalDate endAt, boolean updateEndAt, Boolean isActive, Boolean alarmActive, LocalDateTime now) {
+        if (updateEndAt) this.endAt = endAt;
         if (isActive != null) this.isActive = isActive;
         if (alarmActive != null) this.alarmActive = alarmActive;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 }

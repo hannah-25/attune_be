@@ -6,16 +6,22 @@ public record UserSettingResponse(
         boolean medicationNotification,
         boolean reportNotification,
         boolean marketingNotification,
+        boolean communityNotification,
+        boolean todoNotification,
         boolean takeMedicationOnHoliday,
-        String theme
+        String theme,
+        String timezone
 ) {
     public static UserSettingResponse from(UserSetting setting) {
         return new UserSettingResponse(
                 setting.isMedicationNotification(),
                 setting.isReportNotification(),
                 setting.isMarketingNotification(),
+                setting.isCommunityNotification(),
+                setting.isTodoNotification(),
                 setting.isTakeMedicationOnHoliday(),
-                setting.getTheme().name()
+                setting.getTheme().name(),
+                setting.getTimezone()
         );
     }
 }

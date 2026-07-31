@@ -1,13 +1,13 @@
 package attune.common.config;
 
 import attune.common.ApiVersion;
-
-
 import attune.common.filter.JwtAuthenticationFilter;
+import attune.common.security.SecurityErrorResponseWriter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -26,13 +26,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(CorsProperties.class)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Value("${cors.allowed-origin-patterns:}")
-    private java.util.List<String> corsAllowedOriginPatterns;
+    private final CorsProperties corsProperties;
+    private final SecurityErrorResponseWriter securityErrorResponseWriter;
+    private final Environment environment;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -50,9 +51,11 @@ public class SecurityConfig {
         http
                 // REST API에서는 일반적으로 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
 
-                // CORS 필터 활성화
-                .cors(cors -> {})
+                // CORS 필터 활성화 (명시적으로 CorsConfigurationSource 빈 지정)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // 클릭재킹 방지
                 .headers(headers -> headers
@@ -62,17 +65,40 @@ public class SecurityConfig {
 
                 // JWT 토큰 기반 인증에서는 세션을 사용하지 않음!
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                securityErrorResponseWriter.write(
+                                        response,
+                                        org.springframework.http.HttpStatus.UNAUTHORIZED,
+                                        "로그인이 필요합니다."
+                                ))
+                        .accessDeniedHandler((request, response, exception) ->
+                                securityErrorResponseWriter.write(
+                                        response,
+                                        org.springframework.http.HttpStatus.FORBIDDEN,
+                                        "관리자 권한이 필요합니다."
+                                )))
 
                 // OPTIONS 요청(Preflight 요청)을 허용
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> {
+                    auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // ✅ 헬스/인포는 무조건 허용
-                        .requestMatchers("/actuator/**").permitAll()
+                        // 헬스/인포는 무조건 허용 (배포 게이트·컨테이너가 localhost로 폴링)
+                        .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                        // management server는 loopback에만 바인딩된다. 부하 테스트 중에만 서버 내부 수집을 허용한다.
+                        .requestMatchers("/actuator/metrics/**")
+                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                environment.matchesProfiles("loadtest")
+                        ));
+
+                    auth
+                        // metrics 외 actuator는 항상 외부 노출 차단
+                        .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(ApiVersion.V1 + "/health/**").permitAll()
 
                         // 인증 관련 엔드포인트
-                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", ApiVersion.V1 + "/account/signup", ApiVersion.V1 + "/account/verify-email", ApiVersion.V1 + "/auth/login", ApiVersion.V1 + "/auth/reissue", ApiVersion.V1 + "/auth/restore").permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**", "/login/oauth2/**", ApiVersion.V1 + "/account/signup", ApiVersion.V1 + "/account/verify-email", ApiVersion.V1 + "/auth/login", ApiVersion.V1 + "/auth/reissue", ApiVersion.V1 + "/auth/restore", ApiVersion.V1 + "/auth/social/login", ApiVersion.V1 + "/auth/social/restore").permitAll()
 
                         // 약관 조회 (비로그인 허용)
                         .requestMatchers(ApiVersion.V1 + "/terms/**").permitAll()
@@ -83,6 +109,9 @@ public class SecurityConfig {
                         // 공지사항 조회 (비로그인 허용)
                         .requestMatchers(HttpMethod.GET, ApiVersion.V1 + "/notices/**").permitAll()
 
+                        // Web Push 영수증: 서비스 워커는 JWT를 갖고 있지 않음. attempt id + receipt token hash로 자체 인증
+                        .requestMatchers(HttpMethod.POST, ApiVersion.V1 + "/notification-delivery-attempts/*/events").permitAll()
+
                         // 관리자 전용
                         .requestMatchers(ApiVersion.V1 + "/admin/**").hasRole("ADMIN")
 
@@ -90,9 +119,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
 
                         //Health Check
-                        .anyRequest().authenticated()
-
-                )
+                        .anyRequest().authenticated();
+                })
                 // JWT 인증 필터를 UsernamePassword 필터 앞에 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -113,8 +141,13 @@ public class SecurityConfig {
         );
 
         // application-{profile}.yml의 cors.allowed-origin-patterns 값 사용
-        java.util.List<String> allowedPatterns = (corsAllowedOriginPatterns != null && !corsAllowedOriginPatterns.isEmpty())
-                ? corsAllowedOriginPatterns
+        // @ConfigurationProperties로 YAML 리스트를 안전하게 바인딩
+        java.util.List<String> filteredPatterns = corsProperties.allowedOriginPatterns().stream()
+                .filter(p -> p != null && !p.isBlank())
+                .toList();
+
+        java.util.List<String> allowedPatterns = !filteredPatterns.isEmpty()
+                ? filteredPatterns
                 : defaultPatterns;
 
         configuration.setAllowedOriginPatterns(allowedPatterns);
@@ -136,7 +169,8 @@ public class SecurityConfig {
                 "Location", // 리다이렉트 위치
                 "Content-Disposition", // 파일 다운로드
                 "X-Export-Message", // 커스텀: 내보내기 메시지
-                "X-Export-Status" // 커스텀: 내보내기 상태
+                "X-Export-Status", // 커스텀: 내보내기 상태
+                "X-Request-Id"
         ));
 
 

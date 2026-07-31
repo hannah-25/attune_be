@@ -3,6 +3,7 @@ package attune.common.filter;
 import attune.common.ApiVersion;
 
 import attune.common.security.CustomUserDetails;
+import attune.common.security.SecurityErrorResponseWriter;
 import attune.common.util.JwtProvider;
 import attune.user.domain.model.UserStatus;
 import attune.user.domain.model.UserType;
@@ -20,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -30,6 +32,7 @@ import java.util.UUID;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final SecurityErrorResponseWriter securityErrorResponseWriter;
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -92,14 +95,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void writeErrorResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"error\":\"" + message + "\"}");
+        securityErrorResponseWriter.write(response, HttpStatus.UNAUTHORIZED, message);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return (ApiVersion.V1 + "/auth/reissue").equals(request.getServletPath());
+        String reissuePath = request.getContextPath() + ApiVersion.V1 + "/auth/reissue";
+        return reissuePath.equals(request.getRequestURI());
     }
 
     private String resolveToken(HttpServletRequest request) {

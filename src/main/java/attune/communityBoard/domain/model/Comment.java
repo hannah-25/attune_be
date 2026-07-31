@@ -11,7 +11,12 @@ import java.time.LocalDateTime;
 
 @Getter
 @Entity
-@Table(name = "comments")
+@Table(
+        name = "comments",
+        indexes = {
+                @Index(name = "idx_comments_post_deleted_created", columnList = "post_id, is_deleted, created_at")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -39,14 +44,14 @@ public class Comment {
 
     private LocalDateTime updatedAt;
 
-    public void update(Boolean isAnonymous, String content) {
+    public void update(Boolean isAnonymous, String content, LocalDateTime now) {
         if (isAnonymous != null) {
             this.isAnonymous = isAnonymous;
         }
         if (content != null) {
             this.content = content;
         }
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = now;
     }
 
     public void delete() {

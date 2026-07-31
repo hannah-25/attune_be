@@ -7,13 +7,17 @@ import java.time.LocalDateTime;
 public record CreateConsultationResponse(
         Long consultationId,
         LocalDateTime consultationDate,
-        String place
+        String place,
+        String doctorName,
+        boolean isFirstVisit
 ) {
     public static CreateConsultationResponse from(Consultation consultation) {
         return new CreateConsultationResponse(
                 consultation.getId(),
                 consultation.getConsultationDate(),
-                consultation.getPlace()
+                consultation.getPlace(),
+                consultation.getDoctorName(),
+                consultation.isFirstVisit()
         );
     }
 }

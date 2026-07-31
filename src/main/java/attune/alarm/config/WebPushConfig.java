@@ -1,0 +1,81 @@
+package attune.alarm.config;
+
+import attune.alarm.application.WebPushSender;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import nl.martijndwars.webpush.PushService;
+import nl.martijndwars.webpush.Utils;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.security.Security;
+
+@Configuration
+@EnableConfigurationProperties(WebPushProperties.class)
+@ConditionalOnProperty(name = "notification.push.provider", havingValue = "web-push")
+public class WebPushConfig {
+
+    private static final int MAX_CONN_PER_ROUTE = 50;
+    private static final int MAX_CONN_TOTAL = 200;
+    private static final int TIMEOUT_MS = 5_000;
+    private static final int MAX_TTL_SECONDS = 2_419_200;
+
+    @Bean
+    CloseableHttpClient webPushHttpClient() {
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(TIMEOUT_MS)
+                .setSocketTimeout(TIMEOUT_MS)
+                .setConnectionRequestTimeout(TIMEOUT_MS)
+                .build();
+        return HttpClients.custom()
+                .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
+                .setMaxConnTotal(MAX_CONN_TOTAL)
+                .evictIdleConnections(30, java.util.concurrent.TimeUnit.SECONDS)
+                .evictExpiredConnections()
+                .setDefaultRequestConfig(requestConfig)
+                .build();
+    }
+
+    @Bean
+    PushService webPushService(WebPushProperties properties) throws Exception {
+        requireValue(properties.publicKey(), "notification.push.web-push.public-key");
+        requireValue(properties.privateKey(), "notification.push.web-push.private-key");
+        requireValue(properties.subject(), "notification.push.web-push.subject");
+
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+
+        PushService pushService = new PushService();
+        pushService.setPublicKey(Utils.loadPublicKey(properties.publicKey()));
+        pushService.setPrivateKey(Utils.loadPrivateKey(properties.privateKey()));
+        pushService.setSubject(properties.subject());
+        return pushService;
+    }
+
+    @Bean
+    WebPushSender webPushSender(PushService webPushService,
+                                CloseableHttpClient webPushHttpClient,
+                                ObjectMapper objectMapper,
+                                WebPushProperties properties) {
+        requireValidTtl(properties.ttlSeconds());
+        return new WebPushSender(webPushService, webPushHttpClient, objectMapper, properties.ttlSeconds());
+    }
+
+    private void requireValue(String value, String propertyName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(propertyName + " must be configured when Web Push is enabled");
+        }
+    }
+
+    private void requireValidTtl(int ttlSeconds) {
+        if (ttlSeconds < 0 || ttlSeconds > MAX_TTL_SECONDS) {
+            throw new IllegalStateException("notification.push.web-push.ttl-seconds must be between 0 and " + MAX_TTL_SECONDS);
+        }
+    }
+}

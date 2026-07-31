@@ -6,9 +6,14 @@ spring:
     default: local
 
   # application-secret.yml import
+  # classpath: 로컬 개발용(src/main/resources 에 직접 둔 파일).
+  # file: 컨테이너 배포용. 배포 워크플로가 호스트에 내린 파일을 read-only 로 마운트한다.
+  #       시크릿을 이미지에 굽지 않기 위한 경로이므로 dev/prod 는 이쪽으로 주입된다.
+  #       파일이 없으면 datasource/admin.audit 등의 필수 값이 해석되지 않아 기동이 실패한다.
   config:
     import:
       - optional:classpath:application-secret.yml
+      - optional:file:/app/config/application-secret.yml
 
   jpa:
     open-in-view: false # OSIV 비활성화 (성능/안정성 향상)
@@ -64,15 +69,25 @@ management:
         enabled: true
     tags:
       application: ${spring.application.name}
+      release: ${APP_RELEASE:unknown}
+      environment: local
   endpoint:
     health:
       show-details: never
       show-components: never
+      probes:
+        enabled: true            # /actuator/health/{liveness,readiness} 노출
+      group:
+        # readiness: 트래픽 수신 준비 — DB 장애를 실패로 반영 (배포 게이트가 이 신호를 사용)
+        readiness:
+          include: readinessState, db
+        # liveness: JVM 생존만 검사(기본값 livenessState). 외부 의존성으로 불필요한 재시작 방지
   health:
     db:
-      enabled: false
+      enabled: true              # DB 다운을 health/readiness 실패로 반영
     diskspace:
-      enabled: false
+      enabled: true              # 디스크 부족 감지
+
 
 
 
@@ -80,6 +95,56 @@ management:
 
 
 # Logging 설정
+sentry:
+  enabled: ${SENTRY_ENABLED:false}
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${APP_RELEASE:unknown}
+  send-default-pii: false
+  max-request-body-size: none
+  sample-rate: ${SENTRY_SAMPLE_RATE:1.0}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.0}
+  profiles-sample-rate: ${SENTRY_PROFILES_SAMPLE_RATE:0.0}
+  attach-stacktrace: true
+  attach-threads: false
+  logging:
+    # @RestControllerAdvice(GlobalExceptionHandler)가 모든 예외를 resolve 하므로
+    # SentryExceptionResolver 경로로는 오류가 안 잡힌다. log.error(500대)만 이벤트로
+    # 캡처하도록 ERROR 레벨로 켠다. 4xx(log.info/warn)는 이벤트로 가지 않는다.
+    enabled: true
+    minimum-event-level: error
+    # breadcrumb 기본 레벨은 INFO라 INFO 로그까지 breadcrumb로 수집된다. PII 표면을
+    # 줄이기 위해 WARN 이상만 breadcrumb로 남긴다(로그는 PII 금지 정책으로 이미 정제됨).
+    minimum-breadcrumb-level: warn
+  in-app-includes:
+    - attune
+
 logging:
   pattern:
-    console: '%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n'
+    console: '%d{HH:mm:ss.SSS} [%thread] %-5level [%X{requestId:-no-request-id}] %logger{36} - %msg%n'
+  level:
+    attune.calendar: DEBUG
+
+notification:
+  push:
+    # 기본값 stub: 키가 없어도 부팅됨. 환경별 활성화(provider=web-push)와 VAPID 키는
+    # application-secret.yml의 해당 프로파일 문서에서 주입한다.
+    provider: stub
+    web-push:
+      # subject는 비밀이 아니므로 공통 기본값으로 둔다 (public/private key만 secret에서 주입)
+      subject: mailto:support@attune-me.com
+      # provider가 유지할 최대 시간(초). receipt token 만료 시각의 기준으로도 사용한다.
+      ttl-seconds: 86400
+    # 서비스 워커 영수증 API(POST /v1/notification-delivery-attempts/{id}/events)는 permitAll이라 rate limit으로 방어한다.
+    receipt-rate-limit:
+      per-attempt-limit: 20
+      per-attempt-window-seconds: 60
+      per-ip-limit: 60
+      per-ip-window-seconds: 60
+      global-limit: 5000
+      global-window-seconds: 60
+
+admin:
+  audit:
+    hmac-secret: ${ADMIN_AUDIT_HMAC_SECRET}
+

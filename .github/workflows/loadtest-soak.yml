@@ -1,0 +1,44 @@
+name: Dev Soak Load Test
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: dev-soak-loadtest
+  cancel-in-progress: false
+
+jobs:
+  soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run 100 VU soak test
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/loadtest:/scripts:ro" \
+            grafana/k6:latest run \
+            -e BASE_URL=https://api-dev.attune-me.com \
+            -e TEST_MODE=soak \
+            /scripts/attune.js
+
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ${{ secrets.DEV_EC2_USERNAME }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          command_timeout: 290m
+          script_stop: true
+          script: |
+            for iteration in $(seq 1 57); do
+              date --iso-8601=seconds
+              curl --silent http://127.0.0.1:8081/actuator/metrics/hikaricp.connections.active
+              curl --silent http://127.0.0.1:8081/actuator/metrics/hikaricp.connections.pending
+              curl --silent http://127.0.0.1:8081/actuator/metrics/jvm.memory.used
+              docker stats --no-stream attune-dev-apps
+              sleep 300
+            done
