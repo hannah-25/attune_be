@@ -6,9 +6,14 @@ spring:
     default: local
 
   # application-secret.yml import
+  # classpath: 로컬 개발용(src/main/resources 에 직접 둔 파일).
+  # file: 컨테이너 배포용. 배포 워크플로가 호스트에 내린 파일을 read-only 로 마운트한다.
+  #       시크릿을 이미지에 굽지 않기 위한 경로이므로 dev/prod 는 이쪽으로 주입된다.
+  #       파일이 없으면 datasource/admin.audit 등의 필수 값이 해석되지 않아 기동이 실패한다.
   config:
     import:
       - optional:classpath:application-secret.yml
+      - optional:file:/app/config/application-secret.yml
 
   jpa:
     open-in-view: false # OSIV 비활성화 (성능/안정성 향상)

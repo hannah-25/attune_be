@@ -59,7 +59,7 @@ cors:
 
 
 app:
-  frontend-url:
+  frontend-url: "https://attune-me.com"
 
 notification:
   push:
