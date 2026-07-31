@@ -32,6 +32,8 @@ class ManagementServerProfileConfigTest {
                 .isEqualTo("${MANAGEMENT_SERVER_ADDRESS:127.0.0.1}");
         assertThat(properties.getProperty("management.metrics.tags.environment"))
                 .isEqualTo("prod");
+        assertThat(properties.getProperty("spring.config.import"))
+                .isEqualTo("optional:file:/app/config/application-secret-prod.yml");
     }
 
     private Properties load(String path) {

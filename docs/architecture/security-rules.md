@@ -11,9 +11,9 @@
 
 ## 시크릿 / 환경 변수
 
-1. 모든 시크릿(JWT 키, VAPID 키, DB 비밀번호, Gemini 키, HMAC 시크릿)은 `application-secret.yml`(git 미추적) 또는 환경변수로 주입한다.
+1. 모든 시크릿(JWT 키, VAPID 키, DB 비밀번호, Gemini 키, HMAC 시크릿)은 git 미추적 `application-secret.yml`(local/dev) 또는 `application-secret-prod.yml`(prod), 혹은 환경변수로 주입한다.
 2. 시크릿을 **코드·문서·로그·테스트·커밋 메시지에 절대 쓰지 않는다.**
-3. CI는 `secrets.APPLICATION_SECRET_YML` 를 base64로 복원해 빌드 시점에만 사용한다.
+3. dev CI는 `secrets.APPLICATION_SECRET_YML`를 base64로 복원해 런타임 read-only 파일로 마운트한다. prod는 EC2의 `$HOME/attune/application-secret-prod.yml`을 직접 관리·마운트하며, 배포 워크플로는 해당 파일이 없으면 실패한다.
 4. 비밀이 아닌 값(예: web-push subject)은 공통 기본값으로 둘 수 있다.
 
 ## 데이터 보호
