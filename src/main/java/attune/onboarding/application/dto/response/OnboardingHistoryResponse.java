@@ -10,6 +10,7 @@ public record OnboardingHistoryResponse(List<HistoryRecord> records) {
             LocalDateTime doneAt,
             int inattentionScore,
             int hyperactivityScore,
-            int goalCount
+            int goalCount,
+            boolean isQuickOnboarding
     ) {}
 }
