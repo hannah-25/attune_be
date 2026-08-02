@@ -54,11 +54,19 @@ public class TodoService {
 
     @Transactional(readOnly = true)
     public TodoListResponse getTodosByDate(LocalDate date) {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        LocalDateTime startDate = date.atStartOfDay();
-        LocalDateTime endDate = date.plusDays(1).atStartOfDay();
+        return getTodosByDateRange(date, date);
+    }
 
-        List<TodoListItemResponse> todos = todoRepository.findAllByDate(userId, startDate, endDate)
+    @Transactional(readOnly = true)
+    public TodoListResponse getTodosByDateRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate.isAfter(endDate)) {
+            throw new BadRequestException("startDate는 endDate보다 늦을 수 없습니다.");
+        }
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        LocalDateTime startAt = startDate.atStartOfDay();
+        LocalDateTime endAt = endDate.plusDays(1).atStartOfDay();
+
+        List<TodoListItemResponse> todos = todoRepository.findAllByDate(userId, startAt, endAt)
                 .stream()
                 .map(TodoListItemResponse::from)
                 .toList();
