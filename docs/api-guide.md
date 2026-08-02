@@ -255,6 +255,14 @@ attempt 단위, 클라이언트 IP 단위, 전역 단위 rate limit 중 하나�
 
 ---
 
+## Todo
+
+### GET /v1/todos?date=YYYY-MM-DD 또는 ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+
+- `date`: 기존 단일 날짜 조회입니다.
+- `startDate`, `endDate`: 양 끝 날짜를 포함한 범위 조회입니다. 두 값은 함께 전달해야 하며 `startDate`는 `endDate`보다 늦을 수 없습니다.
+- 응답은 두 방식 모두 `todos` 배열과 동일한 TodoItem 형식을 반환합니다.
+
 ## Medication
 
 ### GET /v1/medications

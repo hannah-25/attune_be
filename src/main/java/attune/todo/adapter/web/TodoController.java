@@ -1,6 +1,7 @@
 package attune.todo.adapter.web;
 
 import attune.common.ApiVersion;
+import attune.common.error.BadRequestException;
 import attune.todo.application.TodoService;
 import attune.todo.application.dto.request.CreateTodoRequest;
 import attune.todo.application.dto.request.UpdateTodoRequest;
@@ -43,10 +44,21 @@ public class TodoController {
     @Operation(summary = "특정 일자 할 일 목록 조회")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
-    public ResponseEntity<TodoListResponse> getTodosByDate(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    public ResponseEntity<TodoListResponse> getTodos(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        return ResponseEntity.ok(todoService.getTodosByDate(date));
+        if (date != null) {
+            if (startDate != null || endDate != null) {
+                throw new BadRequestException("date와 startDate/endDate는 함께 사용할 수 없습니다.");
+            }
+            return ResponseEntity.ok(todoService.getTodosByDate(date));
+        }
+        if (startDate == null || endDate == null) {
+            throw new BadRequestException("date 또는 startDate와 endDate를 함께 입력해야 합니다.");
+        }
+        return ResponseEntity.ok(todoService.getTodosByDateRange(startDate, endDate));
     }
 
     @Operation(summary = "할 일 상세 조회")
